@@ -160,8 +160,7 @@ export const reprocessUpload = createServerFn({ method: "POST" })
       .eq("id", data.uploadId)
       .single();
     if (error || !row) throw new Error(error?.message ?? "upload not found");
-    // delegate by calling parseUpload's logic via direct invocation
-    const result = await (parseUpload as unknown as (args: { data: { uploadId: string; filePath: string } }) => Promise<unknown>)({
+    const result = await (parseUpload as unknown as (args: { data: { uploadId: string; filePath: string } }) => Promise<{ ok: boolean; upserted: number }>)({
       data: { uploadId: row.id, filePath: row.file_path },
     });
     return result;
