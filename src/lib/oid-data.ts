@@ -15,7 +15,7 @@ export const ORGS: {
   { id: "ZAD", abbr: "ZD", nameAr: "زاد للتنمية", nameEn: "Zad for Development", color: "#ea580c" },
   { id: "TAYO", abbr: "TY", nameAr: "تيو للتعليم", nameEn: "Tayo for Education", color: "#2563eb" },
   { id: "KAFI", abbr: "KF", nameAr: "كافي للتنمية", nameEn: "Kafi for Development", color: "#15803d" },
-  { id: "HAMDI", abbr: "HM", nameAr: "منظمة حمدي للرعاية والتنمية", nameEn: "Hamdi Organization", color: "#94a3b8" },
+  { id: "HAMDI", abbr: "HM", nameAr: "منظمة حمدي للتنمية", nameEn: "Hamdi Organization", color: "#94a3b8" },
 ];
 
 export const orgName = (id: OrgId) => ORGS.find((o) => o.id === id)?.nameAr ?? id;
@@ -26,7 +26,7 @@ export const orgOverallScores = [
   { id: "TAYO", name: "تيو للتعليم", score: 3.49, maturity: 3, govScore: 2.17, govPct: 43, color: "#2563eb" },
   { id: "ZF", name: "مؤسسة زمزم", score: 3.44, maturity: 3, govScore: 3.67, govPct: 73, color: "#d97706" },
   { id: "ZAD", name: "زاد للتنمية", score: 3.04, maturity: 3, govScore: 0.87, govPct: 17, color: "#ea580c" },
-  { id: "HAMDI", name: "منظمة حمدي", score: null, maturity: null, govScore: null, govPct: null, color: "#94a3b8", status: "pending" as const },
+  { id: "HAMDI", name: "منظمة حمدي للتنمية", score: null, maturity: null, govScore: null, govPct: null, color: "#94a3b8", status: "pending" as const },
 ];
 
 export const MATURITY_LABELS: Record<number, string> = {
@@ -296,7 +296,7 @@ export const institutions = [
   { id: "ZAD", abbr: "ZD", color: "#ea580c", nameAr: "زاد للتنمية", nameEn: "Zad for Development", founded: "20/12/2005", license: "MoIFAR/NGOD/0681", licenseExpiry: "23/10/2026", phone: "0615583258", email: "omar@zadsom.org", execAr: "عمر عبدالرزاق يوسف", staff: { m: 12, f: 2, total: 14 }, budget: 1800000, sector: "صحة وتعليم وتمكين اقتصادي", score: 3.04, govScore: 0.87, branches: "+ أكاديمية هالل الدولية", alerts: ["⚠️ الحوكمة: 17% — أولوية عاجلة"] },
   { id: "TAYO", abbr: "TY", color: "#2563eb", nameAr: "تيو للتعليم", nameEn: "Tayo for Education", founded: "05/09/2017", license: "/0123NGOD/MoIFAR", licenseExpiry: "21/02/2027", phone: "+252618454544", email: "tayoeducation7@gmail.com", execAr: "علي معلم حسن", staff: { m: 251, f: 38, total: 289 }, budget: 914668, sector: "تعليم أساسي وثانوي", score: 3.49, govScore: 2.17, branches: "10 مدارس — 7299 طالب", alerts: [] as string[] },
   { id: "KAFI", abbr: "KF", color: "#15803d", nameAr: "كافي للتنمية", nameEn: "Kafi for Development", founded: "01/02/2020", license: "508O/NGOD/MoIEAR", licenseExpiry: "07/10/2026", phone: "+252614293111", email: "info@kafii.org", execAr: "عبد الرحمن بشر السنوسي", staff: { m: 3, f: 1, total: 4 }, budget: 1423000, sector: "تنمية مجتمعية وتمويل أصغر", score: 4.06, govScore: 4.4, branches: "لا توجد فروع", alerts: [] as string[] },
-  { id: "HAMDI", abbr: "HM", color: "#94a3b8", nameAr: "منظمة حمدي للرعاية والتنمية", nameEn: "Hamdi Organization", founded: "مارس 1993", license: "0287/2020", licenseExpiry: "09/12/2021", phone: "+252615372878", email: "xordorg@gmail.com", execAr: "د. زعيمة عبد الله حاج عبد الله", staff: { m: 42, f: 17, total: 59 }, budget: 170000, sector: "تعليم وإغاثة", score: null, govScore: null, branches: "4 مدارس", dataStatus: "pending" as const, alerts: ["🔴 ترخيص منتهٍ منذ 2021 — يحتاج تجديداً فورياً (5,000$)", "⚠️ هيكل تنظيمي قديم — يحتاج تحديثاً"] },
+  { id: "HAMDI", abbr: "HM", color: "#94a3b8", nameAr: "منظمة حمدي للتنمية", nameEn: "Hamdi Organization", founded: "مارس 1993", license: "0287/2020", licenseExpiry: "09/12/2021", phone: "+252615372878", email: "xordorg@gmail.com", execAr: "د. زعيمة عبد الله حاج عبد الله", staff: { m: 42, f: 17, total: 59 }, budget: 170000, sector: "تعليم وإغاثة", score: null, govScore: null, branches: "4 مدارس", dataStatus: "pending" as const, alerts: ["🔴 ترخيص منتهٍ منذ 2021 — يحتاج تجديداً فورياً (5,000$)", "⚠️ هيكل تنظيمي قديم — يحتاج تحديثاً"] },
 ];
 
 export const initiatives = [

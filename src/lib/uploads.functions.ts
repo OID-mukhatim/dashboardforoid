@@ -31,6 +31,23 @@ function toStr(v: unknown): string | null {
   return s.length ? s : null;
 }
 
+// Map raw sheet/entity names (Arabic short or English variants) to canonical org IDs.
+const ENTITY_ALIASES: Array<{ id: string; name: string; patterns: RegExp[] }> = [
+  { id: "TAYO", name: "تيو للتعليم", patterns: [/تيو/, /tayo/i] },
+  { id: "KAFI", name: "كافي للتنمية", patterns: [/كافي/, /kafi/i] },
+  { id: "ZF", name: "مؤسسة زمزم", patterns: [/^\s*زمزم\s*$/, /مؤسسة\s*زمزم/, /zamzam\s*foundation/i, /^\s*zf\s*$/i] },
+  { id: "ZUST", name: "جامعة زمزم للعلوم والتكنولوجيا", patterns: [/جامعة\s*زمزم/, /zust/i] },
+  { id: "ZAD", name: "زاد للتنمية", patterns: [/^\s*زاد/, /\bzad\b/i] },
+  { id: "HAMDI", name: "منظمة حمدي للتنمية", patterns: [/حمدي/, /hamdi/i] },
+];
+function normalizeEntity(raw: string): { code: string; name: string } {
+  const s = (raw ?? "").trim();
+  for (const a of ENTITY_ALIASES) {
+    if (a.patterns.some((re) => re.test(s))) return { code: a.id, name: a.name };
+  }
+  return { code: s, name: s };
+}
+
 
 export const parseUpload = createServerFn({ method: "POST" })
   .inputValidator((input) =>
@@ -69,7 +86,9 @@ export const parseUpload = createServerFn({ method: "POST" })
       for (const sheetName of wb.SheetNames) {
         const ws = wb.Sheets[sheetName];
         const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
-        const entityCode = sheetName.trim();
+        const normalized = normalizeEntity(sheetName);
+        const entityCode = normalized.code;
+        const entityName = normalized.name;
         let kpiCount = 0;
         lastSector = null;
 
@@ -87,7 +106,7 @@ export const parseUpload = createServerFn({ method: "POST" })
           kpiRows.push({
             upload_id: data.uploadId,
             entity_code: entityCode,
-            entity_name: entityCode,
+            entity_name: entityName,
             sector: lastSector,
             objective: toStr(row[2]),
             kpi_code: code,
