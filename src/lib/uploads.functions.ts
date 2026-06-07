@@ -116,11 +116,20 @@ export const parseUpload = createServerFn({ method: "POST" })
         sheetsSummary.push({ name: sheetName, rows: aoa.length, kpis: kpiCount });
       }
 
+      // Deduplicate within the same file before upsert. PostgreSQL cannot update the
+      // same conflict key twice in one INSERT statement; the latest row in the file wins.
+      const uniqueRows = Array.from(
+        new Map(
+          kpiRows.map((row) => [JSON.stringify([row.entity_code, row.kpi_code, row.period]), row]),
+        ).values(),
+      );
+      const duplicateCount = kpiRows.length - uniqueRows.length;
+
       // Upsert in chunks on (entity_code, kpi_code, period) — re-uploads update existing rows.
       let upserted = 0;
       const chunk = 200;
-      for (let i = 0; i < kpiRows.length; i += chunk) {
-        const slice = kpiRows.slice(i, i + chunk);
+      for (let i = 0; i < uniqueRows.length; i += chunk) {
+        const slice = uniqueRows.slice(i, i + chunk);
         const { error } = await supabaseAdmin
           .from("kpis")
           .upsert(slice as never, { onConflict: "entity_code,kpi_code,period" });
@@ -133,7 +142,12 @@ export const parseUpload = createServerFn({ method: "POST" })
         .update({
           status: "processed",
           rows_extracted: upserted,
-          extracted_summary: { sheets: sheetsSummary, kpis_upserted: upserted } as unknown as never,
+          extracted_summary: {
+            sheets: sheetsSummary,
+            kpis_read: kpiRows.length,
+            kpis_upserted: upserted,
+            duplicates_merged: duplicateCount,
+          } as unknown as never,
           error_message: null,
         })
         .eq("id", data.uploadId);
@@ -160,7 +174,11 @@ export const reprocessUpload = createServerFn({ method: "POST" })
       .eq("id", data.uploadId)
       .single();
     if (error || !row) throw new Error(error?.message ?? "upload not found");
-    const result = await (parseUpload as unknown as (args: { data: { uploadId: string; filePath: string } }) => Promise<{ ok: boolean; upserted: number }>)({
+    const result = await (
+      parseUpload as unknown as (args: {
+        data: { uploadId: string; filePath: string };
+      }) => Promise<{ ok: boolean; upserted: number }>
+    )({
       data: { uploadId: row.id, filePath: row.file_path },
     });
     return result;
