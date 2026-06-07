@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Building2, Users, Heart, Coins, TrendingUp, BarChart3, Target, Handshake,
   Home, LineChart as LineChartIcon, FileText, Radar as RadarIcon, Landmark,
   Wallet, Building, Rocket, Upload, Settings, Bell, Download, Search,
-  ChevronRight, AlertTriangle, CheckCircle2, XCircle, Clock, Star,
+  ChevronRight, AlertTriangle, CheckCircle2, XCircle, Clock, Star, LogOut, Shield,
 } from "lucide-react";
 import {
   ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -71,6 +73,19 @@ function Page() {
 
 /* ============================== Header ============================== */
 function Header() {
+  const { user, isAdmin, roles } = useAuth();
+  const navigate = useNavigate();
+  async function signOut() {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
+  const roleLabel = roles.includes("admin")
+    ? "مدير عام"
+    : roles.includes("developer")
+    ? "مطور"
+    : roles.includes("viewer")
+    ? "مشاهد"
+    : "—";
   return (
     <header className="header-grad text-white shadow-lg">
       <div className="flex items-center justify-between px-6 py-4">
@@ -79,10 +94,23 @@ function Header() {
           <p className="text-xs text-white/70 font-serif mt-0.5">Oversight & Institutional Development — OID</p>
         </div>
         <div className="flex items-center gap-3">
+          {user && (
+            <div className="text-xs text-right">
+              <div className="opacity-90" dir="ltr">{user.email}</div>
+              <div className="opacity-70 text-[10px]">{roleLabel}</div>
+            </div>
+          )}
+          {isAdmin && (
+            <Link to="/users" className="p-2 rounded-lg hover:bg-white/15 transition" title="إدارة المستخدمين">
+              <Shield size={18} />
+            </Link>
+          )}
           <span className="text-xs px-2 py-1 rounded-md bg-white/15 border border-white/20">v1.0 — 2026</span>
-          <IconBtn icon={Settings} label="إعدادات" />
           <IconBtn icon={Download} label="تصدير PDF" onClick={() => window.print()} />
           <IconBtn icon={Bell} label="تنبيهات" badge={alerts.filter(a=>a.level==="danger").length} />
+          <button onClick={signOut} className="p-2 rounded-lg hover:bg-white/15 transition" title="خروج">
+            <LogOut size={18} />
+          </button>
         </div>
       </div>
     </header>
