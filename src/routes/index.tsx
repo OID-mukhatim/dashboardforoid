@@ -199,6 +199,8 @@ function DashboardSection() {
         <StatCard label="الشراكات الفاعلة" value="13+" sub="شراكات استراتيجية" icon={Handshake} accent="#0e4d2e" />
       </div>
 
+      <BSCPerformanceMap />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader title="خريطة الأداء عبر المحاور السبعة" subtitle="مقارنة المؤسسات على Radar Chart" />
@@ -238,7 +240,7 @@ function DashboardSection() {
         </Card>
       </div>
 
-      <BSCPerformanceMap />
+
 
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
