@@ -993,7 +993,7 @@ function InitiativesSection() {
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseUpload } from "@/lib/uploads.functions";
+import { parseUpload, reprocessUpload } from "@/lib/uploads.functions";
 import { useRef } from "react";
 
 const DATA_TYPES = ["الكل", "مؤشرات الأداء", "تقرير ربعي", "بيانات الفجوات", "بيانات الحوكمة", "البيانات المؤسسية", "التقرير المالي"];
