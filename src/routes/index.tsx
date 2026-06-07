@@ -993,7 +993,7 @@ function InitiativesSection() {
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseUpload } from "@/lib/uploads.functions";
+import { parseUpload, reprocessUpload } from "@/lib/uploads.functions";
 import { useRef } from "react";
 
 const DATA_TYPES = ["الكل", "مؤشرات الأداء", "تقرير ربعي", "بيانات الفجوات", "بيانات الحوكمة", "البيانات المؤسسية", "التقرير المالي"];
@@ -1008,7 +1008,21 @@ function UploadSection() {
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const parseFn = useServerFn(parseUpload);
+  const reprocessFn = useServerFn(reprocessUpload);
   const qc = useQueryClient();
+  const [reprocessing, setReprocessing] = useState<string | null>(null);
+
+  async function handleReprocess(id: string) {
+    setReprocessing(id); setMsg(null);
+    try {
+      const r = await reprocessFn({ data: { uploadId: id } }) as { upserted?: number };
+      setMsg({ kind: "ok", text: `أُعيدت المعالجة بنجاح — ${r.upserted ?? 0} مؤشر.` });
+      qc.invalidateQueries({ queryKey: ["uploads"] });
+      qc.invalidateQueries({ queryKey: ["kpis"] });
+    } catch (e) {
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : "فشلت إعادة المعالجة" });
+    } finally { setReprocessing(null); }
+  }
 
   const { data: rows = [] } = useQuery({
     queryKey: ["uploads"],
@@ -1121,7 +1135,7 @@ function UploadSection() {
                     <th className="p-2">الملف</th><th className="p-2">النوع</th>
                     <th className="p-2">المؤسسة</th><th className="p-2">الفترة</th>
                     <th className="p-2">الحالة</th><th className="p-2">صفوف</th>
-                    <th className="p-2">التاريخ</th>
+                    <th className="p-2">التاريخ</th><th className="p-2"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1141,7 +1155,17 @@ function UploadSection() {
                         </span>
                       </td>
                       <td className="p-2">{r.rows_extracted ?? 0}</td>
-                      <td className="p-2 text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString("ar")}</td>
+                      <td className="p-2 text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleString("ar")}</td>
+                      <td className="p-2">
+                        <button
+                          type="button"
+                          onClick={() => handleReprocess(r.id)}
+                          disabled={reprocessing === r.id}
+                          className="text-xs px-3 py-1 rounded-md border border-border hover:bg-primary hover:text-primary-foreground transition disabled:opacity-50"
+                        >
+                          {reprocessing === r.id ? "..." : "إعادة المعالجة"}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
