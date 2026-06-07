@@ -985,9 +985,13 @@ function UploadSection() {
     if (!files || files.length === 0) return;
     setBusy(true); setMsg(null);
     try {
+      const slug = (s: string) => {
+        const ascii = s.replace(/[^\w.\-]+/g, "_").replace(/^_+|_+$/g, "");
+        return ascii || `x${Math.random().toString(36).slice(2, 8)}`;
+      };
       for (const file of Array.from(files)) {
-        const safeName = file.name.replace(/[^\w.\-]+/g, "_");
-        const path = `${orgId}/${dataType}/${period}/${Date.now()}_${safeName}`;
+        const safeName = slug(file.name);
+        const path = `${slug(orgId)}/${slug(dataType)}/${slug(period)}/${Date.now()}_${safeName}`;
         const { error: upErr } = await supabase.storage.from("uploads").upload(path, file, {
           upsert: false, contentType: file.type || undefined,
         });
