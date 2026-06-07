@@ -1080,7 +1080,6 @@ function InitiativesSection() {
 }
 
 /* ============================ UPLOAD ============================ */
-import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseUpload, reprocessUpload } from "@/lib/uploads.functions";
