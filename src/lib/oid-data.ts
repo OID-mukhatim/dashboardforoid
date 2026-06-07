@@ -15,7 +15,7 @@ export const ORGS: {
   { id: "ZAD", abbr: "ZD", nameAr: "زاد للتنمية", nameEn: "Zad for Development", color: "#ea580c" },
   { id: "TAYO", abbr: "TY", nameAr: "تيو للتعليم", nameEn: "Tayo for Education", color: "#2563eb" },
   { id: "KAFI", abbr: "KF", nameAr: "كافي للتنمية", nameEn: "Kafi for Development", color: "#15803d" },
-  { id: "HAMDI", abbr: "HM", nameAr: "منظمة حمدي للرعاية والتنمية", nameEn: "Hamdi Organization", color: "#94a3b8" },
+  { id: "HAMDI", abbr: "HM", nameAr: "منظمة حمدي للتنمية", nameEn: "Hamdi Organization", color: "#94a3b8" },
 ];
 
 export const orgName = (id: OrgId) => ORGS.find((o) => o.id === id)?.nameAr ?? id;
