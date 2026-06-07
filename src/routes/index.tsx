@@ -1008,7 +1008,21 @@ function UploadSection() {
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const parseFn = useServerFn(parseUpload);
+  const reprocessFn = useServerFn(reprocessUpload);
   const qc = useQueryClient();
+  const [reprocessing, setReprocessing] = useState<string | null>(null);
+
+  async function handleReprocess(id: string) {
+    setReprocessing(id); setMsg(null);
+    try {
+      const r = await reprocessFn({ data: { uploadId: id } }) as { upserted?: number };
+      setMsg({ kind: "ok", text: `أُعيدت المعالجة بنجاح — ${r.upserted ?? 0} مؤشر.` });
+      qc.invalidateQueries({ queryKey: ["uploads"] });
+      qc.invalidateQueries({ queryKey: ["kpis"] });
+    } catch (e) {
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : "فشلت إعادة المعالجة" });
+    } finally { setReprocessing(null); }
+  }
 
   const { data: rows = [] } = useQuery({
     queryKey: ["uploads"],
