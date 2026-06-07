@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      kpis: {
+        Row: {
+          achievement_pct: number | null
+          annual_target: number | null
+          baseline: number | null
+          created_at: string
+          entity_code: string
+          entity_name: string | null
+          final_output: string | null
+          id: string
+          kpi_code: string
+          kpi_name: string | null
+          kpi_type: string | null
+          objective: string | null
+          overall_pct: number | null
+          period: string
+          q1_actual: number | null
+          q1_planned: number | null
+          q2_actual: number | null
+          q2_planned: number | null
+          q3_actual: number | null
+          q3_planned: number | null
+          q4_actual: number | null
+          q4_planned: number | null
+          raw: Json | null
+          sector: string | null
+          total_actual: number | null
+          total_planned: number | null
+          updated_at: string
+          upload_id: string | null
+          weight: number | null
+        }
+        Insert: {
+          achievement_pct?: number | null
+          annual_target?: number | null
+          baseline?: number | null
+          created_at?: string
+          entity_code: string
+          entity_name?: string | null
+          final_output?: string | null
+          id?: string
+          kpi_code: string
+          kpi_name?: string | null
+          kpi_type?: string | null
+          objective?: string | null
+          overall_pct?: number | null
+          period?: string
+          q1_actual?: number | null
+          q1_planned?: number | null
+          q2_actual?: number | null
+          q2_planned?: number | null
+          q3_actual?: number | null
+          q3_planned?: number | null
+          q4_actual?: number | null
+          q4_planned?: number | null
+          raw?: Json | null
+          sector?: string | null
+          total_actual?: number | null
+          total_planned?: number | null
+          updated_at?: string
+          upload_id?: string | null
+          weight?: number | null
+        }
+        Update: {
+          achievement_pct?: number | null
+          annual_target?: number | null
+          baseline?: number | null
+          created_at?: string
+          entity_code?: string
+          entity_name?: string | null
+          final_output?: string | null
+          id?: string
+          kpi_code?: string
+          kpi_name?: string | null
+          kpi_type?: string | null
+          objective?: string | null
+          overall_pct?: number | null
+          period?: string
+          q1_actual?: number | null
+          q1_planned?: number | null
+          q2_actual?: number | null
+          q2_planned?: number | null
+          q3_actual?: number | null
+          q3_planned?: number | null
+          q4_actual?: number | null
+          q4_planned?: number | null
+          raw?: Json | null
+          sector?: string | null
+          total_actual?: number | null
+          total_planned?: number | null
+          updated_at?: string
+          upload_id?: string | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpis_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       uploads: {
         Row: {
           created_at: string
