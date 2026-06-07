@@ -1035,7 +1035,9 @@ function BSCPerformanceMap() {
   });
 
   const entityMap = new Map<string, string>();
-  rows.forEach(r => { if (r.entity_code) entityMap.set(r.entity_code, r.entity_name ?? r.entity_code); });
+  // Seed with canonical org list so every entity shows even when no data uploaded yet
+  ORGS.forEach(o => entityMap.set(o.id, o.nameAr));
+  rows.forEach(r => { if (r.entity_code && !entityMap.has(r.entity_code)) entityMap.set(r.entity_code, r.entity_name ?? r.entity_code); });
   const allOrgs = Array.from(entityMap.entries()).map(([code, name]) => ({ code, name }));
 
   const [selected, setSelected] = useState<string[]>([]);
