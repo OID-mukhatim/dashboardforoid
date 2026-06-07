@@ -2,9 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listUsers, createUser, setUserRoles, deleteUser } from "@/lib/users.functions";
+import { listUsers, createUser, setUserRoles, deleteUser, resetUserPassword } from "@/lib/users.functions";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
-import { ArrowRight, Plus, Trash2, Shield, Loader2, X } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Shield, Loader2, X, KeyRound, Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/users")({
   ssr: false,
@@ -30,7 +30,9 @@ function UsersPage() {
   const create = useServerFn(createUser);
   const setRoles = useServerFn(setUserRoles);
   const del = useServerFn(deleteUser);
+  const resetPwd = useServerFn(resetUserPassword);
   const [showCreate, setShowCreate] = useState(false);
+  const [pwdTarget, setPwdTarget] = useState<{ id: string; email: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !isAdmin) navigate({ to: "/" });
@@ -128,14 +130,24 @@ function UsersPage() {
                       {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString("ar-EG") : "—"}
                     </td>
                     <td className="p-3">
-                      <button
-                        onClick={() => {
-                          if (confirm(`حذف ${u.email}؟`)) delM.mutate(u.id);
-                        }}
-                        className="text-red-600 hover:bg-red-50 p-1.5 rounded"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => setPwdTarget({ id: u.id, email: u.email })}
+                          className="text-blue-600 hover:bg-blue-50 p-1.5 rounded"
+                          title="تغيير كلمة المرور"
+                        >
+                          <KeyRound size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`حذف ${u.email}؟`)) delM.mutate(u.id);
+                          }}
+                          className="text-red-600 hover:bg-red-50 p-1.5 rounded"
+                          title="حذف"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -154,6 +166,17 @@ function UsersPage() {
           onSubmit={(v) => createM.mutate(v)}
           busy={createM.isPending}
           error={createM.error?.message}
+        />
+      )}
+
+      {pwdTarget && (
+        <ResetPasswordModal
+          email={pwdTarget.email}
+          onClose={() => setPwdTarget(null)}
+          onSubmit={async (password) => {
+            await resetPwd({ data: { userId: pwdTarget.id, password } });
+            setPwdTarget(null);
+          }}
         />
       )}
     </div>
@@ -226,6 +249,82 @@ function CreateUserModal({
               className="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-sm disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {busy && <Loader2 size={14} className="animate-spin" />} إنشاء
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ResetPasswordModal({
+  email, onClose, onSubmit,
+}: {
+  email: string;
+  onClose: () => void;
+  onSubmit: (password: string) => Promise<void>;
+}) {
+  const [password, setPassword] = useState("");
+  const [show, setShow] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generate = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
+    let p = "";
+    for (let i = 0; i < 12; i++) p += chars[Math.floor(Math.random() * chars.length)];
+    setPassword(p);
+    setShow(true);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold">تغيير كلمة المرور</h3>
+          <button onClick={onClose}><X size={18} /></button>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">المستخدم: <span dir="ltr" className="font-mono">{email}</span></p>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true); setError(null);
+            try { await onSubmit(password); }
+            catch (err: any) { setError(err.message ?? "خطأ"); setBusy(false); }
+          }}
+          className="space-y-3"
+        >
+          <div>
+            <label className="text-xs block mb-1">كلمة المرور الجديدة (8 أحرف على الأقل)</label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={show ? "text" : "password"} required minLength={8}
+                  value={password} onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3 py-2 pr-9 border border-input rounded-lg text-sm font-mono" dir="ltr"
+                />
+                <button type="button" onClick={() => setShow(!show)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  {show ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <button type="button" onClick={generate}
+                className="px-3 py-2 text-xs border border-border rounded-lg hover:bg-muted whitespace-nowrap">
+                توليد
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              ⚠️ كلمات المرور مشفرة ولا يمكن استرجاع الكلمة الحالية. يمكنك فقط تعيين كلمة جديدة.
+            </p>
+          </div>
+          {error && <div className="text-xs text-red-600 bg-red-50 p-2 rounded">{error}</div>}
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 py-2 border border-border rounded-lg text-sm">
+              إلغاء
+            </button>
+            <button type="submit" disabled={busy || password.length < 8}
+              className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm disabled:opacity-60 flex items-center justify-center gap-2">
+              {busy && <Loader2 size={14} className="animate-spin" />} حفظ
             </button>
           </div>
         </form>
