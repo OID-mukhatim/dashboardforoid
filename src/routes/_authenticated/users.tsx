@@ -30,7 +30,9 @@ function UsersPage() {
   const create = useServerFn(createUser);
   const setRoles = useServerFn(setUserRoles);
   const del = useServerFn(deleteUser);
+  const resetPwd = useServerFn(resetUserPassword);
   const [showCreate, setShowCreate] = useState(false);
+  const [pwdTarget, setPwdTarget] = useState<{ id: string; email: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !isAdmin) navigate({ to: "/" });
