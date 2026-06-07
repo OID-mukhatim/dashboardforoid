@@ -130,14 +130,24 @@ function UsersPage() {
                       {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString("ar-EG") : "—"}
                     </td>
                     <td className="p-3">
-                      <button
-                        onClick={() => {
-                          if (confirm(`حذف ${u.email}؟`)) delM.mutate(u.id);
-                        }}
-                        className="text-red-600 hover:bg-red-50 p-1.5 rounded"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => setPwdTarget({ id: u.id, email: u.email })}
+                          className="text-blue-600 hover:bg-blue-50 p-1.5 rounded"
+                          title="تغيير كلمة المرور"
+                        >
+                          <KeyRound size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`حذف ${u.email}؟`)) delM.mutate(u.id);
+                          }}
+                          className="text-red-600 hover:bg-red-50 p-1.5 rounded"
+                          title="حذف"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
