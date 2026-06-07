@@ -947,39 +947,163 @@ function InitiativesSection() {
 }
 
 /* ============================ UPLOAD ============================ */
+import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { parseUpload } from "@/lib/uploads.functions";
+import { useRef } from "react";
+
+const DATA_TYPES = ["الكل", "مؤشرات الأداء", "تقرير ربعي", "بيانات الفجوات", "بيانات الحوكمة", "البيانات المؤسسية", "التقرير المالي"];
+const PERIODS = ["الكل", "Q1 2026", "Q2 2026", "Q3 2026", "Q4 2026", "سنوي 2026"];
+
 function UploadSection() {
   const [dragging, setDragging] = useState(false);
+  const [dataType, setDataType] = useState("الكل");
+  const [orgId, setOrgId] = useState<string>("الكل");
+  const [period, setPeriod] = useState("الكل");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const parseFn = useServerFn(parseUpload);
+  const qc = useQueryClient();
+
+  const { data: rows = [] } = useQuery({
+    queryKey: ["uploads"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("uploads")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 5000,
+  });
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setBusy(true); setMsg(null);
+    try {
+      for (const file of Array.from(files)) {
+        const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+        const path = `${orgId}/${dataType}/${period}/${Date.now()}_${safeName}`;
+        const { error: upErr } = await supabase.storage.from("uploads").upload(path, file, {
+          upsert: false, contentType: file.type || undefined,
+        });
+        if (upErr) throw upErr;
+
+        const { data: row, error: insErr } = await supabase.from("uploads").insert({
+          file_name: file.name, file_path: path, file_size: file.size,
+          mime_type: file.type || null, data_type: dataType, org_id: orgId, period, status: "uploaded",
+        }).select("id").single();
+        if (insErr) throw insErr;
+
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        if (ext === "xlsx" || ext === "xls" || ext === "csv") {
+          await parseFn({ data: { uploadId: row.id, filePath: path } }).catch(() => {});
+        }
+      }
+      setMsg({ kind: "ok", text: `تم رفع ${files.length} ملف بنجاح ومعالجتها.` });
+      qc.invalidateQueries({ queryKey: ["uploads"] });
+    } catch (e) {
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : "فشل الرفع" });
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  const orgOptions = ["الكل", ...ORGS.map(o => o.id)];
+
   return (
     <div className="space-y-6">
-      <SectionTitle title="رفع البيانات وتحديثها" subtitle="ملفات Excel / CSV / PDF" />
+      <SectionTitle title="رفع البيانات وتحديثها" subtitle="ملفات Excel / CSV / PDF — يدعم الرفع العام عبر خيار «الكل»" />
 
       <Card>
         <CardHeader title="منطقة الرفع" />
         <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <Select value={dataType} onChange={setDataType} options={DATA_TYPES} label="نوع البيانات" />
+            <Select value={orgId} onChange={setOrgId} options={orgOptions} label="المؤسسة" />
+            <Select value={period} onChange={setPeriod} options={PERIODS} label="الفترة" />
+          </div>
+
+          <input
+            ref={inputRef} type="file" multiple
+            accept=".xlsx,.xls,.csv,.pdf"
+            className="hidden"
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+
           <div
             onDragOver={(e)=>{e.preventDefault();setDragging(true);}}
             onDragLeave={()=>setDragging(false)}
-            onDrop={(e)=>{e.preventDefault();setDragging(false);}}
-            className={`border-2 border-dashed rounded-xl p-10 text-center transition ${dragging?"border-primary bg-primary/5":"border-border bg-muted/20"}`}
+            onDrop={(e)=>{e.preventDefault();setDragging(false);handleFiles(e.dataTransfer.files);}}
+            onClick={() => !busy && inputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition ${dragging?"border-primary bg-primary/5":"border-border bg-muted/20 hover:bg-muted/40"} ${busy?"opacity-60 pointer-events-none":""}`}
           >
             <Upload className="mx-auto mb-3 text-primary" size={32} />
-            <div className="font-bold mb-1">اسحب وأفلت الملفات هنا</div>
+            <div className="font-bold mb-1">{busy ? "جاري الرفع والمعالجة..." : "اسحب وأفلت الملفات هنا"}</div>
             <div className="text-xs text-muted-foreground mb-4">أو اضغط للاختيار — .xlsx / .xls / .csv / .pdf</div>
-            <button className="text-sm px-4 py-2 rounded-md bg-primary text-primary-foreground">اختيار ملفات</button>
+            <button type="button" className="text-sm px-4 py-2 rounded-md bg-primary text-primary-foreground" disabled={busy}>
+              {busy ? "..." : "اختيار ملفات"}
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-            <Select value="مؤشرات الأداء" onChange={()=>{}} options={["مؤشرات الأداء","تقرير ربعي","بيانات الفجوات","بيانات الحوكمة","البيانات المؤسسية","التقرير المالي"]} label="نوع البيانات" />
-            <Select value={ORGS[0].id} onChange={()=>{}} options={ORGS.map(o=>o.id)} label="المؤسسة" />
-            <Select value="Q1 2026" onChange={()=>{}} options={["Q1 2026","Q2 2026","Q3 2026","Q4 2026"]} label="الفترة" />
+          {msg && (
+            <div className={`mt-4 text-sm p-3 rounded-md ${msg.kind==="ok"?"bg-emerald-500/10 text-emerald-700":"bg-rose-500/10 text-rose-700"}`}>
+              {msg.text}
+            </div>
+          )}
+
+          <div className="text-xs text-muted-foreground mt-4">
+            💡 اختر «الكل» لأي حقل لرفع بيانات عامة غير مرتبطة بفلتر محدد. الملفات بصيغة Excel/CSV تُحلَّل تلقائياً ويُستخرج عدد الصفوف وأسماء الأعمدة.
           </div>
         </div>
       </Card>
 
       <Card>
         <CardHeader title="سجل التحديثات الأخيرة" />
-        <div className="p-5"><EmptyData msg="لا توجد ملفات مرفوعة بعد" /></div>
+        <div className="p-5">
+          {rows.length === 0 ? <EmptyData msg="لا توجد ملفات مرفوعة بعد" /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-right border-b">
+                    <th className="p-2">الملف</th><th className="p-2">النوع</th>
+                    <th className="p-2">المؤسسة</th><th className="p-2">الفترة</th>
+                    <th className="p-2">الحالة</th><th className="p-2">صفوف</th>
+                    <th className="p-2">التاريخ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r: any) => (
+                    <tr key={r.id} className="border-b hover:bg-muted/30">
+                      <td className="p-2 font-medium truncate max-w-[200px]">{r.file_name}</td>
+                      <td className="p-2">{r.data_type}</td>
+                      <td className="p-2">{r.org_id}</td>
+                      <td className="p-2">{r.period}</td>
+                      <td className="p-2">
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          r.status==="processed"?"bg-emerald-500/10 text-emerald-700":
+                          r.status==="error"?"bg-rose-500/10 text-rose-700":
+                          "bg-amber-500/10 text-amber-700"
+                        }`}>
+                          {r.status==="processed"?"مُعالج":r.status==="error"?"خطأ":"قيد المعالجة"}
+                        </span>
+                      </td>
+                      <td className="p-2">{r.rows_extracted ?? 0}</td>
+                      <td className="p-2 text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString("ar")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </Card>
     </div>
   );
 }
+
