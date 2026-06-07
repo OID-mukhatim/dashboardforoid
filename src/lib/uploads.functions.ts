@@ -86,7 +86,9 @@ export const parseUpload = createServerFn({ method: "POST" })
       for (const sheetName of wb.SheetNames) {
         const ws = wb.Sheets[sheetName];
         const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
-        const entityCode = sheetName.trim();
+        const normalized = normalizeEntity(sheetName);
+        const entityCode = normalized.code;
+        const entityName = normalized.name;
         let kpiCount = 0;
         lastSector = null;
 
@@ -104,7 +106,7 @@ export const parseUpload = createServerFn({ method: "POST" })
           kpiRows.push({
             upload_id: data.uploadId,
             entity_code: entityCode,
-            entity_name: entityCode,
+            entity_name: entityName,
             sector: lastSector,
             objective: toStr(row[2]),
             kpi_code: code,
