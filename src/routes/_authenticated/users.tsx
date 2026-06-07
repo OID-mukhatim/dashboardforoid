@@ -168,6 +168,17 @@ function UsersPage() {
           error={createM.error?.message}
         />
       )}
+
+      {pwdTarget && (
+        <ResetPasswordModal
+          email={pwdTarget.email}
+          onClose={() => setPwdTarget(null)}
+          onSubmit={async (password) => {
+            await resetPwd({ data: { userId: pwdTarget.id, password } });
+            setPwdTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 }
