@@ -199,6 +199,8 @@ function DashboardSection() {
         <StatCard label="الشراكات الفاعلة" value="13+" sub="شراكات استراتيجية" icon={Handshake} accent="#0e4d2e" />
       </div>
 
+      <BSCPerformanceMap />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader title="خريطة الأداء عبر المحاور السبعة" subtitle="مقارنة المؤسسات على Radar Chart" />
@@ -238,7 +240,7 @@ function DashboardSection() {
         </Card>
       </div>
 
-      <BSCPerformanceMap />
+
 
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -322,7 +324,7 @@ function KPIsSection() {
 
   const normalized = rows.map(r => ({ ...r, sector: normSector(r.sector) || null }));
 
-  const entities = Array.from(new Set(normalized.map(r => r.entity_code))).filter(Boolean);
+  const entities = Array.from(new Set([...ORGS.map(o => o.id), ...normalized.map(r => r.entity_code).filter(Boolean)])) as string[];
   const orgScoped = orgF === "الكل" ? normalized : normalized.filter(r => r.entity_code === orgF);
   const sectors = Array.from(new Set(orgScoped.map(r => r.sector).filter(Boolean))) as string[];
 
@@ -1033,7 +1035,9 @@ function BSCPerformanceMap() {
   });
 
   const entityMap = new Map<string, string>();
-  rows.forEach(r => { if (r.entity_code) entityMap.set(r.entity_code, r.entity_name ?? r.entity_code); });
+  // Seed with canonical org list so every entity shows even when no data uploaded yet
+  ORGS.forEach(o => entityMap.set(o.id, o.nameAr));
+  rows.forEach(r => { if (r.entity_code && !entityMap.has(r.entity_code)) entityMap.set(r.entity_code, r.entity_name ?? r.entity_code); });
   const allOrgs = Array.from(entityMap.entries()).map(([code, name]) => ({ code, name }));
 
   const [selected, setSelected] = useState<string[]>([]);
