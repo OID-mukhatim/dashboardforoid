@@ -1135,11 +1135,48 @@ function UploadSection() {
                     <th className="p-2">الملف</th><th className="p-2">النوع</th>
                     <th className="p-2">المؤسسة</th><th className="p-2">الفترة</th>
                     <th className="p-2">الحالة</th><th className="p-2">صفوف</th>
-                    <th className="p-2">التاريخ</th>
+                    <th className="p-2">التاريخ</th><th className="p-2"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r: any) => (
+                    <tr key={r.id} className="border-b hover:bg-muted/30">
+                      <td className="p-2 font-medium truncate max-w-[200px]">{r.file_name}</td>
+                      <td className="p-2">{r.data_type}</td>
+                      <td className="p-2">{r.org_id}</td>
+                      <td className="p-2">{r.period}</td>
+                      <td className="p-2">
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          r.status==="processed"?"bg-emerald-500/10 text-emerald-700":
+                          r.status==="error"?"bg-rose-500/10 text-rose-700":
+                          "bg-amber-500/10 text-amber-700"
+                        }`}>
+                          {r.status==="processed"?"مُعالج":r.status==="error"?"خطأ":"قيد المعالجة"}
+                        </span>
+                      </td>
+                      <td className="p-2">{r.rows_extracted ?? 0}</td>
+                      <td className="p-2 text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleString("ar")}</td>
+                      <td className="p-2">
+                        <button
+                          type="button"
+                          onClick={() => handleReprocess(r.id)}
+                          disabled={reprocessing === r.id}
+                          className="text-xs px-3 py-1 rounded-md border border-border hover:bg-primary hover:text-primary-foreground transition disabled:opacity-50"
+                        >
+                          {reprocessing === r.id ? "..." : "إعادة المعالجة"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}
                     <tr key={r.id} className="border-b hover:bg-muted/30">
                       <td className="p-2 font-medium truncate max-w-[200px]">{r.file_name}</td>
                       <td className="p-2">{r.data_type}</td>
