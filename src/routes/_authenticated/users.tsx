@@ -256,3 +256,79 @@ function CreateUserModal({
     </div>
   );
 }
+
+function ResetPasswordModal({
+  email, onClose, onSubmit,
+}: {
+  email: string;
+  onClose: () => void;
+  onSubmit: (password: string) => Promise<void>;
+}) {
+  const [password, setPassword] = useState("");
+  const [show, setShow] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generate = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
+    let p = "";
+    for (let i = 0; i < 12; i++) p += chars[Math.floor(Math.random() * chars.length)];
+    setPassword(p);
+    setShow(true);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold">تغيير كلمة المرور</h3>
+          <button onClick={onClose}><X size={18} /></button>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">المستخدم: <span dir="ltr" className="font-mono">{email}</span></p>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true); setError(null);
+            try { await onSubmit(password); }
+            catch (err: any) { setError(err.message ?? "خطأ"); setBusy(false); }
+          }}
+          className="space-y-3"
+        >
+          <div>
+            <label className="text-xs block mb-1">كلمة المرور الجديدة (8 أحرف على الأقل)</label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={show ? "text" : "password"} required minLength={8}
+                  value={password} onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3 py-2 pr-9 border border-input rounded-lg text-sm font-mono" dir="ltr"
+                />
+                <button type="button" onClick={() => setShow(!show)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  {show ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <button type="button" onClick={generate}
+                className="px-3 py-2 text-xs border border-border rounded-lg hover:bg-muted whitespace-nowrap">
+                توليد
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              ⚠️ كلمات المرور مشفرة ولا يمكن استرجاع الكلمة الحالية. يمكنك فقط تعيين كلمة جديدة.
+            </p>
+          </div>
+          {error && <div className="text-xs text-red-600 bg-red-50 p-2 rounded">{error}</div>}
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 py-2 border border-border rounded-lg text-sm">
+              إلغاء
+            </button>
+            <button type="submit" disabled={busy || password.length < 8}
+              className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm disabled:opacity-60 flex items-center justify-center gap-2">
+              {busy && <Loader2 size={14} className="animate-spin" />} حفظ
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
