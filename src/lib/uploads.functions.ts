@@ -27,9 +27,10 @@ function toNum(v: unknown): number | null {
 }
 function toStr(v: unknown): string | null {
   if (v === null || v === undefined) return null;
-  const s = String(v).trim();
+  const s = String(v).replace(/\s+/g, " ").trim();
   return s.length ? s : null;
 }
+
 
 export const parseUpload = createServerFn({ method: "POST" })
   .inputValidator((input) =>
