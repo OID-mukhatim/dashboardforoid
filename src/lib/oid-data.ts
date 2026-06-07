@@ -26,7 +26,7 @@ export const orgOverallScores = [
   { id: "TAYO", name: "تيو للتعليم", score: 3.49, maturity: 3, govScore: 2.17, govPct: 43, color: "#2563eb" },
   { id: "ZF", name: "مؤسسة زمزم", score: 3.44, maturity: 3, govScore: 3.67, govPct: 73, color: "#d97706" },
   { id: "ZAD", name: "زاد للتنمية", score: 3.04, maturity: 3, govScore: 0.87, govPct: 17, color: "#ea580c" },
-  { id: "HAMDI", name: "منظمة حمدي", score: null, maturity: null, govScore: null, govPct: null, color: "#94a3b8", status: "pending" as const },
+  { id: "HAMDI", name: "منظمة حمدي للتنمية", score: null, maturity: null, govScore: null, govPct: null, color: "#94a3b8", status: "pending" as const },
 ];
 
 export const MATURITY_LABELS: Record<number, string> = {
