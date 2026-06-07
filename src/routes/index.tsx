@@ -238,6 +238,9 @@ function DashboardSection() {
         </Card>
       </div>
 
+      <BSCPerformanceMap />
+
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
           <CardHeader title="لوحة التنبيهات" subtitle="أبرز الأحداث الحرجة عبر الشبكة" />
@@ -1002,6 +1005,172 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseUpload, reprocessUpload } from "@/lib/uploads.functions";
 import { useRef } from "react";
+
+/* ============================ BSC Performance Map ============================ */
+const BSC_PERSPECTIVES: { key: string; label: string; aliases: string[]; color: string; icon: string }[] = [
+  { key: "financial",   label: "المنظور المالي",          aliases: ["المالي", "النتائج المالية", "الموارد المالية"], color: "#7c3aed", icon: "💰" },
+  { key: "stakeholder", label: "منظور أصحاب المصلحة",     aliases: ["أصحاب المصلحة", "المستفيدين", "العملاء", "الشركاء"], color: "#0e7490", icon: "🤝" },
+  { key: "internal",    label: "منظور العمليات الداخلية", aliases: ["العمليات الداخلية", "العمليات"], color: "#15803d", icon: "⚙️" },
+  { key: "learning",    label: "منظور التعلم والنمو",      aliases: ["التعلم والنمو", "التعلم", "النمو", "التطوير"], color: "#d97706", icon: "🌱" },
+];
+
+function matchPerspective(sector: string | null | undefined): string | null {
+  if (!sector) return null;
+  const s = sector.replace(/\s+/g, " ").trim();
+  for (const p of BSC_PERSPECTIVES) if (p.aliases.some(a => s.includes(a))) return p.key;
+  return null;
+}
+
+function BSCPerformanceMap() {
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["kpis"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("kpis").select("entity_code, entity_name, sector, achievement_pct, weight");
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 5000,
+  });
+
+  const entityMap = new Map<string, string>();
+  rows.forEach(r => { if (r.entity_code) entityMap.set(r.entity_code, r.entity_name ?? r.entity_code); });
+  const allOrgs = Array.from(entityMap.entries()).map(([code, name]) => ({ code, name }));
+
+  const [selected, setSelected] = useState<string[]>([]);
+  const activeOrgs = selected.length ? selected : allOrgs.map(o => o.code);
+
+  const palette = ["#1558a0", "#0e7490", "#15803d", "#d97706", "#9333ea", "#dc2626", "#0891b2", "#be185d"];
+  const colorFor = (code: string) => palette[Math.max(0, allOrgs.findIndex(o => o.code === code)) % palette.length];
+
+  const toggle = (code: string) => setSelected(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
+
+  // perspective → org → { avg, count }
+  const matrix = BSC_PERSPECTIVES.map(p => {
+    const orgStats = activeOrgs.map(code => {
+      const items = rows.filter(r => r.entity_code === code && matchPerspective(r.sector) === p.key);
+      const vals = items.map(r => {
+        const n = Number(r.achievement_pct ?? 0);
+        return Number.isFinite(n) ? (n <= 1 ? n * 100 : n) : 0;
+      });
+      const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+      return { code, name: entityMap.get(code) ?? code, count: items.length, avg: Math.round(avg) };
+    });
+    return { ...p, orgStats };
+  });
+
+  return (
+    <Card>
+      <CardHeader
+        title="خريطة الأداء — بطاقة الأداء المتوازن (BSC)"
+        subtitle="مقارنة المؤسسات عبر المناظير الأربعة لبطاقة الأداء المتوازن"
+        action={
+          <div className="flex items-center gap-1.5 flex-wrap justify-end max-w-md">
+            <button
+              onClick={() => setSelected([])}
+              className={`text-xs px-2.5 py-1 rounded-full border transition ${selected.length === 0 ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border hover:bg-muted/70"}`}
+            >الكل</button>
+            {allOrgs.map(o => {
+              const active = selected.includes(o.code);
+              const c = colorFor(o.code);
+              return (
+                <button
+                  key={o.code}
+                  onClick={() => toggle(o.code)}
+                  className="text-xs px-2.5 py-1 rounded-full border transition flex items-center gap-1.5"
+                  style={ active
+                    ? { background: c, color: "#fff", borderColor: c }
+                    : { background: "transparent", color: c, borderColor: `${c}55` }
+                  }
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: active ? "#fff" : c }} />
+                  {o.name}
+                </button>
+              );
+            })}
+          </div>
+        }
+      />
+      <div className="p-5">
+        {isLoading ? (
+          <div className="text-center text-sm text-muted-foreground py-8">جاري التحميل…</div>
+        ) : allOrgs.length === 0 ? (
+          <EmptyData msg="لا توجد بيانات KPIs بعد — ارفع ملفًا من قسم رفع البيانات." />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {matrix.map((p) => (
+              <div
+                key={p.key}
+                className="relative rounded-xl border border-border p-4 overflow-hidden"
+                style={{ background: `linear-gradient(135deg, ${p.color}08, transparent 70%)` }}
+              >
+                <div className="absolute top-0 right-0 w-1 h-full" style={{ background: p.color }} />
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{p.icon}</span>
+                    <div>
+                      <div className="font-bold text-sm" style={{ color: p.color }}>{p.label}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {p.orgStats.reduce((a, b) => a + b.count, 0)} مؤشر · {p.orgStats.filter(s => s.count > 0).length} مؤسسة
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {p.orgStats.map(s => {
+                    const c = colorFor(s.code);
+                    return (
+                      <div key={s.code}>
+                        <div className="flex items-center justify-between text-[11px] mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full" style={{ background: c }} />
+                            <span className="font-medium">{s.name}</span>
+                            <span className="text-muted-foreground">({s.count})</span>
+                          </span>
+                          <span className="tabular-nums font-bold" style={{ color: s.count ? c : "#9ca3af" }}>
+                            {s.count ? `${s.avg}%` : "—"}
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all"
+                            style={{ width: `${Math.min(100, s.avg)}%`, background: c, opacity: s.count ? 1 : 0.2 }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {p.orgStats.length === 0 && (
+                    <div className="text-xs text-muted-foreground text-center py-2">اختر مؤسسة على الأقل</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isLoading && allOrgs.length > 0 && (
+          <div className="mt-5 pt-4 border-t border-border">
+            <div className="text-xs text-muted-foreground mb-2">مقارنة إجمالية (متوسط جميع المناظير)</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {activeOrgs.map(code => {
+                const scores = matrix.map(p => p.orgStats.find(s => s.code === code)).filter((s): s is NonNullable<typeof s> => !!s && s.count > 0);
+                const overall = scores.length ? Math.round(scores.reduce((a, b) => a + b.avg, 0) / scores.length) : 0;
+                const c = colorFor(code);
+                return (
+                  <div key={code} className="border border-border rounded-lg p-3 text-center" style={{ borderTopColor: c, borderTopWidth: 3 }}>
+                    <div className="text-xs text-muted-foreground mb-1 truncate">{entityMap.get(code) ?? code}</div>
+                    <div className="text-2xl font-bold tabular-nums" style={{ color: c }}>{overall}%</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+
 
 const DATA_TYPES = ["الكل", "مؤشرات الأداء", "تقرير ربعي", "بيانات الفجوات", "بيانات الحوكمة", "البيانات المؤسسية", "التقرير المالي"];
 const PERIODS = ["الكل", "Q1 2026", "Q2 2026", "Q3 2026", "Q4 2026", "سنوي 2026"];
