@@ -121,8 +121,7 @@ export const parseUpload = createServerFn({ method: "POST" })
       const uniqueRows = Array.from(
         new Map(
           kpiRows.map((row) => [
-            JSON.stringify([row.entity_code, row.kpi_code, row.period]),
-            row,
+            JSON.stringify([row.entity_code, row.kpi_code, row.period]), row
           ]),
         ).values(),
       );
@@ -177,7 +176,11 @@ export const reprocessUpload = createServerFn({ method: "POST" })
       .eq("id", data.uploadId)
       .single();
     if (error || !row) throw new Error(error?.message ?? "upload not found");
-    const result = await (parseUpload as unknown as (args: { data: { uploadId: string; filePath: string } }) => Promise<{ ok: boolean; upserted: number }>)({
+    const result = await (
+      parseUpload as unknown as (args: {
+        data: { uploadId: string; filePath: string };
+      }) => Promise<{ ok: boolean; upserted: number }>
+    )({
       data: { uploadId: row.id, filePath: row.file_path },
     });
     return result;
