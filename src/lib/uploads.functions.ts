@@ -1,10 +1,36 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-/**
- * Parse an uploaded Excel/CSV file from the 'uploads' bucket and update
- * the corresponding row in public.uploads with an extracted summary.
- */
+// Column index mapping from the KPI template (row 3 is header):
+// 0: م (row number)  — sheet header is "مكتب الإشراف..."
+// 1: المنظور (sector)
+// 2: الهدف (objective)
+// 3: مؤشر الأداء (kpi_name)
+// 4: الكود (kpi_code)
+// 5: النوع (kpi_type)
+// 6: الوزن (weight)
+// 7: خط الأساس (baseline)
+// 8: المستهدف السنوي (annual_target)
+// 9-12: Q1..Q4 planned
+// 13: total_planned
+// 14-17: Q1..Q4 actual
+// 18: total_actual
+// 19: another total
+// 20: achievement_pct
+// 21: overall_pct
+// 22: final_output
+
+function toNum(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = typeof v === "number" ? v : Number(String(v).replace(/[,%\s]/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+function toStr(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  return s.length ? s : null;
+}
+
 export const parseUpload = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({ uploadId: z.string().uuid(), filePath: z.string().min(1) }).parse(input),
@@ -12,6 +38,13 @@ export const parseUpload = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const XLSX = await import("xlsx");
+
+    const { data: uploadRow } = await supabaseAdmin
+      .from("uploads")
+      .select("period")
+      .eq("id", data.uploadId)
+      .maybeSingle();
+    const period = uploadRow?.period ?? "all";
 
     const { data: file, error: dlErr } = await supabaseAdmin.storage
       .from("uploads")
@@ -27,26 +60,85 @@ export const parseUpload = createServerFn({ method: "POST" })
     try {
       const buf = new Uint8Array(await file.arrayBuffer());
       const wb = XLSX.read(buf, { type: "array" });
-      const sheets = wb.SheetNames.map((name) => {
-        const ws = wb.Sheets[name];
-        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null });
-        const headers = rows.length ? Object.keys(rows[0]) : [];
-        return { name, rowCount: rows.length, headers, sample: rows.slice(0, 5) };
-      });
-      const totalRows = sheets.reduce((acc, s) => acc + s.rowCount, 0);
+
+      let lastSector: string | null = null;
+      const kpiRows: Array<Record<string, unknown>> = [];
+      const sheetsSummary: Array<{ name: string; rows: number; kpis: number }> = [];
+
+      for (const sheetName of wb.SheetNames) {
+        const ws = wb.Sheets[sheetName];
+        const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
+        const entityCode = sheetName.trim();
+        let kpiCount = 0;
+        lastSector = null;
+
+        for (const row of aoa) {
+          if (!Array.isArray(row)) continue;
+          const code = toStr(row[4]);
+          const name = toStr(row[3]);
+          // skip header / non-data rows
+          if (!code || !name) continue;
+          if (code === "الكود ID" || code === "الكود") continue;
+
+          const sector = toStr(row[1]);
+          if (sector) lastSector = sector;
+
+          kpiRows.push({
+            upload_id: data.uploadId,
+            entity_code: entityCode,
+            entity_name: entityCode,
+            sector: lastSector,
+            objective: toStr(row[2]),
+            kpi_code: code,
+            kpi_name: name,
+            kpi_type: toStr(row[5]),
+            weight: toNum(row[6]),
+            baseline: toNum(row[7]),
+            annual_target: toNum(row[8]),
+            q1_planned: toNum(row[9]),
+            q2_planned: toNum(row[10]),
+            q3_planned: toNum(row[11]),
+            q4_planned: toNum(row[12]),
+            total_planned: toNum(row[13]),
+            q1_actual: toNum(row[14]),
+            q2_actual: toNum(row[15]),
+            q3_actual: toNum(row[16]),
+            q4_actual: toNum(row[17]),
+            total_actual: toNum(row[18]),
+            achievement_pct: toNum(row[20]),
+            overall_pct: toNum(row[21]),
+            final_output: toStr(row[22]),
+            period,
+            raw: { row } as unknown as never,
+          });
+          kpiCount += 1;
+        }
+        sheetsSummary.push({ name: sheetName, rows: aoa.length, kpis: kpiCount });
+      }
+
+      // Upsert in chunks on (entity_code, kpi_code, period) — re-uploads update existing rows.
+      let upserted = 0;
+      const chunk = 200;
+      for (let i = 0; i < kpiRows.length; i += chunk) {
+        const slice = kpiRows.slice(i, i + chunk);
+        const { error } = await supabaseAdmin
+          .from("kpis")
+          .upsert(slice as never, { onConflict: "entity_code,kpi_code,period" });
+        if (error) throw error;
+        upserted += slice.length;
+      }
 
       await supabaseAdmin
         .from("uploads")
         .update({
           status: "processed",
-          rows_extracted: totalRows,
-          extracted_summary: { sheets } as unknown as never,
+          rows_extracted: upserted,
+          extracted_summary: { sheets: sheetsSummary, kpis_upserted: upserted } as unknown as never,
           error_message: null,
         })
         .eq("id", data.uploadId);
 
-
-      return { ok: true, totalRows, sheets: sheets.map((s) => ({ name: s.name, rows: s.rowCount })) };
+      return { ok: true, upserted, sheets: sheetsSummary };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       await supabaseAdmin
@@ -55,4 +147,21 @@ export const parseUpload = createServerFn({ method: "POST" })
         .eq("id", data.uploadId);
       throw e;
     }
+  });
+
+// Re-run parsing for an existing upload (manual refresh)
+export const reprocessUpload = createServerFn({ method: "POST" })
+  .inputValidator((input) => z.object({ uploadId: z.string().uuid() }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("uploads")
+      .select("id,file_path")
+      .eq("id", data.uploadId)
+      .single();
+    if (error || !row) throw new Error(error?.message ?? "upload not found");
+    const result = await (parseUpload as unknown as (args: { data: { uploadId: string; filePath: string } }) => Promise<{ ok: boolean; upserted: number }>)({
+      data: { uploadId: row.id, filePath: row.file_path },
+    });
+    return result;
   });

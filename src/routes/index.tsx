@@ -294,45 +294,75 @@ function SectionTitle({ title, subtitle }: { title: string; subtitle?: string })
   );
 }
 
-/* ============================== KPIs ============================== */
+/* ============================== KPIs (live from DB) ============================== */
 function KPIsSection() {
   const [orgF, setOrgF] = useState<string>("الكل");
   const [persF, setPersF] = useState<string>("الكل");
   const [q, setQ] = useState("");
-  const filtered = kpiData.filter(k =>
-    (orgF === "الكل" || k.org === orgF) &&
-    (persF === "الكل" || k.perspective === persF) &&
-    (!q || k.kpi.includes(q) || k.code.includes(q))
-  );
-  const persStats = PERSPECTIVES.map(p => {
-    const items = kpiData.filter(k => k.perspective === p || (p === "العمليات الداخلية" && k.perspective === "العمليات") || (p === "التعلم والنمو" && k.perspective === "التعلم"));
-    const avg = items.length ? items.reduce((s, k) => s + (k.progress || 0), 0) / items.length : 0;
-    return { name: p, count: items.length, avg: Math.round(avg) };
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["kpis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("kpis")
+        .select("*")
+        .order("entity_code", { ascending: true })
+        .order("kpi_code", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 5000,
   });
+
+  const entities = Array.from(new Set(rows.map(r => r.entity_code))).filter(Boolean);
+  const sectors = Array.from(new Set(rows.map(r => r.sector).filter(Boolean))) as string[];
+
+  const filtered = rows.filter(k =>
+    (orgF === "الكل" || k.entity_code === orgF) &&
+    (persF === "الكل" || k.sector === persF) &&
+    (!q || (k.kpi_name ?? "").includes(q) || (k.kpi_code ?? "").includes(q))
+  );
+
+  const sectorStats = sectors.map(s => {
+    const items = rows.filter(r => r.sector === s);
+    const vals = items.map(r => Number(r.achievement_pct ?? 0) * (Number(r.achievement_pct ?? 0) <= 1 ? 100 : 1));
+    const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    return { name: s, count: items.length, avg: Math.round(avg) };
+  });
+
+  const fmtPct = (v: number | null | undefined) => {
+    if (v === null || v === undefined) return "—";
+    const n = Number(v);
+    if (!Number.isFinite(n)) return "—";
+    return `${Math.round(n <= 1 ? n * 100 : n)}%`;
+  };
+  const fmtNum = (v: number | null | undefined) => (v === null || v === undefined ? "—" : String(v));
+
   return (
     <div className="space-y-6">
-      <SectionTitle title="مؤشرات الأداء (KPIs)" subtitle="مصفوفة مؤشرات الأداء حسب بطاقة الأداء المتوازن" />
+      <SectionTitle title="مؤشرات الأداء (KPIs)" subtitle={`بيانات حية من قاعدة البيانات — تتحدّث تلقائيًا عند إعادة الرفع (${rows.length} مؤشر)`} />
       <Card className="p-4 flex flex-wrap items-center gap-3">
-        <Select value={orgF} onChange={setOrgF} options={["الكل", ...ORGS.map(o=>o.id)]} label="المؤسسة" />
-        <Select value={persF} onChange={setPersF} options={["الكل", ...PERSPECTIVES]} label="المنظور" />
-        <Select value="الكل" onChange={()=>{}} options={["الكل", "Q1", "Q2", "Q3", "Q4"]} label="الربع" />
+        <Select value={orgF} onChange={setOrgF} options={["الكل", ...entities]} label="المؤسسة" />
+        <Select value={persF} onChange={setPersF} options={["الكل", ...sectors]} label="المنظور" />
         <div className="relative ml-auto">
           <Search size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="بحث" className="pr-8 pl-3 py-1.5 text-sm bg-muted rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 w-48" />
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="بحث (اسم/كود)" className="pr-8 pl-3 py-1.5 text-sm bg-muted rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 w-56" />
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {persStats.map((p, i) => (
-          <Card key={p.name} className="p-5 flex items-center gap-4">
-            <CircularProgress value={p.avg} color={["#0e4d2e","#1558a0","#2e9bd4","#d97706"][i]} />
-            <div>
-              <div className="text-sm font-medium">{p.name}</div>
-              <div className="text-xs text-muted-foreground">{p.count} مؤشر</div>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {sectorStats.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {sectorStats.map((p, i) => (
+            <Card key={p.name} className="p-5 flex items-center gap-4">
+              <CircularProgress value={p.avg} color={["#0e4d2e","#1558a0","#2e9bd4","#d97706","#9333ea","#dc2626"][i % 6]} />
+              <div>
+                <div className="text-sm font-medium">{p.name}</div>
+                <div className="text-xs text-muted-foreground">{p.count} مؤشر</div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Card>
         <CardHeader title={`جدول المؤشرات (${filtered.length})`} />
@@ -340,27 +370,39 @@ function KPIsSection() {
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
-                {["الكود","المؤسسة","المنظور","الهدف","المؤشر","النوع","الوزن","خط الأساس","المستهدف","% الإنجاز"].map(h => (
-                  <th key={h} className="px-3 py-2 text-right font-medium">{h}</th>
+                {["الكود","المؤسسة","المنظور","الهدف","المؤشر","النوع","الوزن","خط الأساس","المستهدف","Q1","Q2","Q3","Q4","المنجز","% الإنجاز"].map(h => (
+                  <th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
+              {isLoading && (
+                <tr><td colSpan={15} className="px-3 py-6 text-center text-muted-foreground">جاري التحميل…</td></tr>
+              )}
+              {!isLoading && filtered.length === 0 && (
+                <tr><td colSpan={15} className="px-3 py-6 text-center text-muted-foreground">لا توجد بيانات — ارفع ملف Excel من قسم "رفع البيانات".</td></tr>
+              )}
               {filtered.map(k => (
-                <tr key={k.code} className="border-t border-border hover:bg-muted/20">
-                  <td className="px-3 py-2 font-mono text-xs">{k.code}</td>
-                  <td className="px-3 py-2"><OrgChip id={k.org as OrgId} /></td>
-                  <td className="px-3 py-2">{k.perspective}</td>
-                  <td className="px-3 py-2">{k.goal}</td>
-                  <td className="px-3 py-2 max-w-[280px]">{k.kpi}</td>
-                  <td className="px-3 py-2 text-xs">{k.type}</td>
-                  <td className="px-3 py-2 tabular-nums">{k.weight}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{k.baseline}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs font-medium">{k.target}</td>
-                  <td className="px-3 py-2 min-w-[160px]">
-                    {(k as any).status === "pending"
-                      ? <span className="text-xs text-gray-500">⏳ —</span>
-                      : <div className="flex items-center gap-2"><Progress value={k.progress} /><span className="text-xs tabular-nums w-8">{k.progress}%</span></div>}
+                <tr key={k.id} className="border-t border-border hover:bg-muted/20">
+                  <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{k.kpi_code}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">{k.entity_code}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">{k.sector ?? "—"}</td>
+                  <td className="px-3 py-2 max-w-[220px]">{k.objective ?? "—"}</td>
+                  <td className="px-3 py-2 max-w-[280px]">{k.kpi_name}</td>
+                  <td className="px-3 py-2 text-xs whitespace-nowrap">{k.kpi_type ?? "—"}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{fmtPct(k.weight)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.baseline)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs font-medium">{fmtNum(k.annual_target)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.q1_actual)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.q2_actual)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.q3_actual)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.q4_actual)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.total_actual)}</td>
+                  <td className="px-3 py-2 min-w-[120px]">
+                    <div className="flex items-center gap-2">
+                      <Progress value={Math.min(100, Math.round((Number(k.achievement_pct ?? 0) <= 1 ? Number(k.achievement_pct ?? 0) * 100 : Number(k.achievement_pct ?? 0))))} />
+                      <span className="text-xs tabular-nums w-10">{fmtPct(k.achievement_pct)}</span>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -371,6 +413,7 @@ function KPIsSection() {
     </div>
   );
 }
+
 function Select({ value, onChange, options, label }: any) {
   return (
     <label className="flex items-center gap-2 text-xs">
