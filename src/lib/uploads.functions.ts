@@ -40,10 +40,11 @@ export const parseUpload = createServerFn({ method: "POST" })
         .update({
           status: "processed",
           rows_extracted: totalRows,
-          extracted_summary: { sheets },
+          extracted_summary: { sheets } as unknown as never,
           error_message: null,
         })
         .eq("id", data.uploadId);
+
 
       return { ok: true, totalRows, sheets: sheets.map((s) => ({ name: s.name, rows: s.rowCount })) };
     } catch (e) {
