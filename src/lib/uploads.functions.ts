@@ -120,9 +120,7 @@ export const parseUpload = createServerFn({ method: "POST" })
       // same conflict key twice in one INSERT statement; the latest row in the file wins.
       const uniqueRows = Array.from(
         new Map(
-          kpiRows.map((row) => [
-            JSON.stringify([row.entity_code, row.kpi_code, row.period]), row
-          ]),
+          kpiRows.map((row) => [JSON.stringify([row.entity_code, row.kpi_code, row.period]), row]),
         ).values(),
       );
       const duplicateCount = kpiRows.length - uniqueRows.length;
