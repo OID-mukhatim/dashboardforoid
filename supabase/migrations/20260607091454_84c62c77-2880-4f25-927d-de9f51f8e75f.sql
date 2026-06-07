@@ -1,0 +1,1 @@
+UPDATE public.kpis SET sector = regexp_replace(btrim(sector), '\s+', ' ', 'g') WHERE sector IS NOT NULL AND sector <> regexp_replace(btrim(sector), '\s+', ' ', 'g');
