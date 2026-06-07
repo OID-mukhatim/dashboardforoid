@@ -18,7 +18,7 @@ import {
   partnerships, institutions, initiatives, alerts,
 } from "@/lib/oid-data";
 
-export const Route = createFileRoute("/")({ component: Page });
+export const Route = createFileRoute("/_authenticated/")({ component: Page });
 
 type SectionId =
   | "dashboard" | "kpis" | "quarterly" | "gaps" | "governance"
