@@ -1,26 +1,985 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import {
+  Building2, Users, Heart, Coins, TrendingUp, BarChart3, Target, Handshake,
+  Home, LineChart as LineChartIcon, FileText, Radar as RadarIcon, Landmark,
+  Wallet, Building, Rocket, Upload, Settings, Bell, Download, Search,
+  ChevronRight, AlertTriangle, CheckCircle2, XCircle, Clock, Star,
+} from "lucide-react";
+import {
+  ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, PieChart, Pie, Cell,
+} from "recharts";
+import {
+  ORGS, type OrgId, orgOverallScores, MATURITY_LABELS, GAP_AXES, gapScores,
+  kpiData, PERSPECTIVES, q1Data, criticalGaps, POLICY_STATUS_META, type PolicyStatus,
+  generalPolicies, universityPolicies, humanitarianPolicies, educationPolicies,
+  financialAssessment, PROGRAM_STATUS_META, financialProgram, financialTimeline,
+  partnerships, institutions, initiatives, alerts,
+} from "@/lib/oid-data";
 
-export const Route = createFileRoute("/")({
-  component: Index,
-});
+export const Route = createFileRoute("/")({ component: Page });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+type SectionId =
+  | "dashboard" | "kpis" | "quarterly" | "gaps" | "governance"
+  | "financial" | "partnerships" | "profiles" | "initiatives" | "upload";
+
+const NAV: { group: string; items: { id: SectionId; label: string; icon: any }[] }[] = [
+  { group: "القيادة", items: [
+    { id: "dashboard", label: "لوحة القيادة الرئيسية", icon: Home },
+    { id: "kpis", label: "مؤشرات الأداء KPIs", icon: Target },
+    { id: "quarterly", label: "التقارير الربعية", icon: FileText },
+  ]},
+  { group: "التقييم", items: [
+    { id: "gaps", label: "تحليل الفجوات المؤسسية", icon: RadarIcon },
+    { id: "governance", label: "الحوكمة والامتثال", icon: Landmark },
+    { id: "financial", label: "المستشار المالي", icon: Wallet },
+    { id: "partnerships", label: "الشراكات الاستراتيجية", icon: Handshake },
+  ]},
+  { group: "المؤسسات", items: [
+    { id: "profiles", label: "البيانات المؤسسية", icon: Building },
+    { id: "initiatives", label: "المبادرات التطويرية", icon: Rocket },
+  ]},
+  { group: "الأدوات", items: [
+    { id: "upload", label: "رفع البيانات وتحديثها", icon: Upload },
+  ]},
+];
+
+function Page() {
+  const [section, setSection] = useState<SectionId>("dashboard");
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header />
+      <div className="flex flex-1">
+        <Sidebar current={section} onChange={setSection} />
+        <main className="flex-1 p-6 overflow-x-hidden">
+          {section === "dashboard" && <DashboardSection />}
+          {section === "kpis" && <KPIsSection />}
+          {section === "quarterly" && <QuarterlySection />}
+          {section === "gaps" && <GapsSection />}
+          {section === "governance" && <GovernanceSection />}
+          {section === "financial" && <FinancialSection />}
+          {section === "partnerships" && <PartnershipsSection />}
+          {section === "profiles" && <ProfilesSection />}
+          {section === "initiatives" && <InitiativesSection />}
+          {section === "upload" && <UploadSection />}
+        </main>
+      </div>
     </div>
   );
 }
 
-function Index() {
-  return <PlaceholderIndex />;
+/* ============================== Header ============================== */
+function Header() {
+  return (
+    <header className="header-grad text-white shadow-lg">
+      <div className="flex items-center justify-between px-6 py-4">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">مكتب الإشراف والتطوير المؤسسي</h1>
+          <p className="text-xs text-white/70 font-serif mt-0.5">Oversight & Institutional Development — OID</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs px-2 py-1 rounded-md bg-white/15 border border-white/20">v1.0 — 2026</span>
+          <IconBtn icon={Settings} label="إعدادات" />
+          <IconBtn icon={Download} label="تصدير PDF" onClick={() => window.print()} />
+          <IconBtn icon={Bell} label="تنبيهات" badge={alerts.filter(a=>a.level==="danger").length} />
+        </div>
+      </div>
+    </header>
+  );
+}
+function IconBtn({ icon: Icon, label, badge, onClick }: any) {
+  return (
+    <button onClick={onClick} className="relative p-2 rounded-lg hover:bg-white/15 transition" title={label}>
+      <Icon size={18} />
+      {badge ? <span className="absolute -top-0.5 -left-0.5 text-[10px] bg-danger text-white rounded-full w-4 h-4 flex items-center justify-center font-bold">{badge}</span> : null}
+    </button>
+  );
+}
+
+/* ============================== Sidebar ============================== */
+function Sidebar({ current, onChange }: { current: SectionId; onChange: (s: SectionId)=>void }) {
+  return (
+    <aside className="w-[248px] shrink-0 text-white" style={{ background: "var(--sidebar-bg)" }}>
+      <div className="p-4 space-y-5">
+        {NAV.map((g) => (
+          <div key={g.group}>
+            <div className="text-[11px] uppercase tracking-wider text-white/50 mb-2 px-2">{g.group}</div>
+            <nav className="space-y-1">
+              {g.items.map((it) => {
+                const active = current === it.id;
+                return (
+                  <button
+                    key={it.id}
+                    onClick={() => onChange(it.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition text-right ${
+                      active ? "text-white font-medium" : "text-white/75 hover:bg-white/5"
+                    }`}
+                    style={ active ? { background: "var(--sidebar-active)", borderRight: "3px solid #a8d5b5" } : undefined }
+                  >
+                    <it.icon size={16} />
+                    <span className="flex-1">{it.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+/* ============================ Reusable ============================ */
+function Card({ children, className = "" }: any) {
+  return <div className={`bg-card rounded-xl border border-border shadow-sm ${className}`}>{children}</div>;
+}
+function CardHeader({ title, subtitle, action }: any) {
+  return (
+    <div className="flex items-start justify-between px-5 py-4 border-b border-border">
+      <div>
+        <h3 className="font-bold text-foreground">{title}</h3>
+        {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+function StatCard({ label, value, sub, icon: Icon, accent }: any) {
+  return (
+    <Card className="p-5 border-r-4 hover:shadow-md transition" >
+      <div className="flex items-start justify-between" style={{ borderRightColor: accent }}>
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">{label}</div>
+          <div className="text-3xl font-bold tabular-nums" style={{ color: accent }}>{value}</div>
+          {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
+        </div>
+        <div className="p-2 rounded-lg" style={{ background: `${accent}15`, color: accent }}>
+          <Icon size={20} />
+        </div>
+      </div>
+    </Card>
+  );
+}
+function EmptyData({ msg = "البيانات قيد الاستكمال" }: { msg?: string }) {
+  return (
+    <div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-6 text-center">
+      <Clock className="mx-auto mb-2 text-gray-400" size={22} />
+      <p className="text-sm text-gray-500">{msg}</p>
+    </div>
+  );
+}
+function Progress({ value, color = "var(--primary)" }: { value: number; color?: string }) {
+  return (
+    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(0, value))}%`, background: color }} />
+    </div>
+  );
+}
+
+/* ============================ DASHBOARD ============================ */
+function DashboardSection() {
+  const radarData = GAP_AXES.map((axis, i) => {
+    const row: any = { axis };
+    ORGS.forEach((o) => { row[o.id] = gapScores[o.id][i] ?? 0; });
+    return row;
+  });
+  return (
+    <div className="space-y-6">
+      <SectionTitle title="لوحة القيادة الرئيسية" subtitle="نظرة استراتيجية فورية على حال الشبكة" />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="كيانات الشبكة" value="6" sub="مؤسسات رئيسية" icon={Building2} accent="#1d4ed8" />
+        <StatCard label="إجمالي الموظفين" value="394+" sub="عبر الشبكة" icon={Users} accent="#15803d" />
+        <StatCard label="إجمالي المستفيدين" value="9,808+" sub="مستفيد مباشر" icon={Heart} accent="#10b986" />
+        <StatCard label="الميزانية الإجمالية" value="~$5.3M" sub="إجمالي 2026" icon={Coins} accent="#7c3aed" />
+        <StatCard label="متوسط الأداء" value="3.44 / 5" sub="↑ متطور" icon={TrendingUp} accent="#d97706" />
+        <StatCard label="مستوى النضج" value="متطور" sub="المستوى 3" icon={BarChart3} accent="#2e9bd4" />
+        <StatCard label="مؤشرات الأداء الفاعلة" value="80+" sub="KPIs نشطة" icon={Target} accent="#15803d" />
+        <StatCard label="الشراكات الفاعلة" value="13+" sub="شراكات استراتيجية" icon={Handshake} accent="#0e4d2e" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader title="خريطة الأداء عبر المحاور السبعة" subtitle="مقارنة المؤسسات على Radar Chart" />
+          <div className="p-4 h-[380px]">
+            <ResponsiveContainer>
+              <RadarChart data={radarData}>
+                <PolarGrid stroke="#e0e8f0" />
+                <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11, fill: "#4a6070" }} />
+                <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 10 }} />
+                {ORGS.map((o) => (
+                  <Radar key={o.id} name={o.nameAr} dataKey={o.id} stroke={o.color} fill={o.color} fillOpacity={0.08}
+                    strokeDasharray={o.id === "HAMDI" ? "4 4" : undefined} />
+                ))}
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Tooltip />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="ترتيب المؤسسات حسب الأداء العام" />
+          <div className="p-5 space-y-4">
+            {orgOverallScores.map((o) => (
+              <div key={o.id}>
+                <div className="flex items-center justify-between mb-1.5 text-sm">
+                  <span className="font-medium">{o.name}</span>
+                  <span className="tabular-nums font-bold" style={{ color: o.color }}>
+                    {o.score !== null ? o.score.toFixed(2) : "—"}
+                    {o.maturity && <span className="text-xs text-muted-foreground font-normal mr-2">({MATURITY_LABELS[o.maturity]})</span>}
+                  </span>
+                </div>
+                <Progress value={o.score ? (o.score / 5) * 100 : 0} color={o.color} />
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
+          <CardHeader title="لوحة التنبيهات" subtitle="أبرز الأحداث الحرجة عبر الشبكة" />
+          <div className="p-5 space-y-2">
+            {alerts.map((a, i) => {
+              const styles: any = {
+                danger: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", icon: XCircle },
+                warning: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700", icon: AlertTriangle },
+                success: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", icon: CheckCircle2 },
+              }[a.level];
+              const Ic = styles.icon;
+              return (
+                <div key={i} className={`flex items-start gap-3 p-3 rounded-lg border ${styles.bg} ${styles.border}`}>
+                  <Ic size={18} className={styles.text} />
+                  <div className="flex-1">
+                    <div className={`text-sm font-medium ${styles.text}`}>{a.title}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{a.action}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="ملخص الحوكمة السريع" />
+          <div className="p-5 grid grid-cols-2 gap-3">
+            {orgOverallScores.map((o) => (
+              <div key={o.id} className="border border-border rounded-lg p-3 text-center">
+                <div className="text-xs text-muted-foreground mb-1 truncate">{o.name}</div>
+                <div className="text-xl font-bold tabular-nums" style={{ color: o.color }}>
+                  {o.govPct !== null ? `${o.govPct}%` : "—"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="flex items-center justify-between border-b border-border pb-4">
+      <div>
+        <h2 className="text-2xl font-bold text-foreground">{title}</h2>
+        {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+      </div>
+      <button className="text-xs flex items-center gap-1 text-primary hover:underline">
+        <Settings size={14} /> تعديل
+      </button>
+    </div>
+  );
+}
+
+/* ============================== KPIs ============================== */
+function KPIsSection() {
+  const [orgF, setOrgF] = useState<string>("الكل");
+  const [persF, setPersF] = useState<string>("الكل");
+  const [q, setQ] = useState("");
+  const filtered = kpiData.filter(k =>
+    (orgF === "الكل" || k.org === orgF) &&
+    (persF === "الكل" || k.perspective === persF) &&
+    (!q || k.kpi.includes(q) || k.code.includes(q))
+  );
+  const persStats = PERSPECTIVES.map(p => {
+    const items = kpiData.filter(k => k.perspective === p || (p === "العمليات الداخلية" && k.perspective === "العمليات") || (p === "التعلم والنمو" && k.perspective === "التعلم"));
+    const avg = items.length ? items.reduce((s, k) => s + (k.progress || 0), 0) / items.length : 0;
+    return { name: p, count: items.length, avg: Math.round(avg) };
+  });
+  return (
+    <div className="space-y-6">
+      <SectionTitle title="مؤشرات الأداء (KPIs)" subtitle="مصفوفة مؤشرات الأداء حسب بطاقة الأداء المتوازن" />
+      <Card className="p-4 flex flex-wrap items-center gap-3">
+        <Select value={orgF} onChange={setOrgF} options={["الكل", ...ORGS.map(o=>o.id)]} label="المؤسسة" />
+        <Select value={persF} onChange={setPersF} options={["الكل", ...PERSPECTIVES]} label="المنظور" />
+        <Select value="الكل" onChange={()=>{}} options={["الكل", "Q1", "Q2", "Q3", "Q4"]} label="الربع" />
+        <div className="relative ml-auto">
+          <Search size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="بحث" className="pr-8 pl-3 py-1.5 text-sm bg-muted rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 w-48" />
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {persStats.map((p, i) => (
+          <Card key={p.name} className="p-5 flex items-center gap-4">
+            <CircularProgress value={p.avg} color={["#0e4d2e","#1558a0","#2e9bd4","#d97706"][i]} />
+            <div>
+              <div className="text-sm font-medium">{p.name}</div>
+              <div className="text-xs text-muted-foreground">{p.count} مؤشر</div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader title={`جدول المؤشرات (${filtered.length})`} />
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs text-muted-foreground">
+              <tr>
+                {["الكود","المؤسسة","المنظور","الهدف","المؤشر","النوع","الوزن","خط الأساس","المستهدف","% الإنجاز"].map(h => (
+                  <th key={h} className="px-3 py-2 text-right font-medium">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(k => (
+                <tr key={k.code} className="border-t border-border hover:bg-muted/20">
+                  <td className="px-3 py-2 font-mono text-xs">{k.code}</td>
+                  <td className="px-3 py-2"><OrgChip id={k.org as OrgId} /></td>
+                  <td className="px-3 py-2">{k.perspective}</td>
+                  <td className="px-3 py-2">{k.goal}</td>
+                  <td className="px-3 py-2 max-w-[280px]">{k.kpi}</td>
+                  <td className="px-3 py-2 text-xs">{k.type}</td>
+                  <td className="px-3 py-2 tabular-nums">{k.weight}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{k.baseline}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs font-medium">{k.target}</td>
+                  <td className="px-3 py-2 min-w-[160px]">
+                    {(k as any).status === "pending"
+                      ? <span className="text-xs text-gray-500">⏳ —</span>
+                      : <div className="flex items-center gap-2"><Progress value={k.progress} /><span className="text-xs tabular-nums w-8">{k.progress}%</span></div>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+function Select({ value, onChange, options, label }: any) {
+  return (
+    <label className="flex items-center gap-2 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <select value={value} onChange={(e)=>onChange(e.target.value)} className="px-2 py-1.5 rounded-md bg-muted border border-border text-sm focus:outline-none">
+        {options.map((o: string) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </label>
+  );
+}
+function OrgChip({ id }: { id: OrgId }) {
+  const o = ORGS.find(x => x.id === id);
+  if (!o) return <span>{id}</span>;
+  return <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full" style={{ background: `${o.color}15`, color: o.color }}>
+    <span className="w-1.5 h-1.5 rounded-full" style={{ background: o.color }} />{o.abbr}
+  </span>;
+}
+function CircularProgress({ value, color }: { value: number; color: string }) {
+  const r = 22, c = 2 * Math.PI * r;
+  const off = c - (value / 100) * c;
+  return (
+    <svg width="60" height="60" viewBox="0 0 60 60">
+      <circle cx="30" cy="30" r={r} fill="none" stroke="#e0e8f0" strokeWidth="5" />
+      <circle cx="30" cy="30" r={r} fill="none" stroke={color} strokeWidth="5" strokeLinecap="round"
+        strokeDasharray={c} strokeDashoffset={off} transform="rotate(-90 30 30)" />
+      <text x="30" y="34" textAnchor="middle" fontSize="12" fontWeight="700" fill={color}>{value}%</text>
+    </svg>
+  );
+}
+
+/* ============================ QUARTERLY ============================ */
+function QuarterlySection() {
+  const [tab, setTab] = useState<"ach"|"ch"|"rec">("ach");
+  return (
+    <div className="space-y-6">
+      <SectionTitle title="التقارير الربعية" subtitle="Q1 — 2026" />
+      <Card className="p-3 flex flex-wrap items-center gap-2">
+        <Select value="الكل" onChange={()=>{}} options={["الكل", ...ORGS.map(o=>o.id)]} label="المؤسسة" />
+        <Select value="Q1" onChange={()=>{}} options={["Q1","Q2","Q3","Q4"]} label="الربع" />
+        <Select value="2026" onChange={()=>{}} options={["2026","2025"]} label="السنة" />
+        <div className="ml-auto flex gap-2">
+          <button className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground"><Download size={14}/> PDF</button>
+          <button className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground"><Download size={14}/> Excel</button>
+        </div>
+      </Card>
+
+      <div className="flex gap-2 border-b border-border">
+        {[["ach","الإنجازات والمشاريع"],["ch","التحديات والعوائق"],["rec","التوصيات"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setTab(k as any)} className={`px-4 py-2 text-sm border-b-2 transition ${tab===k?"border-primary text-primary font-medium":"border-transparent text-muted-foreground hover:text-foreground"}`}>{l}</button>
+        ))}
+      </div>
+
+      {tab === "ach" && (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs text-muted-foreground">
+                <tr>{["م","الإنجاز/المشروع","كود المؤشر","المؤسسة","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium">{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {q1Data.map(r => (
+                  <tr key={r.id} className="border-t border-border hover:bg-muted/20">
+                    <td className="px-3 py-2 tabular-nums">{r.id}</td>
+                    <td className="px-3 py-2">{r.title}</td>
+                    <td className="px-3 py-2"><span className="font-mono text-xs text-primary hover:underline cursor-pointer">{r.kpiCode}</span></td>
+                    <td className="px-3 py-2"><OrgChip id={r.org as OrgId} /></td>
+                    <td className="px-3 py-2 text-xs">{r.target}</td>
+                    <td className="px-3 py-2 text-xs">{r.done}</td>
+                    <td className="px-3 py-2 min-w-[120px]"><div className="flex items-center gap-2"><Progress value={r.pct} /><span className="text-xs tabular-nums">{r.pct}%</span></div></td>
+                    <td className="px-3 py-2 text-xs">{r.beneficiaries}</td>
+                    <td className="px-3 py-2 tabular-nums text-xs">{r.budget ? `$${r.budget}` : "—"}</td>
+                    <td className="px-3 py-2 tabular-nums text-xs">{r.cost ? `$${r.cost}` : "—"}</td>
+                    <td className="px-3 py-2">
+                      {r.deviation === 0 ? <span className="text-xs text-gray-500">—</span>
+                        : <span className={`text-xs px-2 py-0.5 rounded-full ${r.deviation > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{r.deviation > 0 ? `+$${r.deviation}` : `-$${Math.abs(r.deviation)}`}</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+      {tab === "ch" && <Card className="p-8"><EmptyData msg="سيتم إدراج التحديات الربعية عند استكمال التقارير" /></Card>}
+      {tab === "rec" && <Card className="p-8"><EmptyData msg="سيتم إدراج التوصيات المعتمدة قريباً" /></Card>}
+    </div>
+  );
+}
+
+/* ============================ GAPS ============================ */
+function GapsSection() {
+  const heatColor = (v: number | null) => {
+    if (v === null) return "bg-gray-100 text-gray-400";
+    if (v < 2) return "bg-red-100 text-red-700";
+    if (v < 3) return "bg-orange-100 text-orange-700";
+    if (v < 3.5) return "bg-yellow-100 text-yellow-700";
+    if (v < 4.5) return "bg-blue-100 text-blue-700";
+    return "bg-green-100 text-green-700";
+  };
+  const radarData = GAP_AXES.map((axis, i) => {
+    const row: any = { axis };
+    ORGS.forEach((o) => { row[o.id] = gapScores[o.id][i] ?? 0; });
+    return row;
+  });
+  return (
+    <div className="space-y-6">
+      <SectionTitle title="تحليل الفجوات المؤسسية" subtitle="تشخيص مستوى النضج عبر 7 محاور" />
+
+      <Card>
+        <CardHeader title="خريطة الحرارة (Heatmap)" subtitle="6 مؤسسات × 7 محاور" />
+        <div className="p-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr><th className="px-3 py-2 text-right text-xs text-muted-foreground">المؤسسة</th>
+              {GAP_AXES.map(a => <th key={a} className="px-3 py-2 text-xs text-muted-foreground">{a}</th>)}
+            </tr></thead>
+            <tbody>
+              {ORGS.map(o => (
+                <tr key={o.id} className="border-t border-border">
+                  <td className="px-3 py-2 font-medium">{o.nameAr}</td>
+                  {gapScores[o.id].map((v, i) => (
+                    <td key={i} className="px-2 py-2 text-center">
+                      <span className={`inline-block w-14 py-1 rounded text-xs font-semibold tabular-nums ${heatColor(v)}`}>{v !== null ? v.toFixed(2) : "—"}</span>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader title="Radar — 7 محاور" />
+          <div className="p-4 h-[380px]">
+            <ResponsiveContainer>
+              <RadarChart data={radarData}>
+                <PolarGrid stroke="#e0e8f0" />
+                <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11 }} />
+                <PolarRadiusAxis domain={[0, 5]} tick={{ fontSize: 10 }} />
+                {ORGS.map(o => (
+                  <Radar key={o.id} name={o.nameAr} dataKey={o.id} stroke={o.color} fill={o.color} fillOpacity={0.07}
+                    strokeDasharray={o.id==="HAMDI" ? "4 4" : undefined} />
+                ))}
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Tooltip />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="الفجوات الحرجة (مرتبة بالأولوية)" />
+          <div className="p-5 space-y-2">
+            {criticalGaps.map(g => (
+              <div key={g.rank} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/20">
+                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">{g.rank}</div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">{g.name}</div>
+                  <div className="text-xs text-muted-foreground">المتأثر: {g.affected} • المتوسط: {g.avg.toFixed(2)}</div>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${g.priority.includes("جداً") ? "bg-red-100 text-red-700" : g.priority==="حرج" ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700"}`}>{g.priority}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ GOVERNANCE ============================ */
+function GovernanceSection() {
+  const [cat, setCat] = useState<"all"|"general"|"university"|"humanitarian"|"education">("general");
+  const data = useMemo(() => {
+    if (cat === "general") return generalPolicies;
+    if (cat === "university") return universityPolicies;
+    if (cat === "humanitarian") return humanitarianPolicies;
+    if (cat === "education") return educationPolicies;
+    return [...generalPolicies, ...universityPolicies, ...humanitarianPolicies, ...educationPolicies];
+  }, [cat]);
+
+  const stackedData = ORGS.map(o => {
+    const counts: any = { org: o.abbr, active: 0, inactive: 0, review: 0, inDev: 0, missing: 0, pending: 0 };
+    [...generalPolicies, ...universityPolicies, ...humanitarianPolicies, ...educationPolicies].forEach(p => {
+      const s = p.values[o.id];
+      if (s) counts[s]++;
+    });
+    return counts;
+  });
+
+  return (
+    <div className="space-y-6">
+      <SectionTitle title="الحوكمة والامتثال" subtitle="حالة السياسات والوثائق المؤسسية" />
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {orgOverallScores.map(o => (
+          <Card key={o.id} className="p-4 text-center">
+            <div className="text-xs text-muted-foreground mb-2 truncate">{o.name}</div>
+            <div className="text-3xl font-bold tabular-nums mb-1" style={{ color: o.color }}>{o.govPct !== null ? `${o.govPct}%` : "—"}</div>
+            <div className="text-[11px] text-muted-foreground">
+              {o.govPct === null ? "بيانات ناقصة" :
+               o.govPct >= 80 ? "ممتاز ⭐⭐⭐" :
+               o.govPct >= 60 ? "جيد ⭐⭐" :
+               o.govPct >= 40 ? "متوسط ⭐" : "ضعيف"}
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader title="توزيع السياسات حسب الحالة (Stacked)" />
+        <div className="p-4 h-[280px]">
+          <ResponsiveContainer>
+            <BarChart data={stackedData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e0e8f0" />
+              <XAxis dataKey="org" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="active" stackId="a" fill="#16a34a" name="مفعّل" />
+              <Bar dataKey="inactive" stackId="a" fill="#2563eb" name="غير مفعّل" />
+              <Bar dataKey="review" stackId="a" fill="#d97706" name="بحاجة تحديث" />
+              <Bar dataKey="inDev" stackId="a" fill="#ea580c" name="قيد الإعداد" />
+              <Bar dataKey="missing" stackId="a" fill="#dc2626" name="غير موجود" />
+              <Bar dataKey="pending" stackId="a" fill="#94a3b8" name="بيانات ناقصة" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="جدول السياسات التفصيلي" action={
+          <div className="flex gap-2">
+            {[["general","عامة"],["university","جامعية"],["humanitarian","إنسانية"],["education","تعليمية"],["all","الكل"]].map(([k,l])=>(
+              <button key={k} onClick={()=>setCat(k as any)} className={`text-xs px-3 py-1 rounded-md border ${cat===k?"bg-primary text-primary-foreground border-primary":"border-border text-muted-foreground hover:bg-muted"}`}>{l}</button>
+            ))}
+          </div>
+        } />
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-right font-medium">الكود</th>
+                <th className="px-3 py-2 text-right font-medium">السياسة</th>
+                {ORGS.map(o => <th key={o.id} className="px-3 py-2 font-medium">{o.abbr}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map(p => (
+                <tr key={p.id} className="border-t border-border">
+                  <td className="px-3 py-2 font-mono text-xs">{p.id}</td>
+                  <td className="px-3 py-2">{p.name}</td>
+                  {ORGS.map(o => {
+                    const s = p.values[o.id];
+                    if (!s) return <td key={o.id} className="px-2 py-2 text-center text-gray-300">·</td>;
+                    const meta = POLICY_STATUS_META[s];
+                    return <td key={o.id} className={`px-2 py-2 text-center text-xs ${meta.bg} ${meta.fg}`} title={meta.label}>{meta.icon}</td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex flex-wrap gap-3 p-4 border-t border-border text-xs">
+          {(Object.entries(POLICY_STATUS_META) as [PolicyStatus, any][]).map(([k, m]) => (
+            <span key={k} className={`px-2 py-1 rounded ${m.bg} ${m.fg}`}>{m.icon} {m.label}</span>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ============================ FINANCIAL ============================ */
+function FinancialSection() {
+  const [tab, setTab] = useState<"assess"|"program"|"timeline">("assess");
+  return (
+    <div className="space-y-6">
+      <SectionTitle title="المستشار المالي" subtitle="تقييم ومتابعة برنامج الإدارة المالية" />
+
+      <div className="flex gap-2 border-b border-border">
+        {[["assess","📊 تقييم الأداء المالي"],["program","📋 متابعة البرنامج"],["timeline","📅 الخط الزمني"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setTab(k as any)} className={`px-4 py-2 text-sm border-b-2 transition ${tab===k?"border-primary text-primary font-medium":"border-transparent text-muted-foreground hover:text-foreground"}`}>{l}</button>
+        ))}
+      </div>
+
+      {tab === "assess" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(Object.entries(financialAssessment) as ["ZUST"|"ZAD"|"TAYO", any][]).map(([id, a]) => {
+              const o = ORGS.find(x => x.id === id)!;
+              return (
+                <Card key={id} className="p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="font-bold">{o.nameAr}</div>
+                    <div className="flex items-center gap-1 text-warning"><Star size={14} fill="currentColor"/><span className="text-sm font-bold tabular-nums">{a.rating}</span></div>
+                  </div>
+                  <div className="text-xs text-muted-foreground mb-3">{a.label}</div>
+                  <div className="text-xs text-muted-foreground border-t border-border pt-2">
+                    <div className="font-medium text-primary mb-1">المعلم القادم:</div>
+                    {a.nextMilestone}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          <Card>
+            <CardHeader title="التقييم التفصيلي والتوصيات" />
+            <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
+              {(Object.entries(financialAssessment) as ["ZUST"|"ZAD"|"TAYO", any][]).map(([id, a]) => {
+                const o = ORGS.find(x => x.id === id)!;
+                return (
+                  <div key={id} className="space-y-3">
+                    <h4 className="font-bold text-sm" style={{ color: o.color }}>{o.nameAr}</h4>
+                    <div>
+                      <div className="text-xs font-medium text-green-700 mb-1">✅ نقاط القوة</div>
+                      <ul className="text-xs space-y-1 text-muted-foreground">
+                        {a.strengths.map((s: string, i: number) => <li key={i}>• {s}</li>)}
+                      </ul>
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-red-700 mb-1">⚠️ نقاط الضعف</div>
+                      <ul className="text-xs space-y-1 text-muted-foreground">
+                        {a.weaknesses.map((s: string, i: number) => <li key={i}>• {s}</li>)}
+                      </ul>
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-blue-700 mb-1">💡 التوصيات</div>
+                      <ul className="text-xs space-y-1 text-muted-foreground">
+                        {a.recommendations.map((s: string, i: number) => <li key={i}>• {s}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {tab === "program" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {(Object.entries(financialProgram) as ["ZUST"|"ZAD"|"TAYO", any[]][]).map(([id, rows]) => {
+            const o = ORGS.find(x => x.id === id)!;
+            const doneCount = rows.filter(r => r.status === "done").length;
+            const pct = Math.round((doneCount / rows.length) * 100);
+            return (
+              <Card key={id}>
+                <CardHeader title={o.nameAr} subtitle={`اكتمل ${doneCount} من ${rows.length}`} />
+                <div className="px-5 pt-2"><Progress value={pct} color={o.color} /></div>
+                <div className="p-5 space-y-2">
+                  {rows.map((r, i) => {
+                    const m = PROGRAM_STATUS_META[r.status as keyof typeof PROGRAM_STATUS_META];
+                    return (
+                      <div key={i} className="border border-border rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">{r.domain}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${m.color}`}>{m.label}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{r.note}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {tab === "timeline" && (
+        <Card className="p-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {financialTimeline.map((m, i) => (
+              <div key={i} className="flex-1 text-center min-w-[120px]">
+                <div className={`mx-auto mb-2 w-12 h-12 rounded-full flex items-center justify-center text-2xl ${m.done?"bg-green-100":"bg-blue-100"}`}>
+                  {m.done ? "✅" : "🔄"}
+                </div>
+                <div className="text-xs font-bold">{m.period}</div>
+                <div className="text-xs text-muted-foreground mt-1">{m.title}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/* ============================ PARTNERSHIPS ============================ */
+function PartnershipsSection() {
+  const byGeo = useMemo(() => {
+    const m: Record<string, number> = {};
+    partnerships.forEach(p => { m[p.geography] = (m[p.geography] || 0) + 1; });
+    return Object.entries(m).map(([name, value]) => ({ name, value }));
+  }, []);
+  const byType = useMemo(() => {
+    const m: Record<string, number> = {};
+    partnerships.forEach(p => { m[p.type] = (m[p.type] || 0) + 1; });
+    return Object.entries(m).map(([name, value]) => ({ name, value }));
+  }, []);
+  const colors = ["#0e4d2e","#1558a0","#2e9bd4","#d97706","#10b986","#7c3aed"];
+  return (
+    <div className="space-y-6">
+      <SectionTitle title="الشراكات الاستراتيجية" subtitle="إجمالي 16 شراكة فاعلة" />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="p-5">
+          <div className="text-xs text-muted-foreground mb-1">إجمالي الشراكات</div>
+          <div className="text-4xl font-bold text-primary tabular-nums">{partnerships.length}</div>
+          <div className="text-xs text-success mt-2">جميعها فاعلة</div>
+        </Card>
+        <Card>
+          <CardHeader title="التوزيع الجغرافي" />
+          <div className="p-4 h-[220px]">
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie data={byGeo} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={{ fontSize: 10 }}>
+                  {byGeo.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+                </Pie>
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+        <Card>
+          <CardHeader title="التوزيع حسب النوع" />
+          <div className="p-4 h-[220px]">
+            <ResponsiveContainer>
+              <BarChart data={byType} layout="vertical">
+                <XAxis type="number" tick={{ fontSize: 10 }} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={90} />
+                <Tooltip />
+                <Bar dataKey="value" fill="#1558a0" radius={4} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader title="جدول الشراكات" />
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs text-muted-foreground">
+              <tr>{["الكود","الشريك","النوع","الحالة","الجغرافيا","المؤسسات المرتبطة"].map(h=><th key={h} className="px-3 py-2 text-right font-medium">{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {partnerships.map(p => (
+                <tr key={p.id} className="border-t border-border hover:bg-muted/20">
+                  <td className="px-3 py-2 font-mono text-xs">{p.id}</td>
+                  <td className="px-3 py-2 font-medium">{p.name}</td>
+                  <td className="px-3 py-2 text-xs">{p.type}</td>
+                  <td className="px-3 py-2"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">{p.status}</span></td>
+                  <td className="px-3 py-2 text-xs">{p.geography}</td>
+                  <td className="px-3 py-2"><div className="flex gap-1">{p.linkedOrgs.map(o => <OrgChip key={o} id={o as OrgId} />)}</div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card className="p-5 bg-yellow-50 border-yellow-200">
+        <div className="flex gap-3">
+          <AlertTriangle className="text-warning shrink-0" size={20} />
+          <div>
+            <div className="font-bold text-sm mb-1">المكتب في مرحلة بناء منهجية الشراكات</div>
+            <div className="text-xs text-muted-foreground">الخطوات المقترحة: إعداد قوالب رسمية (يونيو 2026) ← تحديث البيانات ← وضع معايير التقييم ← إطلاق خطة الشراكات 2026-2027</div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ============================ PROFILES ============================ */
+function ProfilesSection() {
+  return (
+    <div className="space-y-6">
+      <SectionTitle title="البيانات المؤسسية" subtitle="بطاقات تعريف الكيانات الست" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {institutions.map(o => (
+          <Card key={o.id} className="p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0" style={{ background: o.color }}>{o.abbr}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold leading-tight">{o.nameAr}</div>
+                <div className="text-xs text-muted-foreground font-serif">{o.nameEn}</div>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground mb-3">{o.sector}</div>
+            <dl className="space-y-1.5 text-xs">
+              <Row k="التأسيس" v={o.founded} />
+              <Row k="الترخيص" v={o.license} />
+              <Row k="الصلاحية" v={o.licenseExpiry} />
+              <Row k="المدير التنفيذي" v={o.execAr} />
+              <Row k="الموظفون" v={o.staff.total ? `${o.staff.total}` : null} />
+              <Row k="الميزانية" v={o.budget ? `$${o.budget.toLocaleString()}` : null} />
+              <Row k="الفروع" v={o.branches} />
+            </dl>
+            <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
+              <span className="text-xs">الأداء:</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${o.color}15`, color: o.color }}>
+                {o.score !== null ? o.score.toFixed(2) : "—"}
+              </span>
+              <span className="text-xs ml-1">الحوكمة:</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted">{o.govScore !== null ? `${o.govScore.toFixed(2)}` : "—"}</span>
+            </div>
+            {o.alerts && o.alerts.length > 0 && (
+              <div className="mt-3 space-y-1">
+                {o.alerts.map((a, i) => <div key={i} className="text-xs p-2 rounded bg-red-50 text-red-700 border border-red-200">{a}</div>)}
+              </div>
+            )}
+            {(o as any).dataStatus === "pending" && <div className="mt-3"><EmptyData msg="بعض البيانات قيد الاستكمال" /></div>}
+            <button className="mt-4 w-full text-xs flex items-center justify-center gap-1 py-2 rounded-md border border-border text-primary hover:bg-primary/5">التقرير التفصيلي <ChevronRight size={14} className="rotate-180" /></button>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+function Row({ k, v }: { k: string; v: any }) {
+  return (
+    <div className="flex justify-between gap-2 border-b border-border/50 py-1">
+      <dt className="text-muted-foreground">{k}</dt>
+      <dd className="font-medium text-left">{v ?? <span className="text-gray-400">—</span>}</dd>
+    </div>
+  );
+}
+
+/* ============================ INITIATIVES ============================ */
+function InitiativesSection() {
+  const cols: [string, string][] = [["مقترح","#fef3c7"],["قيد التنفيذ","#dbeafe"],["مكتمل","#dcfce7"]];
+  return (
+    <div className="space-y-6">
+      <SectionTitle title="المبادرات التطويرية" subtitle="Kanban — الأولوية حسب الفجوة" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {cols.map(([col, bg]) => {
+          const items = initiatives.filter(i => i.status === col);
+          return (
+            <Card key={col} className="overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between" style={{ background: bg }}>
+                <span className="font-bold text-sm">{col}</span>
+                <span className="text-xs bg-white/70 px-2 py-0.5 rounded-full font-bold">{items.length}</span>
+              </div>
+              <div className="p-3 space-y-3 min-h-[300px]">
+                {items.map(i => (
+                  <div key={i.id} className="border border-border rounded-lg p-3 bg-card hover:shadow-sm transition">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-mono text-[10px] text-muted-foreground">{i.id}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${i.priority==="حرج"?"bg-red-100 text-red-700":i.priority==="عالٍ"?"bg-orange-100 text-orange-700":"bg-blue-100 text-blue-700"}`}>{i.priority}</span>
+                    </div>
+                    <div className="text-sm font-medium leading-tight mb-2">{i.title}</div>
+                    <div className="text-xs text-muted-foreground mb-2">{i.objective}</div>
+                    <div className="flex flex-wrap gap-1 text-[10px] mb-2">
+                      <span className="px-1.5 py-0.5 rounded bg-muted">{i.domain}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-muted">{i.timeline}</span>
+                    </div>
+                    <div className="text-xs font-bold text-primary">{i.cost}</div>
+                  </div>
+                ))}
+                {items.length === 0 && <div className="text-xs text-center text-muted-foreground py-8">لا توجد عناصر</div>}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ============================ UPLOAD ============================ */
+function UploadSection() {
+  const [dragging, setDragging] = useState(false);
+  return (
+    <div className="space-y-6">
+      <SectionTitle title="رفع البيانات وتحديثها" subtitle="ملفات Excel / CSV / PDF" />
+
+      <Card>
+        <CardHeader title="منطقة الرفع" />
+        <div className="p-6">
+          <div
+            onDragOver={(e)=>{e.preventDefault();setDragging(true);}}
+            onDragLeave={()=>setDragging(false)}
+            onDrop={(e)=>{e.preventDefault();setDragging(false);}}
+            className={`border-2 border-dashed rounded-xl p-10 text-center transition ${dragging?"border-primary bg-primary/5":"border-border bg-muted/20"}`}
+          >
+            <Upload className="mx-auto mb-3 text-primary" size={32} />
+            <div className="font-bold mb-1">اسحب وأفلت الملفات هنا</div>
+            <div className="text-xs text-muted-foreground mb-4">أو اضغط للاختيار — .xlsx / .xls / .csv / .pdf</div>
+            <button className="text-sm px-4 py-2 rounded-md bg-primary text-primary-foreground">اختيار ملفات</button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+            <Select value="مؤشرات الأداء" onChange={()=>{}} options={["مؤشرات الأداء","تقرير ربعي","بيانات الفجوات","بيانات الحوكمة","البيانات المؤسسية","التقرير المالي"]} label="نوع البيانات" />
+            <Select value={ORGS[0].id} onChange={()=>{}} options={ORGS.map(o=>o.id)} label="المؤسسة" />
+            <Select value="Q1 2026" onChange={()=>{}} options={["Q1 2026","Q2 2026","Q3 2026","Q4 2026"]} label="الفترة" />
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="سجل التحديثات الأخيرة" />
+        <div className="p-5"><EmptyData msg="لا توجد ملفات مرفوعة بعد" /></div>
+      </Card>
+    </div>
+  );
 }
