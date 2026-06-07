@@ -314,21 +314,28 @@ function KPIsSection() {
     refetchInterval: 5000,
   });
 
-  const entities = Array.from(new Set(rows.map(r => r.entity_code))).filter(Boolean);
-  const sectors = Array.from(new Set(rows.map(r => r.sector).filter(Boolean))) as string[];
+  const normSector = (s: string | null | undefined) =>
+    (s ?? "").replace(/\s+/g, " ").trim();
 
-  const filtered = rows.filter(k =>
+  const normalized = rows.map(r => ({ ...r, sector: normSector(r.sector) || null }));
+
+  const entities = Array.from(new Set(normalized.map(r => r.entity_code))).filter(Boolean);
+  const orgScoped = orgF === "الكل" ? normalized : normalized.filter(r => r.entity_code === orgF);
+  const sectors = Array.from(new Set(orgScoped.map(r => r.sector).filter(Boolean))) as string[];
+
+  const filtered = normalized.filter(k =>
     (orgF === "الكل" || k.entity_code === orgF) &&
     (persF === "الكل" || k.sector === persF) &&
     (!q || (k.kpi_name ?? "").includes(q) || (k.kpi_code ?? "").includes(q))
   );
 
   const sectorStats = sectors.map(s => {
-    const items = rows.filter(r => r.sector === s);
+    const items = orgScoped.filter(r => r.sector === s);
     const vals = items.map(r => Number(r.achievement_pct ?? 0) * (Number(r.achievement_pct ?? 0) <= 1 ? 100 : 1));
     const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
     return { name: s, count: items.length, avg: Math.round(avg) };
   });
+
 
   const fmtPct = (v: number | null | undefined) => {
     if (v === null || v === undefined) return "—";
