@@ -2,9 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listUsers, createUser, setUserRoles, deleteUser } from "@/lib/users.functions";
+import { listUsers, createUser, setUserRoles, deleteUser, resetUserPassword } from "@/lib/users.functions";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
-import { ArrowRight, Plus, Trash2, Shield, Loader2, X } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Shield, Loader2, X, KeyRound, Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/users")({
   ssr: false,
