@@ -324,7 +324,7 @@ function KPIsSection() {
 
   const normalized = rows.map(r => ({ ...r, sector: normSector(r.sector) || null }));
 
-  const entities = Array.from(new Set(normalized.map(r => r.entity_code))).filter(Boolean);
+  const entities = Array.from(new Set([...ORGS.map(o => o.id), ...normalized.map(r => r.entity_code).filter(Boolean)])) as string[];
   const orgScoped = orgF === "الكل" ? normalized : normalized.filter(r => r.entity_code === orgF);
   const sectors = Array.from(new Set(orgScoped.map(r => r.sector).filter(Boolean))) as string[];
 
