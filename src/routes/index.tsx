@@ -178,23 +178,73 @@ function Progress({ value, color = "var(--primary)" }: { value: number; color?: 
 }
 
 /* ============================ DASHBOARD ============================ */
+const MATURITY_OF_LEVEL: Record<number, string> = { 1: "أولي", 2: "ناشئ", 3: "متطور", 4: "متقدم", 5: "ريادي" };
+function extractBeneficiaries(s: string | null | undefined): number {
+  if (!s) return 0;
+  const nums = String(s).replace(/,/g, "").match(/\d{2,}/g);
+  if (!nums) return 0;
+  return nums.reduce((a, b) => a + Number(b), 0);
+}
+function fmtBudget(n: number): string {
+  if (!n) return "—";
+  if (n >= 1_000_000) return `~$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `~$${Math.round(n / 1_000)}K`;
+  return `$${n}`;
+}
+function fmtNum(n: number): string {
+  return n.toLocaleString("ar-EG");
+}
+
 function DashboardSection() {
+  const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
   const radarData = GAP_AXES.map((axis, i) => {
     const row: any = { axis };
     ORGS.forEach((o) => { row[o.id] = gapScores[o.id][i] ?? 0; });
     return row;
   });
+
+  const stats = useMemo(() => {
+    const list = orgFilter === "all" ? institutions : institutions.filter((i) => i.id === orgFilter);
+    const scoreList = orgFilter === "all" ? orgOverallScores : orgOverallScores.filter((s) => s.id === orgFilter);
+    const staff = list.reduce((sum, i) => sum + (i.staff?.total ?? 0), 0);
+    const budget = list.reduce((sum, i) => sum + (i.budget ?? 0), 0);
+    const beneficiaries = list.reduce((sum, i) => sum + extractBeneficiaries(i.branches), 0);
+    const scored = scoreList.filter((s) => s.score != null);
+    const avgScore = scored.length ? scored.reduce((a, s) => a + (s.score as number), 0) / scored.length : null;
+    const matured = scoreList.filter((s) => s.maturity != null);
+    const avgMaturity = matured.length ? Math.round(matured.reduce((a, s) => a + (s.maturity as number), 0) / matured.length) : null;
+    return {
+      orgsCount: orgFilter === "all" ? ORGS.length : 1,
+      orgsSub: orgFilter === "all" ? "مؤسسات رئيسية" : (ORGS.find((o) => o.id === orgFilter)?.nameAr ?? ""),
+      staff, budget, beneficiaries, avgScore, avgMaturity,
+    };
+  }, [orgFilter]);
+
   return (
     <div className="space-y-6">
       <SectionTitle title="لوحة القيادة الرئيسية" subtitle="نظرة استراتيجية فورية على حال الشبكة" />
 
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-sm text-muted-foreground">فلترة حسب المؤسسة:</span>
+        <select
+          value={orgFilter}
+          onChange={(e) => setOrgFilter(e.target.value as "all" | OrgId)}
+          className="border rounded-md px-3 py-1.5 text-sm bg-card"
+        >
+          <option value="all">كل المؤسسات</option>
+          {ORGS.map((o) => (
+            <option key={o.id} value={o.id}>{o.nameAr}</option>
+          ))}
+        </select>
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="كيانات الشبكة" value="6" sub="مؤسسات رئيسية" icon={Building2} accent="#1d4ed8" />
-        <StatCard label="إجمالي الموظفين" value="394+" sub="عبر الشبكة" icon={Users} accent="#15803d" />
-        <StatCard label="إجمالي المستفيدين" value="9,808+" sub="مستفيد مباشر" icon={Heart} accent="#10b986" />
-        <StatCard label="الميزانية الإجمالية" value="~$5.3M" sub="إجمالي 2026" icon={Coins} accent="#7c3aed" />
-        <StatCard label="متوسط الأداء" value="3.44 / 5" sub="↑ متطور" icon={TrendingUp} accent="#d97706" />
-        <StatCard label="مستوى النضج" value="متطور" sub="المستوى 3" icon={BarChart3} accent="#2e9bd4" />
+        <StatCard label="مؤسسات الشبكة" value={String(stats.orgsCount)} sub={stats.orgsSub} icon={Building2} accent="#1d4ed8" />
+        <StatCard label="إجمالي الموظفين" value={stats.staff ? `${fmtNum(stats.staff)}+` : "—"} sub={orgFilter === "all" ? "عبر الشبكة" : "في المؤسسة"} icon={Users} accent="#15803d" />
+        <StatCard label="إجمالي المستفيدين" value={stats.beneficiaries ? `${fmtNum(stats.beneficiaries)}+` : "—"} sub="مستفيد مباشر" icon={Heart} accent="#10b986" />
+        <StatCard label="الميزانية الإجمالية" value={fmtBudget(stats.budget)} sub="إجمالي 2026" icon={Coins} accent="#7c3aed" />
+        <StatCard label="متوسط الأداء" value={stats.avgScore != null ? `${stats.avgScore.toFixed(2)} / 5` : "—"} sub={stats.avgMaturity ? `↑ ${MATURITY_OF_LEVEL[stats.avgMaturity]}` : "—"} icon={TrendingUp} accent="#d97706" />
+        <StatCard label="مستوى النضج" value={stats.avgMaturity ? MATURITY_OF_LEVEL[stats.avgMaturity] : "—"} sub={stats.avgMaturity ? `المستوى ${stats.avgMaturity}` : "—"} icon={BarChart3} accent="#2e9bd4" />
         <StatCard label="مؤشرات الأداء الفاعلة" value="80+" sub="KPIs نشطة" icon={Target} accent="#15803d" />
         <StatCard label="الشراكات الفاعلة" value="13+" sub="شراكات استراتيجية" icon={Handshake} accent="#0e4d2e" />
       </div>
