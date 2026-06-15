@@ -2,7 +2,7 @@
  * لوحة الشذوذات والتناقضات (المحور 4).
  */
 import { useMemo, useState } from "react";
-import { AlertTriangle, AlertCircle, Info, ShieldAlert, Filter, ExternalLink } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info, ShieldAlert, Filter } from "lucide-react";
 import { ORGS, orgName, type OrgId } from "@/lib/oid-data";
 import {
   detectAllAnomalies,
