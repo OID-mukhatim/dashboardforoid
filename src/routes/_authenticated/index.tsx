@@ -22,6 +22,8 @@ import {
 import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
 import { DataStateLegend } from "@/components/oid/DataStateCell";
 import { AnomaliesPanel } from "@/components/oid/AnomaliesPanel";
+import { InstitutionProfileDrawer } from "@/components/oid/InstitutionProfileDrawer";
+import { openOrgProfile } from "@/lib/oid-drill";
 import { formatScore, formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
 import { MATURITY_SCALE } from "@/lib/oid-maturity";
 
