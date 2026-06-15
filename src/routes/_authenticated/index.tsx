@@ -351,7 +351,13 @@ function DashboardSection() {
           <CardHeader title="ترتيب المؤسسات حسب الأداء العام" />
           <div className="p-5 space-y-4">
             {orgOverallScores.map((o) => (
-              <div key={o.id}>
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => openOrgProfile(o.id as OrgId)}
+                className="w-full text-right hover:bg-muted/30 rounded-md px-2 py-1 -mx-2 transition"
+                title="افتح الملف التفصيلي"
+              >
                 <div className="flex items-center justify-between mb-1.5 text-sm">
                   <span className="font-medium">{o.name}</span>
                   <span className="tabular-nums font-bold" style={{ color: o.color }}>
@@ -360,7 +366,7 @@ function DashboardSection() {
                   </span>
                 </div>
                 <Progress value={o.score ? (o.score / 5) * 100 : 0} color={o.color} />
-              </div>
+              </button>
             ))}
           </div>
         </Card>
