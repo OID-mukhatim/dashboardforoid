@@ -88,6 +88,6 @@ export function CompositeScoreCard({ orgId }: { orgId: OrgId }) {
           <span>درجة غير مكتملة — محسوبة من {p.components.filter(c=>c.state==="achieved").length} مصادر فقط من أصل 4</span>
         </div>
       )}
-    </div>
+    </button>
   );
 }
