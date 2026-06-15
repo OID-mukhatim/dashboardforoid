@@ -19,6 +19,10 @@ import {
   financialAssessment, PROGRAM_STATUS_META, financialProgram, financialTimeline,
   partnerships, institutions, initiatives, alerts,
 } from "@/lib/oid-data";
+import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
+import { DataStateLegend } from "@/components/oid/DataStateCell";
+import { formatScore, formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
+import { MATURITY_SCALE } from "@/lib/oid-maturity";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Page });
 
@@ -213,15 +217,9 @@ function extractBeneficiaries(s: string | null | undefined): number {
   if (!nums) return 0;
   return nums.reduce((a, b) => a + Number(b), 0);
 }
-function fmtBudget(n: number): string {
-  if (!n) return "—";
-  if (n >= 1_000_000) return `~$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `~$${Math.round(n / 1_000)}K`;
-  return `$${n}`;
-}
-function fmtNum(n: number): string {
-  return n.toLocaleString("ar-EG");
-}
+// الأرقام دائماً غربية (المحور 5) — نستخدم helpers من oid-formatting
+const fmtBudget = (n: number) => fmtBudgetWestern(n);
+const fmtNum = (n: number) => formatCount(n);
 
 function DashboardSection() {
   const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
@@ -271,13 +269,46 @@ function DashboardSection() {
         <StatCard label="إجمالي الموظفين" value={stats.staff ? `${fmtNum(stats.staff)}+` : "—"} sub={orgFilter === "all" ? "عبر الشبكة" : "في المؤسسة"} icon={Users} accent="#15803d" />
         <StatCard label="إجمالي المستفيدين" value={stats.beneficiaries ? `${fmtNum(stats.beneficiaries)}+` : "—"} sub="مستفيد مباشر" icon={Heart} accent="#10b986" />
         <StatCard label="الميزانية الإجمالية" value={fmtBudget(stats.budget)} sub="إجمالي 2026" icon={Coins} accent="#7c3aed" />
-        <StatCard label="متوسط الأداء" value={stats.avgScore != null ? `${stats.avgScore.toFixed(2)} / 5` : "—"} sub={stats.avgMaturity ? `↑ ${MATURITY_OF_LEVEL[stats.avgMaturity]}` : "—"} icon={TrendingUp} accent="#d97706" />
+        <StatCard label="متوسط الأداء" value={stats.avgScore != null ? `${formatScore(stats.avgScore)} / 5` : "—"} sub={stats.avgMaturity ? `↑ ${MATURITY_OF_LEVEL[stats.avgMaturity]}` : "—"} icon={TrendingUp} accent="#d97706" />
         <StatCard label="مستوى النضج" value={stats.avgMaturity ? MATURITY_OF_LEVEL[stats.avgMaturity] : "—"} sub={stats.avgMaturity ? `المستوى ${stats.avgMaturity}` : "—"} icon={BarChart3} accent="#2e9bd4" />
         <StatCard label="مؤشرات الأداء الفاعلة" value="80+" sub="KPIs نشطة" icon={Target} accent="#15803d" />
         <StatCard label="الشراكات الفاعلة" value="13+" sub="شراكات استراتيجية" icon={Handshake} accent="#0e4d2e" />
       </div>
 
       <BSCPerformanceMap />
+
+      {/* المحور 1: الدرجة المركّبة لكل مؤسسة (4 مصادر بأوزان) */}
+      <Card>
+        <CardHeader
+          title="الدرجة المركّبة للمؤسسات"
+          subtitle="تجمع 4 مصادر: الفجوات 35% • الحوكمة 25% • مؤشرات الأداء 25% • المالي 15%"
+        />
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {ORGS
+              .filter((o) => orgFilter === "all" || o.id === orgFilter)
+              .map((o) => (
+                <CompositeScoreCard key={o.id} orgId={o.id} />
+              ))}
+          </div>
+          <div className="flex items-center justify-between pt-3 border-t border-border flex-wrap gap-3">
+            <DataStateLegend />
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+              <span className="font-medium">مقياس النضج:</span>
+              {MATURITY_SCALE.map((m) => (
+                <span
+                  key={m.level}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded"
+                  style={{ background: m.bg, color: m.color }}
+                  title={m.description}
+                >
+                  {m.level} — {m.labelAr}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
