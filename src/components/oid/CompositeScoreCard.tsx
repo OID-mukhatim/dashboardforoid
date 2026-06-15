@@ -6,6 +6,7 @@ import { ORG_LOGOS } from "@/lib/oid-logos";
 import { computeProfile } from "@/lib/oid-composite";
 import { DATA_STATES } from "@/lib/oid-data-states";
 import { formatScore, formatPct } from "@/lib/oid-formatting";
+import { openOrgProfile } from "@/lib/oid-drill";
 import { AlertTriangle } from "lucide-react";
 
 export function CompositeScoreCard({ orgId }: { orgId: OrgId }) {
@@ -14,7 +15,12 @@ export function CompositeScoreCard({ orgId }: { orgId: OrgId }) {
   const logo = ORG_LOGOS[orgId];
 
   return (
-    <div className="bg-card rounded-xl border border-border shadow-sm p-4 space-y-3">
+    <button
+      type="button"
+      onClick={() => openOrgProfile(orgId)}
+      className="text-right bg-card rounded-xl border border-border shadow-sm p-4 space-y-3 hover:shadow-md hover:border-primary/40 transition cursor-pointer w-full"
+      title="افتح الملف التفصيلي"
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
