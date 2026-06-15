@@ -1044,7 +1044,9 @@ function ProfilesSection() {
       <SectionTitle title="البيانات المؤسسية" subtitle="بطاقات تعريف الكيانات الست" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {institutions.map(o => (
-          <Card key={o.id} className="p-5">
+          <Card key={o.id} className="p-5 hover:shadow-md hover:border-primary/40 transition cursor-pointer" >
+            <div onClick={() => openOrgProfile(o.id as OrgId)} role="button" tabIndex={0}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openOrgProfile(o.id as OrgId)}>
             <div className="flex items-start gap-3 mb-4">
               <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0" style={{ background: o.color }}>{o.abbr}</div>
               <div className="flex-1 min-w-0">
@@ -1076,7 +1078,8 @@ function ProfilesSection() {
               </div>
             )}
             {(o as any).dataStatus === "pending" && <div className="mt-3"><EmptyData msg="بعض البيانات قيد الاستكمال" /></div>}
-            <button className="mt-4 w-full text-xs flex items-center justify-center gap-1 py-2 rounded-md border border-border text-primary hover:bg-primary/5">التقرير التفصيلي <ChevronRight size={14} className="rotate-180" /></button>
+            </div>
+            <button onClick={() => openOrgProfile(o.id as OrgId)} className="mt-4 w-full text-xs flex items-center justify-center gap-1 py-2 rounded-md border border-border text-primary hover:bg-primary/5">التقرير التفصيلي <ChevronRight size={14} className="rotate-180" /></button>
           </Card>
         ))}
       </div>
