@@ -74,6 +74,7 @@ function Page() {
           {section === "upload" && <UploadSection />}
         </main>
       </div>
+      <InstitutionProfileDrawer />
     </div>
   );
 }
