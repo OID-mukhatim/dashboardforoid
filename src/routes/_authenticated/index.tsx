@@ -21,7 +21,7 @@ import {
 } from "@/lib/oid-data";
 import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
 import { DataStateLegend } from "@/components/oid/DataStateCell";
-import { formatNumber, formatScore, formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
+import { formatScore, formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
 import { MATURITY_SCALE } from "@/lib/oid-maturity";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Page });
