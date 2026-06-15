@@ -277,6 +277,39 @@ function DashboardSection() {
 
       <BSCPerformanceMap />
 
+      {/* المحور 1: الدرجة المركّبة لكل مؤسسة (4 مصادر بأوزان) */}
+      <Card>
+        <CardHeader
+          title="الدرجة المركّبة للمؤسسات"
+          subtitle="تجمع 4 مصادر: الفجوات 35% • الحوكمة 25% • مؤشرات الأداء 25% • المالي 15%"
+        />
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {ORGS
+              .filter((o) => orgFilter === "all" || o.id === orgFilter)
+              .map((o) => (
+                <CompositeScoreCard key={o.id} orgId={o.id} />
+              ))}
+          </div>
+          <div className="flex items-center justify-between pt-3 border-t border-border flex-wrap gap-3">
+            <DataStateLegend />
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+              <span className="font-medium">مقياس النضج:</span>
+              {MATURITY_SCALE.map((m) => (
+                <span
+                  key={m.level}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded"
+                  style={{ background: m.bg, color: m.color }}
+                  title={m.description}
+                >
+                  {m.level} — {m.labelAr}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader title="خريطة الأداء عبر المحاور السبعة" subtitle="مقارنة المؤسسات على Radar Chart" />
