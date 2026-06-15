@@ -19,6 +19,10 @@ import {
   financialAssessment, PROGRAM_STATUS_META, financialProgram, financialTimeline,
   partnerships, institutions, initiatives, alerts,
 } from "@/lib/oid-data";
+import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
+import { DataStateLegend } from "@/components/oid/DataStateCell";
+import { formatNumber, formatScore, formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
+import { MATURITY_SCALE } from "@/lib/oid-maturity";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Page });
 
@@ -213,15 +217,9 @@ function extractBeneficiaries(s: string | null | undefined): number {
   if (!nums) return 0;
   return nums.reduce((a, b) => a + Number(b), 0);
 }
-function fmtBudget(n: number): string {
-  if (!n) return "—";
-  if (n >= 1_000_000) return `~$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `~$${Math.round(n / 1_000)}K`;
-  return `$${n}`;
-}
-function fmtNum(n: number): string {
-  return n.toLocaleString("ar-EG");
-}
+// الأرقام دائماً غربية (المحور 5) — نستخدم helpers من oid-formatting
+const fmtBudget = (n: number) => fmtBudgetWestern(n);
+const fmtNum = (n: number) => formatCount(n);
 
 function DashboardSection() {
   const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
