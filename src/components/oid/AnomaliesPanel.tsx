@@ -10,6 +10,7 @@ import {
   getSeverityMeta,
   type AnomalySeverity,
 } from "@/lib/oid-anomalies";
+import { openOrgProfile } from "@/lib/oid-drill";
 
 const SEVERITY_ICON: Record<AnomalySeverity, React.ComponentType<{ size?: number }>> = {
   high: ShieldAlert,
@@ -88,8 +89,13 @@ export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilt
             return (
               <li
                 key={a.id}
-                className="bg-card border border-border rounded-lg p-3 flex gap-3"
+                className="bg-card border border-border rounded-lg p-3 flex gap-3 hover:shadow-sm hover:border-primary/30 transition cursor-pointer"
                 style={{ borderInlineStartWidth: 4, borderInlineStartColor: meta.color }}
+                onClick={() => openOrgProfile(a.orgId)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openOrgProfile(a.orgId)}
+                title="افتح ملف المؤسسة"
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
