@@ -21,6 +21,7 @@ import {
 } from "@/lib/oid-data";
 import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
 import { DataStateLegend } from "@/components/oid/DataStateCell";
+import { AnomaliesPanel } from "@/components/oid/AnomaliesPanel";
 import { formatScore, formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
 import { MATURITY_SCALE } from "@/lib/oid-maturity";
 
@@ -309,6 +310,19 @@ function DashboardSection() {
           </div>
         </div>
       </Card>
+
+      {/* المحور 4: الشذوذات والتناقضات */}
+      <Card>
+        <CardHeader
+          title="الشذوذات والتنبيهات الذكية"
+          subtitle="كشف تلقائي للتناقضات والاختلالات بين المكوّنات الأربعة"
+        />
+        <div className="p-5">
+          <AnomaliesPanel orgFilter={orgFilter} />
+        </div>
+      </Card>
+
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
