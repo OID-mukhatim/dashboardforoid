@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      document_extractions: {
+        Row: {
+          created_at: string
+          entities: Json | null
+          file_name: string
+          file_path: string
+          id: string
+          numbers_found: Json | null
+          org_mentions: Json | null
+          summary: string | null
+          text_preview: string | null
+          upload_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entities?: Json | null
+          file_name: string
+          file_path: string
+          id?: string
+          numbers_found?: Json | null
+          org_mentions?: Json | null
+          summary?: string | null
+          text_preview?: string | null
+          upload_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entities?: Json | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          numbers_found?: Json | null
+          org_mentions?: Json | null
+          summary?: string | null
+          text_preview?: string | null
+          upload_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_extractions_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpis: {
         Row: {
           achievement_pct: number | null

@@ -1161,7 +1161,8 @@ function InitiativesSection() {
 /* ============================ UPLOAD ============================ */
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseUpload, reprocessUpload } from "@/lib/uploads.functions";
+import { parseUpload, reprocessUpload, processUpload } from "@/lib/uploads.functions";
+import { getDocumentExtractions } from "@/lib/documents.functions";
 import { useRef } from "react";
 
 /* ============================ BSC Performance Map ============================ */
@@ -1331,18 +1332,26 @@ function UploadSection() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const parseFn = useServerFn(parseUpload);
+  const processFn = useServerFn(processUpload);
   const reprocessFn = useServerFn(reprocessUpload);
   const qc = useQueryClient();
   const [reprocessing, setReprocessing] = useState<string | null>(null);
+  const [viewExtract, setViewExtract] = useState<string | null>(null);
 
   async function handleReprocess(id: string) {
     setReprocessing(id); setMsg(null);
     try {
-      const r = await reprocessFn({ data: { uploadId: id } }) as { upserted?: number };
-      setMsg({ kind: "ok", text: `أُعيدت المعالجة بنجاح — ${r.upserted ?? 0} مؤشر.` });
+      const r = await reprocessFn({ data: { uploadId: id } }) as { ok?: boolean; upserted?: number; fileType?: string; orgsFound?: string[]; numbersCount?: number };
+      const isDoc = r.fileType && ["docx", "pptx", "pdf"].includes(r.fileType);
+      setMsg({
+        kind: "ok",
+        text: isDoc
+          ? `أُعيدت المعالجة — ${r.orgsFound?.length ?? 0} مؤسسة · ${r.numbersCount ?? 0} رقم مُستخرج.`
+          : `أُعيدت المعالجة بنجاح — ${r.upserted ?? 0} مؤشر.`
+      });
       qc.invalidateQueries({ queryKey: ["uploads"] });
       qc.invalidateQueries({ queryKey: ["kpis"] });
+      qc.invalidateQueries({ queryKey: ["document_extractions"] });
     } catch (e) {
       setMsg({ kind: "err", text: e instanceof Error ? e.message : "فشلت إعادة المعالجة" });
     } finally { setReprocessing(null); }
@@ -1353,6 +1362,20 @@ function UploadSection() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("uploads")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 5000,
+  });
+
+  const { data: extractions = [] } = useQuery({
+    queryKey: ["document_extractions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("document_extractions")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(20);
@@ -1384,13 +1407,13 @@ function UploadSection() {
         }).select("id").single();
         if (insErr) throw insErr;
 
-        const ext = file.name.split(".").pop()?.toLowerCase();
-        if (ext === "xlsx" || ext === "xls" || ext === "csv") {
-          await parseFn({ data: { uploadId: row.id, filePath: path } }).catch(() => {});
-        }
+        // Route to correct parser (Excel vs Word/PPT/PDF)
+        await processFn({ data: { uploadId: row.id, filePath: path } }).catch(() => {});
       }
       setMsg({ kind: "ok", text: `تم رفع ${files.length} ملف بنجاح ومعالجتها.` });
       qc.invalidateQueries({ queryKey: ["uploads"] });
+      qc.invalidateQueries({ queryKey: ["document_extractions"] });
+      qc.invalidateQueries({ queryKey: ["kpis"] });
     } catch (e) {
       setMsg({ kind: "err", text: e instanceof Error ? e.message : "فشل الرفع" });
     } finally {
@@ -1401,9 +1424,23 @@ function UploadSection() {
 
   const orgOptions = ["الكل", ...ORGS.map(o => o.id)];
 
+  const fileIcon = (name: string) => {
+    const ext = name.split(".").pop()?.toLowerCase();
+    if (ext === "xlsx" || ext === "xls" || ext === "csv") return "📊";
+    if (ext === "docx" || ext === "doc") return "📝";
+    if (ext === "pptx" || ext === "ppt") return "📽️";
+    if (ext === "pdf") return "📄";
+    return "📎";
+  };
+
+  const docRows = rows.filter((r: any) => {
+    const ext = r.file_name?.split(".").pop()?.toLowerCase();
+    return ["docx", "pptx", "pdf", "doc", "ppt"].includes(ext);
+  });
+
   return (
     <div className="space-y-6">
-      <SectionTitle title="رفع البيانات وتحديثها" subtitle="ملفات Excel / CSV / PDF — يدعم الرفع العام عبر خيار «الكل»" />
+      <SectionTitle title="رفع البيانات وتحديثها" subtitle="ملفات Excel / Word / PowerPoint / PDF — يُستخرج النص والأرقام تلقائياً" />
 
       <Card>
         <CardHeader title="منطقة الرفع" />
@@ -1416,7 +1453,7 @@ function UploadSection() {
 
           <input
             ref={inputRef} type="file" multiple
-            accept=".xlsx,.xls,.csv,.pdf"
+            accept=".xlsx,.xls,.csv,.pdf,.docx,.pptx,.doc,.ppt"
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
           />
@@ -1430,7 +1467,7 @@ function UploadSection() {
           >
             <Upload className="mx-auto mb-3 text-primary" size={32} />
             <div className="font-bold mb-1">{busy ? "جاري الرفع والمعالجة..." : "اسحب وأفلت الملفات هنا"}</div>
-            <div className="text-xs text-muted-foreground mb-4">أو اضغط للاختيار — .xlsx / .xls / .csv / .pdf</div>
+            <div className="text-xs text-muted-foreground mb-4">أو اضغط للاختيار — Excel / Word / PowerPoint / PDF</div>
             <button type="button" className="text-sm px-4 py-2 rounded-md bg-primary text-primary-foreground" disabled={busy}>
               {busy ? "..." : "اختيار ملفات"}
             </button>
@@ -1443,10 +1480,115 @@ function UploadSection() {
           )}
 
           <div className="text-xs text-muted-foreground mt-4">
-            💡 اختر «الكل» لأي حقل لرفع بيانات عامة غير مرتبطة بفلتر محدد. الملفات بصيغة Excel/CSV تُحلَّل تلقائياً ويُستخرج عدد الصفوف وأسماء الأعمدة.
+            💡 اختر «الكل» لأي حقل لرفع بيانات عامة غير مرتبطة بفلتر محدد.
+            <br />
+            📊 Excel/CSV → يُستخرج KPIs تلقائياً. 📝 Word / 📽️ PowerPoint / 📄 PDF → يُستخرج النص والأرقام والمؤسسات.
           </div>
         </div>
       </Card>
+
+      {/* Document Extractions Panel */}
+      {docRows.length > 0 && (
+        <Card>
+          <CardHeader
+            title="البيانات المستخرجة من المستندات"
+            subtitle={`${docRows.length} ملف Word / PowerPoint / PDF مُعالج`}
+          />
+          <div className="p-5">
+            <div className="space-y-3">
+              {docRows.map((r: any) => {
+                const ext = r.file_name?.split(".").pop()?.toLowerCase();
+                const isProcessed = r.status === "processed";
+                const summary = r.extracted_summary as any;
+                const extract = extractions.find((e: any) => e.upload_id === r.id);
+                const isOpen = viewExtract === r.id;
+                return (
+                  <div key={r.id} className="border border-border rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setViewExtract(isOpen ? null : r.id)}
+                      className="w-full flex items-center gap-3 p-3 text-right hover:bg-muted/30 transition"
+                    >
+                      <span className="text-xl">{fileIcon(r.file_name)}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{r.file_name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {isProcessed
+                            ? summary?.orgs_found?.length > 0
+                              ? `${summary.orgs_found.length} مؤسسة · ${summary.numbers_count ?? 0} رقم`
+                              : "مُعالج"
+                            : r.status === "error" ? "خطأ في المعالجة" : "قيد المعالجة..."}
+                        </div>
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        isProcessed ? "bg-emerald-500/10 text-emerald-700" :
+                        r.status === "error" ? "bg-rose-500/10 text-rose-700" :
+                        "bg-amber-500/10 text-amber-700"
+                      }`}>
+                        {isProcessed ? "مُعالج" : r.status === "error" ? "خطأ" : "جاري..."}
+                      </span>
+                      <ChevronRight size={16} className={`text-muted-foreground transition ${isOpen ? "rotate-90" : ""}`} />
+                    </button>
+
+                    {isOpen && extract && (
+                      <div className="px-4 pb-4 border-t border-border bg-muted/10">
+                        {/* Summary */}
+                        {(extract as any).summary && (
+                          <div className="mt-3 p-2 rounded bg-blue-50 text-blue-800 text-xs border border-blue-100">
+                            <strong>ملخص:</strong> {(extract as any).summary}
+                          </div>
+                        )}
+
+                        {/* Orgs found */}
+                        {(extract as any).org_mentions && (extract as any).org_mentions.length > 0 && (
+                          <div className="mt-3">
+                            <div className="text-xs font-medium text-muted-foreground mb-1">المؤسسات المذكورة:</div>
+                            <div className="flex flex-wrap gap-1">
+                              {(extract as any).org_mentions.map((o: any, i: number) => (
+                                <span key={i} className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                                  {o.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Numbers */}
+                        {(extract as any).numbers_found && (extract as any).numbers_found.length > 0 && (
+                          <div className="mt-3">
+                            <div className="text-xs font-medium text-muted-foreground mb-1">الأرقام المستخرجة:</div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              {(extract as any).numbers_found.slice(0, 12).map((n: any, i: number) => (
+                                <div key={i} className="text-xs p-2 rounded border border-border bg-card">
+                                  <div className="font-bold tabular-nums" dir="ltr">
+                                    {n.value.toLocaleString()} {n.unit || ""}
+                                  </div>
+                                  <div className="text-muted-foreground truncate mt-0.5" title={n.context}>
+                                    {n.context?.substring(0, 40)}...
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Text preview */}
+                        {(extract as any).text_preview && (
+                          <details className="mt-3">
+                            <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">عرض النص المستخرج</summary>
+                            <pre className="mt-2 text-xs text-muted-foreground whitespace-pre-wrap bg-muted/30 p-3 rounded max-h-[300px] overflow-y-auto">
+                              {(extract as any).text_preview}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card>
         <CardHeader title="سجل التحديثات الأخيرة" />
@@ -1465,7 +1607,10 @@ function UploadSection() {
                 <tbody>
                   {rows.map((r: any) => (
                     <tr key={r.id} className="border-b hover:bg-muted/30">
-                      <td className="p-2 font-medium truncate max-w-[200px]">{r.file_name}</td>
+                      <td className="p-2 font-medium truncate max-w-[200px]">
+                        <span className="mr-1">{fileIcon(r.file_name)}</span>
+                        {r.file_name}
+                      </td>
                       <td className="p-2">{r.data_type}</td>
                       <td className="p-2">{r.org_id}</td>
                       <td className="p-2">{r.period}</td>
@@ -1501,4 +1646,5 @@ function UploadSection() {
     </div>
   );
 }
+
 
