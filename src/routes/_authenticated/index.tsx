@@ -552,7 +552,7 @@ function KPIsSection() {
                 <tr key={k.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{k.kpi_code}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{k.entity_code}</td>
-                  <td className="px-3 py-2 whitespace-nowrap">{k.sector ?? "—"}</td>
+                  <td className="px-3 py-2 whitespace-nowrap" title={k.sector ?? ""}>{k.perspective}</td>
                   <td className="px-3 py-2 max-w-[220px]">{k.objective ?? "—"}</td>
                   <td className="px-3 py-2 max-w-[280px]">{k.kpi_name}</td>
                   <td className="px-3 py-2 text-xs whitespace-nowrap">{k.kpi_type ?? "—"}</td>
