@@ -454,9 +454,14 @@ function KPIsSection() {
   const normSector = (s: string | null | undefined) =>
     (s ?? "").replace(/\s+/g, " ").trim();
 
-  const normalized = rows.map(r => ({ ...r, sector: normSector(r.sector) || null }));
+  // قيود مهمّة: لا تُعرض إلا المؤسسات الستّ المعتمدة.
+  // أي entity_code آخر (الربعي/data/البيانات/التحليل/الجامعة/النتائج المباشرة/نتائج تقييم السياسات…)
+  // ناتج عن قراءة خاطئة من ملفات Excel ويجب تجاهله في العرض حتى يتم تنظيف المصدر.
+  const VALID_ORG_IDS = new Set(ORGS.map(o => o.id) as string[]);
+  const cleanRows = rows.filter(r => r.entity_code && VALID_ORG_IDS.has(r.entity_code));
+  const normalized = cleanRows.map(r => ({ ...r, sector: normSector(r.sector) || null }));
 
-  const entities = Array.from(new Set([...ORGS.map(o => o.id), ...normalized.map(r => r.entity_code).filter(Boolean)])) as string[];
+  const entities = ORGS.map(o => o.id) as string[];
   const orgScoped = orgF === "الكل" ? normalized : normalized.filter(r => r.entity_code === orgF);
   const sectors = Array.from(new Set(orgScoped.map(r => r.sector).filter(Boolean))) as string[];
 
