@@ -183,6 +183,19 @@ export const parseUpload = createServerFn({ method: "POST" })
     }
   });
 
+// Route an upload to the correct parser based on file extension
+export const processUpload = createServerFn({ method: "POST" })
+  .inputValidator((input) => z.object({ uploadId: z.string().uuid(), filePath: z.string().min(1) }).parse(input))
+  .handler(async ({ data }) => {
+    const ext = data.filePath.split(".").pop()?.toLowerCase() || "";
+    if (ext === "xlsx" || ext === "xls" || ext === "csv") {
+      return parseUpload({ data });
+    }
+    // Word, PowerPoint, PDF → document extractor
+    const { extractDocument } = await import("./documents.functions");
+    return extractDocument({ data });
+  });
+
 // Re-run parsing for an existing upload (manual refresh)
 export const reprocessUpload = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ uploadId: z.string().uuid() }).parse(input))
@@ -194,12 +207,7 @@ export const reprocessUpload = createServerFn({ method: "POST" })
       .eq("id", data.uploadId)
       .single();
     if (error || !row) throw new Error(error?.message ?? "upload not found");
-    const result = await (
-      parseUpload as unknown as (args: {
-        data: { uploadId: string; filePath: string };
-      }) => Promise<{ ok: boolean; upserted: number }>
-    )({
-      data: { uploadId: row.id, filePath: row.file_path },
-    });
+    const result = await processUpload({ data: { uploadId: row.id, filePath: row.file_path } });
     return result;
   });
+
