@@ -454,9 +454,14 @@ function KPIsSection() {
   const normSector = (s: string | null | undefined) =>
     (s ?? "").replace(/\s+/g, " ").trim();
 
-  const normalized = rows.map(r => ({ ...r, sector: normSector(r.sector) || null }));
+  // قيود مهمّة: لا تُعرض إلا المؤسسات الستّ المعتمدة.
+  // أي entity_code آخر (الربعي/data/البيانات/التحليل/الجامعة/النتائج المباشرة/نتائج تقييم السياسات…)
+  // ناتج عن قراءة خاطئة من ملفات Excel ويجب تجاهله في العرض حتى يتم تنظيف المصدر.
+  const VALID_ORG_IDS = new Set(ORGS.map(o => o.id) as string[]);
+  const cleanRows = rows.filter(r => r.entity_code && VALID_ORG_IDS.has(r.entity_code));
+  const normalized = cleanRows.map(r => ({ ...r, sector: normSector(r.sector) || null }));
 
-  const entities = Array.from(new Set([...ORGS.map(o => o.id), ...normalized.map(r => r.entity_code).filter(Boolean)])) as string[];
+  const entities = ORGS.map(o => o.id) as string[];
   const orgScoped = orgF === "الكل" ? normalized : normalized.filter(r => r.entity_code === orgF);
   const sectors = Array.from(new Set(orgScoped.map(r => r.sector).filter(Boolean))) as string[];
 
@@ -484,7 +489,7 @@ function KPIsSection() {
 
   return (
     <div className="space-y-6">
-      <SectionTitle title="مؤشرات الأداء (KPIs)" subtitle={`بيانات حية من قاعدة البيانات — تتحدّث تلقائيًا عند إعادة الرفع (${rows.length} مؤشر)`} />
+      <SectionTitle title="مؤشرات الأداء (KPIs)" subtitle={`بيانات حية من قاعدة البيانات — تتحدّث تلقائيًا عند إعادة الرفع (${cleanRows.length} مؤشر${rows.length !== cleanRows.length ? ` · تم تجاهل ${rows.length - cleanRows.length} صف بكود مؤسسة غير معروف` : ""})`} />
       <Card className="p-4 flex flex-wrap items-center gap-3">
         <Select value={orgF} onChange={setOrgF} options={["الكل", ...entities]} label="المؤسسة" />
         <Select value={persF} onChange={setPersF} options={["الكل", ...sectors]} label="المنظور" />
@@ -1168,30 +1173,29 @@ function BSCPerformanceMap() {
     refetchInterval: 5000,
   });
 
-  const entityMap = new Map<string, string>();
-  // Seed with canonical org list so every entity shows even when no data uploaded yet
-  ORGS.forEach(o => entityMap.set(o.id, o.nameAr));
-  rows.forEach(r => { if (r.entity_code && !entityMap.has(r.entity_code)) entityMap.set(r.entity_code, r.entity_name ?? r.entity_code); });
-  const allOrgs = Array.from(entityMap.entries()).map(([code, name]) => ({ code, name }));
+  // قيد: لا تُعرض إلا المؤسسات الستّ المعتمدة (تجاهل أي كود غريب من رفع Excel سابق).
+  const VALID_ORG_IDS = new Set(ORGS.map(o => o.id) as string[]);
+  const cleanRows = rows.filter(r => r.entity_code && VALID_ORG_IDS.has(r.entity_code));
+
+  const allOrgs = ORGS.map(o => ({ code: o.id as string, name: o.nameAr, color: o.color }));
 
   const [selected, setSelected] = useState<string[]>([]);
   const activeOrgs = selected.length ? selected : allOrgs.map(o => o.code);
 
-  const palette = ["#1558a0", "#0e7490", "#15803d", "#d97706", "#9333ea", "#dc2626", "#0891b2", "#be185d"];
-  const colorFor = (code: string) => palette[Math.max(0, allOrgs.findIndex(o => o.code === code)) % palette.length];
+  const colorFor = (code: string) => allOrgs.find(o => o.code === code)?.color ?? "#64748b";
 
   const toggle = (code: string) => setSelected(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
 
   // perspective → org → { avg, count }
   const matrix = BSC_PERSPECTIVES.map(p => {
     const orgStats = activeOrgs.map(code => {
-      const items = rows.filter(r => r.entity_code === code && matchPerspective(r.sector) === p.key);
+      const items = cleanRows.filter(r => r.entity_code === code && matchPerspective(r.sector) === p.key);
       const vals = items.map(r => {
         const n = Number(r.achievement_pct ?? 0);
         return Number.isFinite(n) ? (n <= 1 ? n * 100 : n) : 0;
       });
       const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-      return { code, name: entityMap.get(code) ?? code, count: items.length, avg: Math.round(avg) };
+      return { code, name: allOrgs.find(o => o.code === code)?.name ?? code, count: items.length, avg: Math.round(avg) };
     });
     return { ...p, orgStats };
   });
@@ -1295,7 +1299,7 @@ function BSCPerformanceMap() {
                 const c = colorFor(code);
                 return (
                   <div key={code} className="border border-border rounded-lg p-3 text-center" style={{ borderTopColor: c, borderTopWidth: 3 }}>
-                    <div className="text-xs text-muted-foreground mb-1 truncate">{entityMap.get(code) ?? code}</div>
+                    <div className="text-xs text-muted-foreground mb-1 truncate">{allOrgs.find(o => o.code === code)?.name ?? code}</div>
                     <div className="text-2xl font-bold tabular-nums" style={{ color: c }}>{overall}%</div>
                   </div>
                 );
