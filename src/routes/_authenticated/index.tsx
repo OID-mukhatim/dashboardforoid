@@ -518,9 +518,9 @@ function KPIsSection() {
 
       {sectorStats.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {sectorStats.map((p, i) => (
+          {sectorStats.map((p) => (
             <Card key={p.name} className="p-5 flex items-center gap-4">
-              <CircularProgress value={p.avg} color={["#0e4d2e","#1558a0","#2e9bd4","#d97706","#9333ea","#dc2626"][i % 6]} />
+              <CircularProgress value={p.avg} color={p.color} />
               <div>
                 <div className="text-sm font-medium">{p.name}</div>
                 <div className="text-xs text-muted-foreground">{p.count} مؤشر</div>
