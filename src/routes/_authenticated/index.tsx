@@ -489,7 +489,7 @@ function KPIsSection() {
 
   return (
     <div className="space-y-6">
-      <SectionTitle title="مؤشرات الأداء (KPIs)" subtitle={`بيانات حية من قاعدة البيانات — تتحدّث تلقائيًا عند إعادة الرفع (${rows.length} مؤشر)`} />
+      <SectionTitle title="مؤشرات الأداء (KPIs)" subtitle={`بيانات حية من قاعدة البيانات — تتحدّث تلقائيًا عند إعادة الرفع (${cleanRows.length} مؤشر${rows.length !== cleanRows.length ? ` · تم تجاهل ${rows.length - cleanRows.length} صف بكود مؤسسة غير معروف` : ""})`} />
       <Card className="p-4 flex flex-wrap items-center gap-3">
         <Select value={orgF} onChange={setOrgF} options={["الكل", ...entities]} label="المؤسسة" />
         <Select value={persF} onChange={setPersF} options={["الكل", ...sectors]} label="المنظور" />
