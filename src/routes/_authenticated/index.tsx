@@ -460,24 +460,40 @@ function KPIsSection() {
   // ناتج عن قراءة خاطئة من ملفات Excel ويجب تجاهله في العرض حتى يتم تنظيف المصدر.
   const VALID_ORG_IDS = new Set(ORGS.map(o => o.id) as string[]);
   const cleanRows = rows.filter(r => r.entity_code && VALID_ORG_IDS.has(r.entity_code));
-  const normalized = cleanRows.map(r => ({ ...r, sector: normSector(r.sector) || null }));
+
+  // مناظير BSC الأربعة المعيارية فقط: نُسقط نص "sector" الخام إلى أحد المناظير،
+  // وأي نص لا يطابق (مثل: "توسيع قاعدة المانحين"، "الهدف"، "تعزيز الشفافية")
+  // يُصنّف "غير مصنّف" ولا يُعرض كمنظور مستقل.
+  const UNCLASSIFIED = "غير مصنّف";
+  const normalized = cleanRows.map(r => {
+    const raw = normSector(r.sector) || null;
+    const mapped = perspectiveLabelOf(raw);
+    return { ...r, sector: raw, perspective: mapped ?? UNCLASSIFIED };
+  });
 
   const entities = ORGS.map(o => o.id) as string[];
   const orgScoped = orgF === "الكل" ? normalized : normalized.filter(r => r.entity_code === orgF);
-  const sectors = Array.from(new Set(orgScoped.map(r => r.sector).filter(Boolean))) as string[];
+  // خيارات الفلتر = المناظير الأربعة + "غير مصنّف" إن وُجد
+  const hasUnclassified = orgScoped.some(r => r.perspective === UNCLASSIFIED);
+  const perspectiveOptions = [...BSC_LABELS, ...(hasUnclassified ? [UNCLASSIFIED] : [])];
 
   const filtered = normalized.filter(k =>
     (orgF === "الكل" || k.entity_code === orgF) &&
-    (persF === "الكل" || k.sector === persF) &&
+    (persF === "الكل" || k.perspective === persF) &&
     (!q || (k.kpi_name ?? "").includes(q) || (k.kpi_code ?? "").includes(q))
   );
 
-  const sectorStats = sectors.map(s => {
-    const items = orgScoped.filter(r => r.sector === s);
-    const vals = items.map(r => Number(r.achievement_pct ?? 0) * (Number(r.achievement_pct ?? 0) <= 1 ? 100 : 1));
+  // إحصاءات لكل منظور من المناظير الأربعة فقط
+  const sectorStats = BSC_PERSPECTIVES.map(p => {
+    const items = orgScoped.filter(r => r.perspective === p.label);
+    const vals = items.map(r => {
+      const n = Number(r.achievement_pct ?? 0);
+      return Number.isFinite(n) ? (n <= 1 ? n * 100 : n) : 0;
+    });
     const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-    return { name: s, count: items.length, avg: Math.round(avg) };
+    return { name: p.label, color: p.color, count: items.length, avg: Math.round(avg) };
   });
+
 
 
   const fmtPct = (v: number | null | undefined) => {
