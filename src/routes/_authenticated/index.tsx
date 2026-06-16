@@ -1161,7 +1161,8 @@ function InitiativesSection() {
 /* ============================ UPLOAD ============================ */
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseUpload, reprocessUpload } from "@/lib/uploads.functions";
+import { parseUpload, reprocessUpload, processUpload } from "@/lib/uploads.functions";
+import { getDocumentExtractions } from "@/lib/documents.functions";
 import { useRef } from "react";
 
 /* ============================ BSC Performance Map ============================ */
