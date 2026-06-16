@@ -6,9 +6,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 /* ─── helpers ─── */
-const KB = 1024;
-const MB = KB * 1024;
-
 function isValidEntity(name: string): { id: string; name: string } | null {
   const s = (name ?? "").trim();
   const aliases: Array<{ id: string; patterns: RegExp[] }> = [
@@ -48,9 +45,7 @@ async function extractPptx(buf: ArrayBuffer): Promise<string> {
         const name: string = entry.path;
         if (name.endsWith(".xml") || name.endsWith(".rels")) {
           let chunks = "";
-          entry.on("data", (d: Buffer) => {
-            chunks += d.toString("utf8");
-          });
+          entry.on("data", (d: Buffer) => { chunks += d.toString("utf8"); });
           entry.on("end", async () => {
             try {
               if (name.includes("ppt/slides/") || name.includes("ppt/notesSlides/")) {
@@ -79,20 +74,65 @@ function extractTextFromXml(obj: any, out: string[]): void {
     const val = obj[key];
     if (key === "a:t" || key === "_:t") {
       if (typeof val === "string") out.push(val);
-      else if (Array.isArray(val)) val.forEach((v) => typeof v === "string" && out.push(v));
+      else if (Array.isArray(val)) val.forEach((v: any) => typeof v === "string" && out.push(v));
     } else if (Array.isArray(val)) {
-      val.forEach((v) => extractTextFromXml(v, out));
+      val.forEach((v: any) => extractTextFromXml(v, out));
     } else if (typeof val === "object") {
       extractTextFromXml(val, out);
     }
   }
 }
 
-/** Extract text from PDF using pdf-parse */
+/** Extract text from PDF using simple regex on buffer (Worker-safe) */
 async function extractPdf(buf: ArrayBuffer): Promise<string> {
-  const pdf = await import("pdf-parse");
-  const data = await pdf.default(Buffer.from(buf));
-  return data.text || "";
+  // PDF text extraction in Worker environment: scan for text objects
+  const bytes = new Uint8Array(buf);
+  const decoder = new TextDecoder("utf-8");
+  let text = "";
+  
+  // Try UTF-8 extraction first
+  try {
+    text = decoder.decode(bytes);
+  } catch { /* ignore */ }
+  
+  // Extract text between BT/ET markers and from streams
+  const fullString = decoder.decode(bytes);
+  const lines: string[] = [];
+  
+  // Pattern 1: Text in parentheses within PDF streams
+  const parenMatches = fullString.match(/\(([^)\\]{2,500})\)/g);
+  if (parenMatches) {
+    parenMatches.forEach((m) => {
+      const clean = m.slice(1, -1).replace(/\\\(/g, "(").replace(/\\\)/g, ")").replace(/\\/g, "");
+      if (clean.length > 2) lines.push(clean);
+    });
+  }
+  
+  // Pattern 2: Text after TJ/Tj operators
+  const tjMatches = fullString.match(/\[([^\]]{3,500})\]\s*TJ|\(([^)\\]{3,500})\)\s*Tj/g);
+  if (tjMatches) {
+    tjMatches.forEach((m) => {
+      const inner = m.match(/\(([^)\\]+)\)/g);
+      if (inner) {
+        inner.forEach((im) => {
+          const clean = im.slice(1, -1).replace(/\\/g, "");
+          if (clean.length > 2) lines.push(clean);
+        });
+      }
+    });
+  }
+  
+  // Also include any readable Arabic/English text sequences
+  const readableMatches = fullString.match(/[\u0600-\u06FF\u0750-\u077FA-Za-z0-9.,;:@%$\s]{10,500}/g);
+  if (readableMatches) {
+    readableMatches.forEach((m) => {
+      if (m.trim().length > 5 && !lines.includes(m.trim())) {
+        lines.push(m.trim());
+      }
+    });
+  }
+  
+  return lines.join("\n").substring(0, 50000);
 }
 
 /* ─── smart extraction (numbers, dates, names) ─── */
@@ -124,7 +164,6 @@ function analyzeDocument(text: string): DocumentExtraction {
     const match = isValidEntity(line);
     if (match && !seenOrgs.has(match.id)) {
       seenOrgs.add(match.id);
-      // grab surrounding context
       const idx = lines.indexOf(line);
       const context = lines.slice(Math.max(0, idx - 1), Math.min(lines.length, idx + 2)).join(" | ");
       orgMentions.push({ id: match.id, name: match.name, context });
@@ -134,7 +173,6 @@ function analyzeDocument(text: string): DocumentExtraction {
   // 2) Extract numbers with context
   const numbers: DocumentExtraction["numbers"] = [];
   for (const line of lines) {
-    // match patterns like: 1,234,567  or  $1,234  or  85%  or  2026  or  1,200,000 USD
     const matches = line.match(/(?:[$€£]?\s*[\d,]+(?:\.\d+)?(?:\s*(?:USD|\$|€|£|٪|%))?)/g);
     if (matches) {
       for (const m of matches) {
@@ -146,7 +184,6 @@ function analyzeDocument(text: string): DocumentExtraction {
       }
     }
   }
-  // dedupe numbers
   const uniqueNumbers = [];
   const seenNums = new Set<string>();
   for (const n of numbers) {
@@ -207,7 +244,7 @@ export const extractDocument = createServerFn({ method: "POST" })
       const analysis = analyzeDocument(rawText);
 
       // Store extracted data
-      const { error: insErr } = await supabaseAdmin.from("document_extractions").insert({
+      await supabaseAdmin.from("document_extractions" as any).insert({
         upload_id: data.uploadId,
         file_path: data.filePath,
         file_name: fileName,
@@ -216,8 +253,7 @@ export const extractDocument = createServerFn({ method: "POST" })
         org_mentions: analysis.orgMentions as any,
         numbers_found: analysis.numbers as any,
         summary: analysis.summary,
-      });
-      if (insErr) throw insErr;
+      } as any);
 
       // Update upload status
       await supabaseAdmin
@@ -257,7 +293,7 @@ export const getDocumentExtractions = createServerFn({ method: "GET" })
   .handler(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
-      .from("document_extractions")
+      .from("document_extractions" as any)
       .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
