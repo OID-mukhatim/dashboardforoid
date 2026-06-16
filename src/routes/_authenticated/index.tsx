@@ -1149,19 +1149,8 @@ import { parseUpload, reprocessUpload } from "@/lib/uploads.functions";
 import { useRef } from "react";
 
 /* ============================ BSC Performance Map ============================ */
-const BSC_PERSPECTIVES: { key: string; label: string; aliases: string[]; color: string; icon: string }[] = [
-  { key: "financial",   label: "المنظور المالي",          aliases: ["المالي", "النتائج المالية", "الموارد المالية"], color: "#7c3aed", icon: "💰" },
-  { key: "stakeholder", label: "منظور أصحاب المصلحة",     aliases: ["أصحاب المصلحة", "المستفيدين", "العملاء", "الشركاء"], color: "#0e7490", icon: "🤝" },
-  { key: "internal",    label: "منظور العمليات الداخلية", aliases: ["العمليات الداخلية", "العمليات"], color: "#15803d", icon: "⚙️" },
-  { key: "learning",    label: "منظور التعلم والنمو",      aliases: ["التعلم والنمو", "التعلم", "النمو", "التطوير"], color: "#d97706", icon: "🌱" },
-];
+// مناظير BSC ومطابقة القطاعات تُستورد من src/lib/oid-bsc.ts (4 مناظير معيارية فقط).
 
-function matchPerspective(sector: string | null | undefined): string | null {
-  if (!sector) return null;
-  const s = sector.replace(/\s+/g, " ").trim();
-  for (const p of BSC_PERSPECTIVES) if (p.aliases.some(a => s.includes(a))) return p.key;
-  return null;
-}
 
 function BSCPerformanceMap() {
   const { data: rows = [], isLoading } = useQuery({
