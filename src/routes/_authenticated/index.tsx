@@ -1189,13 +1189,13 @@ function BSCPerformanceMap() {
   // perspective → org → { avg, count }
   const matrix = BSC_PERSPECTIVES.map(p => {
     const orgStats = activeOrgs.map(code => {
-      const items = rows.filter(r => r.entity_code === code && matchPerspective(r.sector) === p.key);
+      const items = cleanRows.filter(r => r.entity_code === code && matchPerspective(r.sector) === p.key);
       const vals = items.map(r => {
         const n = Number(r.achievement_pct ?? 0);
         return Number.isFinite(n) ? (n <= 1 ? n * 100 : n) : 0;
       });
       const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-      return { code, name: entityMap.get(code) ?? code, count: items.length, avg: Math.round(avg) };
+      return { code, name: allOrgs.find(o => o.code === code)?.name ?? code, count: items.length, avg: Math.round(avg) };
     });
     return { ...p, orgStats };
   });
