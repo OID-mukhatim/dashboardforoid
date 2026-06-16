@@ -26,6 +26,7 @@ import { InstitutionProfileDrawer } from "@/components/oid/InstitutionProfileDra
 import { openOrgProfile } from "@/lib/oid-drill";
 import { formatScore, formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
 import { MATURITY_SCALE } from "@/lib/oid-maturity";
+import { BSC_PERSPECTIVES, BSC_LABELS, matchPerspective, perspectiveLabelOf } from "@/lib/oid-bsc";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Page });
 
@@ -459,24 +460,40 @@ function KPIsSection() {
   // ناتج عن قراءة خاطئة من ملفات Excel ويجب تجاهله في العرض حتى يتم تنظيف المصدر.
   const VALID_ORG_IDS = new Set(ORGS.map(o => o.id) as string[]);
   const cleanRows = rows.filter(r => r.entity_code && VALID_ORG_IDS.has(r.entity_code));
-  const normalized = cleanRows.map(r => ({ ...r, sector: normSector(r.sector) || null }));
+
+  // مناظير BSC الأربعة المعيارية فقط: نُسقط نص "sector" الخام إلى أحد المناظير،
+  // وأي نص لا يطابق (مثل: "توسيع قاعدة المانحين"، "الهدف"، "تعزيز الشفافية")
+  // يُصنّف "غير مصنّف" ولا يُعرض كمنظور مستقل.
+  const UNCLASSIFIED = "غير مصنّف";
+  const normalized = cleanRows.map(r => {
+    const raw = normSector(r.sector) || null;
+    const mapped = perspectiveLabelOf(raw);
+    return { ...r, sector: raw, perspective: mapped ?? UNCLASSIFIED };
+  });
 
   const entities = ORGS.map(o => o.id) as string[];
   const orgScoped = orgF === "الكل" ? normalized : normalized.filter(r => r.entity_code === orgF);
-  const sectors = Array.from(new Set(orgScoped.map(r => r.sector).filter(Boolean))) as string[];
+  // خيارات الفلتر = المناظير الأربعة + "غير مصنّف" إن وُجد
+  const hasUnclassified = orgScoped.some(r => r.perspective === UNCLASSIFIED);
+  const perspectiveOptions = [...BSC_LABELS, ...(hasUnclassified ? [UNCLASSIFIED] : [])];
 
   const filtered = normalized.filter(k =>
     (orgF === "الكل" || k.entity_code === orgF) &&
-    (persF === "الكل" || k.sector === persF) &&
+    (persF === "الكل" || k.perspective === persF) &&
     (!q || (k.kpi_name ?? "").includes(q) || (k.kpi_code ?? "").includes(q))
   );
 
-  const sectorStats = sectors.map(s => {
-    const items = orgScoped.filter(r => r.sector === s);
-    const vals = items.map(r => Number(r.achievement_pct ?? 0) * (Number(r.achievement_pct ?? 0) <= 1 ? 100 : 1));
+  // إحصاءات لكل منظور من المناظير الأربعة فقط
+  const sectorStats = BSC_PERSPECTIVES.map(p => {
+    const items = orgScoped.filter(r => r.perspective === p.label);
+    const vals = items.map(r => {
+      const n = Number(r.achievement_pct ?? 0);
+      return Number.isFinite(n) ? (n <= 1 ? n * 100 : n) : 0;
+    });
     const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-    return { name: s, count: items.length, avg: Math.round(avg) };
+    return { name: p.label, color: p.color, count: items.length, avg: Math.round(avg) };
   });
+
 
 
   const fmtPct = (v: number | null | undefined) => {
@@ -492,7 +509,7 @@ function KPIsSection() {
       <SectionTitle title="مؤشرات الأداء (KPIs)" subtitle={`بيانات حية من قاعدة البيانات — تتحدّث تلقائيًا عند إعادة الرفع (${cleanRows.length} مؤشر${rows.length !== cleanRows.length ? ` · تم تجاهل ${rows.length - cleanRows.length} صف بكود مؤسسة غير معروف` : ""})`} />
       <Card className="p-4 flex flex-wrap items-center gap-3">
         <Select value={orgF} onChange={setOrgF} options={["الكل", ...entities]} label="المؤسسة" />
-        <Select value={persF} onChange={setPersF} options={["الكل", ...sectors]} label="المنظور" />
+        <Select value={persF} onChange={setPersF} options={["الكل", ...perspectiveOptions]} label="المنظور" />
         <div className="relative ml-auto">
           <Search size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input value={q} onChange={e=>setQ(e.target.value)} placeholder="بحث (اسم/كود)" className="pr-8 pl-3 py-1.5 text-sm bg-muted rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 w-56" />
@@ -501,9 +518,9 @@ function KPIsSection() {
 
       {sectorStats.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {sectorStats.map((p, i) => (
+          {sectorStats.map((p) => (
             <Card key={p.name} className="p-5 flex items-center gap-4">
-              <CircularProgress value={p.avg} color={["#0e4d2e","#1558a0","#2e9bd4","#d97706","#9333ea","#dc2626"][i % 6]} />
+              <CircularProgress value={p.avg} color={p.color} />
               <div>
                 <div className="text-sm font-medium">{p.name}</div>
                 <div className="text-xs text-muted-foreground">{p.count} مؤشر</div>
@@ -535,7 +552,7 @@ function KPIsSection() {
                 <tr key={k.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{k.kpi_code}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{k.entity_code}</td>
-                  <td className="px-3 py-2 whitespace-nowrap">{k.sector ?? "—"}</td>
+                  <td className="px-3 py-2 whitespace-nowrap" title={k.sector ?? ""}>{k.perspective}</td>
                   <td className="px-3 py-2 max-w-[220px]">{k.objective ?? "—"}</td>
                   <td className="px-3 py-2 max-w-[280px]">{k.kpi_name}</td>
                   <td className="px-3 py-2 text-xs whitespace-nowrap">{k.kpi_type ?? "—"}</td>
@@ -1148,19 +1165,8 @@ import { parseUpload, reprocessUpload } from "@/lib/uploads.functions";
 import { useRef } from "react";
 
 /* ============================ BSC Performance Map ============================ */
-const BSC_PERSPECTIVES: { key: string; label: string; aliases: string[]; color: string; icon: string }[] = [
-  { key: "financial",   label: "المنظور المالي",          aliases: ["المالي", "النتائج المالية", "الموارد المالية"], color: "#7c3aed", icon: "💰" },
-  { key: "stakeholder", label: "منظور أصحاب المصلحة",     aliases: ["أصحاب المصلحة", "المستفيدين", "العملاء", "الشركاء"], color: "#0e7490", icon: "🤝" },
-  { key: "internal",    label: "منظور العمليات الداخلية", aliases: ["العمليات الداخلية", "العمليات"], color: "#15803d", icon: "⚙️" },
-  { key: "learning",    label: "منظور التعلم والنمو",      aliases: ["التعلم والنمو", "التعلم", "النمو", "التطوير"], color: "#d97706", icon: "🌱" },
-];
+// مناظير BSC ومطابقة القطاعات تُستورد من src/lib/oid-bsc.ts (4 مناظير معيارية فقط).
 
-function matchPerspective(sector: string | null | undefined): string | null {
-  if (!sector) return null;
-  const s = sector.replace(/\s+/g, " ").trim();
-  for (const p of BSC_PERSPECTIVES) if (p.aliases.some(a => s.includes(a))) return p.key;
-  return null;
-}
 
 function BSCPerformanceMap() {
   const { data: rows = [], isLoading } = useQuery({
