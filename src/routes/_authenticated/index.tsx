@@ -1299,7 +1299,7 @@ function BSCPerformanceMap() {
                 const c = colorFor(code);
                 return (
                   <div key={code} className="border border-border rounded-lg p-3 text-center" style={{ borderTopColor: c, borderTopWidth: 3 }}>
-                    <div className="text-xs text-muted-foreground mb-1 truncate">{entityMap.get(code) ?? code}</div>
+                    <div className="text-xs text-muted-foreground mb-1 truncate">{allOrgs.find(o => o.code === code)?.name ?? code}</div>
                     <div className="text-2xl font-bold tabular-nums" style={{ color: c }}>{overall}%</div>
                   </div>
                 );
