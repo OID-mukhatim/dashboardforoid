@@ -1173,17 +1173,16 @@ function BSCPerformanceMap() {
     refetchInterval: 5000,
   });
 
-  const entityMap = new Map<string, string>();
-  // Seed with canonical org list so every entity shows even when no data uploaded yet
-  ORGS.forEach(o => entityMap.set(o.id, o.nameAr));
-  rows.forEach(r => { if (r.entity_code && !entityMap.has(r.entity_code)) entityMap.set(r.entity_code, r.entity_name ?? r.entity_code); });
-  const allOrgs = Array.from(entityMap.entries()).map(([code, name]) => ({ code, name }));
+  // قيد: لا تُعرض إلا المؤسسات الستّ المعتمدة (تجاهل أي كود غريب من رفع Excel سابق).
+  const VALID_ORG_IDS = new Set(ORGS.map(o => o.id) as string[]);
+  const cleanRows = rows.filter(r => r.entity_code && VALID_ORG_IDS.has(r.entity_code));
+
+  const allOrgs = ORGS.map(o => ({ code: o.id as string, name: o.nameAr, color: o.color }));
 
   const [selected, setSelected] = useState<string[]>([]);
   const activeOrgs = selected.length ? selected : allOrgs.map(o => o.code);
 
-  const palette = ["#1558a0", "#0e7490", "#15803d", "#d97706", "#9333ea", "#dc2626", "#0891b2", "#be185d"];
-  const colorFor = (code: string) => palette[Math.max(0, allOrgs.findIndex(o => o.code === code)) % palette.length];
+  const colorFor = (code: string) => allOrgs.find(o => o.code === code)?.color ?? "#64748b";
 
   const toggle = (code: string) => setSelected(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
 
