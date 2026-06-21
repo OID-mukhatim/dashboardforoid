@@ -596,7 +596,7 @@ function OrgChip({ id }: { id: OrgId }) {
   const o = ORGS.find(x => x.id === id);
   if (!o) return <span>{id}</span>;
   return <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full" style={{ background: `${o.color}15`, color: o.color }}>
-    <span className="w-1.5 h-1.5 rounded-full" style={{ background: o.color }} />{o.abbr}
+    <OrgLogo orgId={id} size={16} shape="circle" />{o.abbr}
   </span>;
 }
 function CircularProgress({ value, color }: { value: number; color: string }) {
