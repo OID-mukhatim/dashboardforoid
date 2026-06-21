@@ -534,7 +534,7 @@ function KPIsSection() {
 
       <Card>
         <CardHeader title={`جدول المؤشرات (${filtered.length})`} />
-        <div className="overflow-x-auto">
+        <ScrollableTable>
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
@@ -576,7 +576,7 @@ function KPIsSection() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollableTable>
       </Card>
     </div>
   );
@@ -636,7 +636,7 @@ function QuarterlySection() {
 
       {tab === "ach" && (
         <Card>
-          <div className="overflow-x-auto">
+          <ScrollableTable>
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
                 <tr>{["م","الإنجاز/المشروع","كود المؤشر","المؤسسة","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium">{h}</th>)}</tr>
@@ -662,7 +662,7 @@ function QuarterlySection() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollableTable>
         </Card>
       )}
       {tab === "ch" && <Card className="p-8"><EmptyData msg="سيتم إدراج التحديات الربعية عند استكمال التقارير" /></Card>}
@@ -692,7 +692,7 @@ function GapsSection() {
 
       <Card>
         <CardHeader title="خريطة الحرارة (Heatmap)" subtitle="6 مؤسسات × 7 محاور" />
-        <div className="p-4 overflow-x-auto">
+        <div className="p-4"><ScrollableTable>
           <table className="w-full text-sm">
             <thead><tr><th className="px-3 py-2 text-right text-xs text-muted-foreground">المؤسسة</th>
               {GAP_AXES.map(a => <th key={a} className="px-3 py-2 text-xs text-muted-foreground">{a}</th>)}
@@ -710,7 +710,7 @@ function GapsSection() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollableTable></div>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -821,7 +821,7 @@ function GovernanceSection() {
             ))}
           </div>
         } />
-        <div className="overflow-x-auto">
+        <ScrollableTable>
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
@@ -845,7 +845,7 @@ function GovernanceSection() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollableTable>
         <div className="flex flex-wrap gap-3 p-4 border-t border-border text-xs">
           {(Object.entries(POLICY_STATUS_META) as [PolicyStatus, any][]).map(([k, m]) => (
             <span key={k} className={`px-2 py-1 rounded ${m.bg} ${m.fg}`}>{m.icon} {m.label}</span>
@@ -1027,7 +1027,7 @@ function PartnershipsSection() {
 
       <Card>
         <CardHeader title="جدول الشراكات" />
-        <div className="overflow-x-auto">
+        <ScrollableTable>
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>{["الكود","الشريك","النوع","الحالة","الجغرافيا","المؤسسات المرتبطة"].map(h=><th key={h} className="px-3 py-2 text-right font-medium">{h}</th>)}</tr>
@@ -1045,7 +1045,7 @@ function PartnershipsSection() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollableTable>
       </Card>
 
       <Card className="p-5 bg-yellow-50 border-yellow-200">
@@ -1596,7 +1596,7 @@ function UploadSection() {
         <CardHeader title="سجل التحديثات الأخيرة" />
         <div className="p-5">
           {rows.length === 0 ? <EmptyData msg="لا توجد ملفات مرفوعة بعد" /> : (
-            <div className="overflow-x-auto">
+            <ScrollableTable>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-right border-b">
@@ -1641,7 +1641,7 @@ function UploadSection() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTable>
           )}
         </div>
       </Card>
