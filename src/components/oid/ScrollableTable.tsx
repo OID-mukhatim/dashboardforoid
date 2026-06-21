@@ -156,9 +156,9 @@ export function ScrollableTable({ children, maxHeight, className = "" }: Props) 
       <style>{`
         .st-topbar::-webkit-scrollbar { height: 10px; }
         .st-topbar::-webkit-scrollbar-thumb,
-        .st-wrap::-webkit-scrollbar-thumb { background: hsl(var(--primary) / 0.55); border-radius: 10px; }
+        .st-wrap::-webkit-scrollbar-thumb { background: var(--primary-mid, #1a7a4a); border-radius: 10px; }
         .st-topbar::-webkit-scrollbar-thumb:hover,
-        .st-wrap::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.8); }
+        .st-wrap::-webkit-scrollbar-thumb:hover { background: var(--primary, #0e4d2e); }
         .st-topbar::-webkit-scrollbar-track,
         .st-wrap::-webkit-scrollbar-track { background: #eef2f7; border-radius: 10px; }
         .st-wrap::-webkit-scrollbar { height: 10px; }
@@ -166,12 +166,12 @@ export function ScrollableTable({ children, maxHeight, className = "" }: Props) 
         .st-arrow {
           position: absolute; top: 50%; transform: translateY(-50%);
           width: 30px; height: 30px; border-radius: 9999px;
-          background: hsl(var(--primary) / 0.9); color: #fff; border: none;
+          background: var(--primary, #0e4d2e); color: #fff; border: none;
           font-size: 18px; line-height: 1; cursor: pointer; z-index: 5;
           display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 2px 8px rgba(0,0,0,.18); transition: background .2s;
+          box-shadow: 0 2px 8px rgba(0,0,0,.18); transition: background .2s; opacity: .9;
         }
-        .st-arrow:hover { background: hsl(var(--primary)); }
+        .st-arrow:hover { opacity: 1; }
         .st-arrow-right { right: 4px; }
         .st-arrow-left  { left:  4px; }
       `}</style>
