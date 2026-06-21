@@ -1202,7 +1202,7 @@ function ProfilesSection() {
             <div onClick={() => openOrgProfile(o.id as OrgId)} role="button" tabIndex={0}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openOrgProfile(o.id as OrgId)}>
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0" style={{ background: o.color }}>{o.abbr}</div>
+              <OrgLogo orgId={o.id as OrgId} size={56} shape="rounded" />
               <div className="flex-1 min-w-0">
                 <div className="font-bold leading-tight">{o.nameAr}</div>
                 <div className="text-xs text-muted-foreground font-serif">{o.nameEn}</div>
