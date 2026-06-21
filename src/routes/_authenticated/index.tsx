@@ -615,18 +615,49 @@ function CircularProgress({ value, color }: { value: number; color: string }) {
 /* ============================ QUARTERLY ============================ */
 function QuarterlySection() {
   const [tab, setTab] = useState<"ach"|"ch"|"rec">("ach");
+  const [filters, setFilters] = useState({ org: "all", quarter: "all", year: "2026" });
+  const update = (k: keyof typeof filters, v: string) => setFilters((p) => ({ ...p, [k]: v }));
+  const reset = () => setFilters({ org: "all", quarter: "all", year: "2026" });
+
+  // q1Data يعكس حالياً Q1/2026 فقط — نطبّق الفلاتر بمنطق AND حقيقي
+  const filtered = useMemo(() => {
+    return q1Data.filter((r) => {
+      const matchOrg = filters.org === "all" || r.org === filters.org;
+      const matchQ = filters.quarter === "all" || filters.quarter === "Q1";
+      const matchY = filters.year === "all" || filters.year === "2026";
+      return matchOrg && matchQ && matchY;
+    });
+  }, [filters]);
+
+  const hasActive = filters.org !== "all" || filters.quarter !== "all" || filters.year !== "2026";
+  const orgOpts = [{ value: "all", label: "جميع المؤسسات" }, ...ORGS.map((o) => ({ value: o.id, label: o.nameAr }))];
+  const qOpts = [
+    { value: "all", label: "جميع الأرباع" },
+    { value: "Q1", label: "الربع الأول" }, { value: "Q2", label: "الربع الثاني" },
+    { value: "Q3", label: "الربع الثالث" }, { value: "Q4", label: "الربع الرابع" },
+  ];
+  const yOpts = [{ value: "all", label: "جميع السنوات" }, { value: "2026", label: "2026" }, { value: "2025", label: "2025" }];
+
   return (
     <div className="space-y-6">
       <SectionTitle title="التقارير الربعية" subtitle="Q1 — 2026" />
-      <Card className="p-3 flex flex-wrap items-center gap-2">
-        <Select value="الكل" onChange={()=>{}} options={["الكل", ...ORGS.map(o=>o.id)]} label="المؤسسة" />
-        <Select value="Q1" onChange={()=>{}} options={["Q1","Q2","Q3","Q4"]} label="الربع" />
-        <Select value="2026" onChange={()=>{}} options={["2026","2025"]} label="السنة" />
+      <Card className="p-3 flex flex-wrap items-center gap-3">
+        <FilterSelect label="المؤسسة" value={filters.org} onChange={(v)=>update("org", v)} options={orgOpts} />
+        <FilterSelect label="الربع" value={filters.quarter} onChange={(v)=>update("quarter", v)} options={qOpts} />
+        <FilterSelect label="السنة" value={filters.year} onChange={(v)=>update("year", v)} options={yOpts} />
+        {hasActive && (
+          <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط</button>
+        )}
         <div className="ml-auto flex gap-2">
           <button className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground"><Download size={14}/> PDF</button>
           <button className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground"><Download size={14}/> Excel</button>
         </div>
       </Card>
+
+      <div className="text-xs text-muted-foreground">
+        عرض <span className="font-bold tabular-nums" dir="ltr">{filtered.length}</span> من{" "}
+        <span className="tabular-nums" dir="ltr">{q1Data.length}</span> سجل
+      </div>
 
       <div className="flex gap-2 border-b border-border">
         {[["ach","الإنجازات والمشاريع"],["ch","التحديات والعوائق"],["rec","التوصيات"]].map(([k,l])=>(
@@ -635,14 +666,20 @@ function QuarterlySection() {
       </div>
 
       {tab === "ach" && (
+        filtered.length === 0 ? (
+          <Card className="p-8 text-center space-y-3">
+            <EmptyData msg="لا توجد سجلات مطابقة لهذا الفلتر" />
+            <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط الفلاتر</button>
+          </Card>
+        ) : (
         <Card>
           <ScrollableTable>
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
-                <tr>{["م","الإنجاز/المشروع","كود المؤشر","المؤسسة","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium">{h}</th>)}</tr>
+                <tr>{["م","الإنجاز/المشروع","كود المؤشر","المؤسسة","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
               </thead>
               <tbody>
-                {q1Data.map(r => (
+                {filtered.map(r => (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/20">
                     <td className="px-3 py-2 tabular-nums">{r.id}</td>
                     <td className="px-3 py-2">{r.title}</td>
@@ -664,10 +701,23 @@ function QuarterlySection() {
             </table>
           </ScrollableTable>
         </Card>
+        )
       )}
       {tab === "ch" && <Card className="p-8"><EmptyData msg="سيتم إدراج التحديات الربعية عند استكمال التقارير" /></Card>}
       {tab === "rec" && <Card className="p-8"><EmptyData msg="سيتم إدراج التوصيات المعتمدة قريباً" /></Card>}
     </div>
+  );
+}
+
+/** قائمة منسدلة موحّدة لشريط الفلاتر — value/label منفصلان لدعم "الكل". */
+function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string)=>void; options: { value: string; label: string }[] }) {
+  return (
+    <label className="flex items-center gap-2 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <select value={value} onChange={(e)=>onChange(e.target.value)} className="px-2 py-1.5 rounded-md bg-muted border border-border text-sm focus:outline-none">
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </label>
   );
 }
 
