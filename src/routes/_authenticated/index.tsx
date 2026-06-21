@@ -23,6 +23,8 @@ import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
 import { DataStateLegend } from "@/components/oid/DataStateCell";
 import { AnomaliesPanel } from "@/components/oid/AnomaliesPanel";
 import { InstitutionProfileDrawer } from "@/components/oid/InstitutionProfileDrawer";
+import { ScrollableTable } from "@/components/oid/ScrollableTable";
+import { OrgLogo } from "@/components/oid/OrgLogo";
 import { openOrgProfile } from "@/lib/oid-drill";
 import { formatScore, formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
 import { MATURITY_SCALE } from "@/lib/oid-maturity";
@@ -532,7 +534,7 @@ function KPIsSection() {
 
       <Card>
         <CardHeader title={`جدول المؤشرات (${filtered.length})`} />
-        <div className="overflow-x-auto">
+        <ScrollableTable>
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
@@ -574,7 +576,7 @@ function KPIsSection() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollableTable>
       </Card>
     </div>
   );
@@ -594,7 +596,7 @@ function OrgChip({ id }: { id: OrgId }) {
   const o = ORGS.find(x => x.id === id);
   if (!o) return <span>{id}</span>;
   return <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full" style={{ background: `${o.color}15`, color: o.color }}>
-    <span className="w-1.5 h-1.5 rounded-full" style={{ background: o.color }} />{o.abbr}
+    <OrgLogo orgId={id} size={16} shape="circle" />{o.abbr}
   </span>;
 }
 function CircularProgress({ value, color }: { value: number; color: string }) {
@@ -613,18 +615,49 @@ function CircularProgress({ value, color }: { value: number; color: string }) {
 /* ============================ QUARTERLY ============================ */
 function QuarterlySection() {
   const [tab, setTab] = useState<"ach"|"ch"|"rec">("ach");
+  const [filters, setFilters] = useState({ org: "all", quarter: "all", year: "2026" });
+  const update = (k: keyof typeof filters, v: string) => setFilters((p) => ({ ...p, [k]: v }));
+  const reset = () => setFilters({ org: "all", quarter: "all", year: "2026" });
+
+  // q1Data يعكس حالياً Q1/2026 فقط — نطبّق الفلاتر بمنطق AND حقيقي
+  const filtered = useMemo(() => {
+    return q1Data.filter((r) => {
+      const matchOrg = filters.org === "all" || r.org === filters.org;
+      const matchQ = filters.quarter === "all" || filters.quarter === "Q1";
+      const matchY = filters.year === "all" || filters.year === "2026";
+      return matchOrg && matchQ && matchY;
+    });
+  }, [filters]);
+
+  const hasActive = filters.org !== "all" || filters.quarter !== "all" || filters.year !== "2026";
+  const orgOpts = [{ value: "all", label: "جميع المؤسسات" }, ...ORGS.map((o) => ({ value: o.id, label: o.nameAr }))];
+  const qOpts = [
+    { value: "all", label: "جميع الأرباع" },
+    { value: "Q1", label: "الربع الأول" }, { value: "Q2", label: "الربع الثاني" },
+    { value: "Q3", label: "الربع الثالث" }, { value: "Q4", label: "الربع الرابع" },
+  ];
+  const yOpts = [{ value: "all", label: "جميع السنوات" }, { value: "2026", label: "2026" }, { value: "2025", label: "2025" }];
+
   return (
     <div className="space-y-6">
       <SectionTitle title="التقارير الربعية" subtitle="Q1 — 2026" />
-      <Card className="p-3 flex flex-wrap items-center gap-2">
-        <Select value="الكل" onChange={()=>{}} options={["الكل", ...ORGS.map(o=>o.id)]} label="المؤسسة" />
-        <Select value="Q1" onChange={()=>{}} options={["Q1","Q2","Q3","Q4"]} label="الربع" />
-        <Select value="2026" onChange={()=>{}} options={["2026","2025"]} label="السنة" />
+      <Card className="p-3 flex flex-wrap items-center gap-3">
+        <FilterSelect label="المؤسسة" value={filters.org} onChange={(v)=>update("org", v)} options={orgOpts} />
+        <FilterSelect label="الربع" value={filters.quarter} onChange={(v)=>update("quarter", v)} options={qOpts} />
+        <FilterSelect label="السنة" value={filters.year} onChange={(v)=>update("year", v)} options={yOpts} />
+        {hasActive && (
+          <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط</button>
+        )}
         <div className="ml-auto flex gap-2">
           <button className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground"><Download size={14}/> PDF</button>
           <button className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground"><Download size={14}/> Excel</button>
         </div>
       </Card>
+
+      <div className="text-xs text-muted-foreground">
+        عرض <span className="font-bold tabular-nums" dir="ltr">{filtered.length}</span> من{" "}
+        <span className="tabular-nums" dir="ltr">{q1Data.length}</span> سجل
+      </div>
 
       <div className="flex gap-2 border-b border-border">
         {[["ach","الإنجازات والمشاريع"],["ch","التحديات والعوائق"],["rec","التوصيات"]].map(([k,l])=>(
@@ -633,14 +666,20 @@ function QuarterlySection() {
       </div>
 
       {tab === "ach" && (
+        filtered.length === 0 ? (
+          <Card className="p-8 text-center space-y-3">
+            <EmptyData msg="لا توجد سجلات مطابقة لهذا الفلتر" />
+            <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط الفلاتر</button>
+          </Card>
+        ) : (
         <Card>
-          <div className="overflow-x-auto">
+          <ScrollableTable>
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
-                <tr>{["م","الإنجاز/المشروع","كود المؤشر","المؤسسة","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium">{h}</th>)}</tr>
+                <tr>{["م","الإنجاز/المشروع","كود المؤشر","المؤسسة","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
               </thead>
               <tbody>
-                {q1Data.map(r => (
+                {filtered.map(r => (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/20">
                     <td className="px-3 py-2 tabular-nums">{r.id}</td>
                     <td className="px-3 py-2">{r.title}</td>
@@ -660,12 +699,25 @@ function QuarterlySection() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollableTable>
         </Card>
+        )
       )}
       {tab === "ch" && <Card className="p-8"><EmptyData msg="سيتم إدراج التحديات الربعية عند استكمال التقارير" /></Card>}
       {tab === "rec" && <Card className="p-8"><EmptyData msg="سيتم إدراج التوصيات المعتمدة قريباً" /></Card>}
     </div>
+  );
+}
+
+/** قائمة منسدلة موحّدة لشريط الفلاتر — value/label منفصلان لدعم "الكل". */
+function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string)=>void; options: { value: string; label: string }[] }) {
+  return (
+    <label className="flex items-center gap-2 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <select value={value} onChange={(e)=>onChange(e.target.value)} className="px-2 py-1.5 rounded-md bg-muted border border-border text-sm focus:outline-none">
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </label>
   );
 }
 
@@ -690,7 +742,7 @@ function GapsSection() {
 
       <Card>
         <CardHeader title="خريطة الحرارة (Heatmap)" subtitle="6 مؤسسات × 7 محاور" />
-        <div className="p-4 overflow-x-auto">
+        <div className="p-4"><ScrollableTable>
           <table className="w-full text-sm">
             <thead><tr><th className="px-3 py-2 text-right text-xs text-muted-foreground">المؤسسة</th>
               {GAP_AXES.map(a => <th key={a} className="px-3 py-2 text-xs text-muted-foreground">{a}</th>)}
@@ -708,7 +760,7 @@ function GapsSection() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollableTable></div>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -819,7 +871,7 @@ function GovernanceSection() {
             ))}
           </div>
         } />
-        <div className="overflow-x-auto">
+        <ScrollableTable>
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
@@ -843,7 +895,7 @@ function GovernanceSection() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollableTable>
         <div className="flex flex-wrap gap-3 p-4 border-t border-border text-xs">
           {(Object.entries(POLICY_STATUS_META) as [PolicyStatus, any][]).map(([k, m]) => (
             <span key={k} className={`px-2 py-1 rounded ${m.bg} ${m.fg}`}>{m.icon} {m.label}</span>
@@ -973,30 +1025,86 @@ function FinancialSection() {
 
 /* ============================ PARTNERSHIPS ============================ */
 function PartnershipsSection() {
+  const [filters, setFilters] = useState({ type: "all", status: "all", geography: "all", org: "all" });
+  const [sortBy, setSortBy] = useState<"name"|"type"|"status">("name");
+  const [view, setView] = useState<"table"|"cards">("table");
+  const update = (k: keyof typeof filters, v: string) => setFilters((p) => ({ ...p, [k]: v }));
+  const reset = () => setFilters({ type: "all", status: "all", geography: "all", org: "all" });
+
+  const uniq = <T,>(arr: T[]) => Array.from(new Set(arr));
+  const typeOpts = useMemo(() => [{ value: "all", label: "جميع الأنواع" }, ...uniq(partnerships.map(p=>p.type)).map(t=>({value:t,label:t}))], []);
+  const statusOpts = useMemo(() => [{ value: "all", label: "جميع الحالات" }, ...uniq(partnerships.map(p=>p.status)).map(t=>({value:t,label:t}))], []);
+  const geoOpts = useMemo(() => [{ value: "all", label: "جميع المناطق" }, ...uniq(partnerships.map(p=>p.geography)).map(t=>({value:t,label:t}))], []);
+  const orgOpts = [{ value: "all", label: "جميع المؤسسات" }, ...ORGS.map(o => ({ value: o.id, label: o.nameAr }))];
+
+  const filtered = useMemo(() => {
+    const out = partnerships.filter(p =>
+      (filters.type === "all" || p.type === filters.type) &&
+      (filters.status === "all" || p.status === filters.status) &&
+      (filters.geography === "all" || p.geography === filters.geography) &&
+      (filters.org === "all" || p.linkedOrgs.includes(filters.org))
+    );
+    out.sort((a, b) => {
+      if (sortBy === "name") return a.name.localeCompare(b.name, "ar");
+      if (sortBy === "type") return a.type.localeCompare(b.type, "ar");
+      return a.status.localeCompare(b.status, "ar");
+    });
+    return out;
+  }, [filters, sortBy]);
+
   const byGeo = useMemo(() => {
     const m: Record<string, number> = {};
-    partnerships.forEach(p => { m[p.geography] = (m[p.geography] || 0) + 1; });
+    filtered.forEach(p => { m[p.geography] = (m[p.geography] || 0) + 1; });
     return Object.entries(m).map(([name, value]) => ({ name, value }));
-  }, []);
+  }, [filtered]);
   const byType = useMemo(() => {
     const m: Record<string, number> = {};
-    partnerships.forEach(p => { m[p.type] = (m[p.type] || 0) + 1; });
+    filtered.forEach(p => { m[p.type] = (m[p.type] || 0) + 1; });
     return Object.entries(m).map(([name, value]) => ({ name, value }));
-  }, []);
+  }, [filtered]);
   const colors = ["#0e4d2e","#1558a0","#2e9bd4","#d97706","#10b986","#7c3aed"];
+  const hasActive = filters.type !== "all" || filters.status !== "all" || filters.geography !== "all" || filters.org !== "all";
+
   return (
     <div className="space-y-6">
-      <SectionTitle title="الشراكات الاستراتيجية" subtitle="إجمالي 16 شراكة فاعلة" />
+      <SectionTitle title="الشراكات الاستراتيجية" subtitle={`إجمالي ${partnerships.length} شراكة`} />
 
+      {/* شريط الفلاتر والترتيب والعرض */}
+      <Card className="p-3 flex flex-wrap items-center gap-3">
+        <FilterSelect label="النوع" value={filters.type} onChange={(v)=>update("type", v)} options={typeOpts} />
+        <FilterSelect label="الحالة" value={filters.status} onChange={(v)=>update("status", v)} options={statusOpts} />
+        <FilterSelect label="الجغرافيا" value={filters.geography} onChange={(v)=>update("geography", v)} options={geoOpts} />
+        <FilterSelect label="المؤسسة" value={filters.org} onChange={(v)=>update("org", v)} options={orgOpts} />
+        <div className="h-6 w-px bg-border mx-1" />
+        <FilterSelect label="ترتيب" value={sortBy} onChange={(v)=>setSortBy(v as any)} options={[
+          { value: "name", label: "الاسم (أبجدي)" },
+          { value: "type", label: "النوع" },
+          { value: "status", label: "الحالة" },
+        ]} />
+        <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+          <button onClick={()=>setView("table")} className={`text-xs px-2 py-1 rounded ${view==="table"?"bg-primary text-primary-foreground":"hover:bg-muted"}`} title="عرض جدولي">☰</button>
+          <button onClick={()=>setView("cards")} className={`text-xs px-2 py-1 rounded ${view==="cards"?"bg-primary text-primary-foreground":"hover:bg-muted"}`} title="عرض بطاقات">▦</button>
+        </div>
+        {hasActive && (
+          <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط</button>
+        )}
+        <div className="ml-auto text-xs text-muted-foreground">
+          عرض <span className="font-bold tabular-nums" dir="ltr">{filtered.length}</span> من{" "}
+          <span className="tabular-nums" dir="ltr">{partnerships.length}</span> شراكة
+        </div>
+      </Card>
+
+      {/* إحصاءات تتفاعل مع الفلتر */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="p-5">
-          <div className="text-xs text-muted-foreground mb-1">إجمالي الشراكات</div>
-          <div className="text-4xl font-bold text-primary tabular-nums">{partnerships.length}</div>
-          <div className="text-xs text-success mt-2">جميعها فاعلة</div>
+          <div className="text-xs text-muted-foreground mb-1">الشراكات المعروضة</div>
+          <div className="text-4xl font-bold text-primary tabular-nums">{filtered.length}</div>
+          <div className="text-xs text-muted-foreground mt-2">{hasActive ? "حسب الفلتر النشط" : "إجمالي القاعدة"}</div>
         </Card>
         <Card>
           <CardHeader title="التوزيع الجغرافي" />
           <div className="p-4 h-[220px]">
+            {byGeo.length === 0 ? <EmptyData msg="لا بيانات" /> : (
             <ResponsiveContainer>
               <PieChart>
                 <Pie data={byGeo} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={{ fontSize: 10 }}>
@@ -1006,11 +1114,13 @@ function PartnershipsSection() {
                 <Legend wrapperStyle={{ fontSize: 10 }} />
               </PieChart>
             </ResponsiveContainer>
+            )}
           </div>
         </Card>
         <Card>
           <CardHeader title="التوزيع حسب النوع" />
           <div className="p-4 h-[220px]">
+            {byType.length === 0 ? <EmptyData msg="لا بيانات" /> : (
             <ResponsiveContainer>
               <BarChart data={byType} layout="vertical">
                 <XAxis type="number" tick={{ fontSize: 10 }} />
@@ -1019,32 +1129,54 @@ function PartnershipsSection() {
                 <Bar dataKey="value" fill="#1558a0" radius={4} />
               </BarChart>
             </ResponsiveContainer>
+            )}
           </div>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader title="جدول الشراكات" />
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs text-muted-foreground">
-              <tr>{["الكود","الشريك","النوع","الحالة","الجغرافيا","المؤسسات المرتبطة"].map(h=><th key={h} className="px-3 py-2 text-right font-medium">{h}</th>)}</tr>
-            </thead>
-            <tbody>
-              {partnerships.map(p => (
-                <tr key={p.id} className="border-t border-border hover:bg-muted/20">
-                  <td className="px-3 py-2 font-mono text-xs">{p.id}</td>
-                  <td className="px-3 py-2 font-medium">{p.name}</td>
-                  <td className="px-3 py-2 text-xs">{p.type}</td>
-                  <td className="px-3 py-2"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">{p.status}</span></td>
-                  <td className="px-3 py-2 text-xs">{p.geography}</td>
-                  <td className="px-3 py-2"><div className="flex gap-1">{p.linkedOrgs.map(o => <OrgChip key={o} id={o as OrgId} />)}</div></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {filtered.length === 0 ? (
+        <Card className="p-8 text-center space-y-3">
+          <EmptyData msg="لا توجد شراكات مطابقة لهذا الفلتر" />
+          <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط الفلاتر</button>
+        </Card>
+      ) : view === "table" ? (
+        <Card>
+          <CardHeader title="جدول الشراكات" />
+          <ScrollableTable>
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs text-muted-foreground">
+                <tr>{["الكود","الشريك","النوع","الحالة","الجغرافيا","المؤسسات المرتبطة"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {filtered.map(p => (
+                  <tr key={p.id} className="border-t border-border hover:bg-muted/20">
+                    <td className="px-3 py-2 font-mono text-xs">{p.id}</td>
+                    <td className="px-3 py-2 font-medium">{p.name}</td>
+                    <td className="px-3 py-2 text-xs">{p.type}</td>
+                    <td className="px-3 py-2"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">{p.status}</span></td>
+                    <td className="px-3 py-2 text-xs">{p.geography}</td>
+                    <td className="px-3 py-2"><div className="flex gap-1">{p.linkedOrgs.map(o => <OrgChip key={o} id={o as OrgId} />)}</div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollableTable>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(p => (
+            <Card key={p.id} className="p-4 hover:shadow-md transition">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono text-[10px] text-muted-foreground">{p.id}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700">{p.status}</span>
+              </div>
+              <div className="font-bold text-sm mb-2 leading-tight">{p.name}</div>
+              <div className="text-xs text-muted-foreground mb-3">{p.type} • {p.geography}</div>
+              <div className="flex flex-wrap gap-1">{p.linkedOrgs.map(o => <OrgChip key={o} id={o as OrgId} />)}</div>
+            </Card>
+          ))}
         </div>
-      </Card>
+      )}
 
       <Card className="p-5 bg-yellow-50 border-yellow-200">
         <div className="flex gap-3">
@@ -1070,7 +1202,7 @@ function ProfilesSection() {
             <div onClick={() => openOrgProfile(o.id as OrgId)} role="button" tabIndex={0}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openOrgProfile(o.id as OrgId)}>
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0" style={{ background: o.color }}>{o.abbr}</div>
+              <OrgLogo orgId={o.id as OrgId} size={56} shape="rounded" />
               <div className="flex-1 min-w-0">
                 <div className="font-bold leading-tight">{o.nameAr}</div>
                 <div className="text-xs text-muted-foreground font-serif">{o.nameEn}</div>
@@ -1594,7 +1726,7 @@ function UploadSection() {
         <CardHeader title="سجل التحديثات الأخيرة" />
         <div className="p-5">
           {rows.length === 0 ? <EmptyData msg="لا توجد ملفات مرفوعة بعد" /> : (
-            <div className="overflow-x-auto">
+            <ScrollableTable>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-right border-b">
@@ -1639,7 +1771,7 @@ function UploadSection() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTable>
           )}
         </div>
       </Card>
