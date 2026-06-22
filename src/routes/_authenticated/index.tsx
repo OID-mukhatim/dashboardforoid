@@ -2118,8 +2118,120 @@ function UploadSection() {
           )}
         </div>
       </Card>
+
+      {preview && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={cancelPreview}>
+          <div className="bg-background rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e)=>e.stopPropagation()}>
+            <div className="p-5 border-b border-border flex items-center justify-between">
+              <div>
+                <div className="font-bold text-lg">معاينة الاستيراد قبل التأكيد</div>
+                <div className="text-xs text-muted-foreground mt-1">{preview.fileName}</div>
+              </div>
+              <button onClick={cancelPreview} className="text-muted-foreground hover:text-foreground p-1">✕</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {preview.loading && (
+                <div className="text-center py-12 text-muted-foreground">جارٍ تحليل الملف ومطابقته بالبيانات الحالية...</div>
+              )}
+              {preview.error && (
+                <div className="p-3 rounded-md bg-rose-500/10 text-rose-700 text-sm">⚠️ {preview.error}</div>
+              )}
+              {preview.result && (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50">
+                      <div className="text-2xl font-bold text-emerald-700">{preview.result.summary.inserted}</div>
+                      <div className="text-xs text-emerald-700 mt-1">مؤشرات جديدة</div>
+                    </div>
+                    <div className="p-3 rounded-lg border border-blue-200 bg-blue-50">
+                      <div className="text-2xl font-bold text-blue-700">{preview.result.summary.updated}</div>
+                      <div className="text-xs text-blue-700 mt-1">سيتم تحديثها</div>
+                    </div>
+                    <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
+                      <div className="text-2xl font-bold text-slate-600">{preview.result.summary.unchanged}</div>
+                      <div className="text-xs text-slate-600 mt-1">بلا تغيير</div>
+                    </div>
+                    {preview.result.summary.rejected > 0 ? (
+                      <div className="p-3 rounded-lg border border-rose-200 bg-rose-50">
+                        <div className="text-2xl font-bold text-rose-700">{preview.result.summary.rejected}</div>
+                        <div className="text-xs text-rose-700 mt-1">صفوف مرفوضة</div>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-lg border border-border bg-muted/30">
+                        <div className="text-2xl font-bold">{preview.result.summary.totalInFile}</div>
+                        <div className="text-xs text-muted-foreground mt-1">إجمالي الملف</div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-3 rounded-md bg-blue-50 text-blue-800 text-xs border border-blue-100">
+                    ℹ️ سيتم <strong>تحديث</strong> المؤشرات المطابقة بالكود والمؤسسة والفترة، واعتماد القيم الجديدة فقط — <strong>لن يتكرر أي مؤشر</strong>.
+                  </div>
+
+                  {preview.result.updated.length > 0 && (
+                    <div>
+                      <div className="font-semibold text-sm mb-2">تفاصيل المؤشرات المُحدَّثة ({preview.result.updated.length}):</div>
+                      <div className="max-h-[300px] overflow-y-auto border border-border rounded-lg">
+                        <table className="w-full text-xs">
+                          <thead className="bg-muted/50 sticky top-0">
+                            <tr className="text-right">
+                              <th className="p-2">الكود</th><th className="p-2">الحقل</th>
+                              <th className="p-2">القديم</th><th className="p-2">الجديد</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {preview.result.updated.flatMap(u =>
+                              u.changes.map((c, i) => (
+                                <tr key={`${u.entity_code}-${u.kpi_code}-${c.field}-${i}`} className="border-t border-border">
+                                  <td className="p-2 font-mono text-[10px]">{u.entity_code}/{u.kpi_code}</td>
+                                  <td className="p-2">{c.label}</td>
+                                  <td className="p-2 text-rose-700 line-through">{c.from ?? "—"}</td>
+                                  <td className="p-2 text-emerald-700 font-semibold">{c.to ?? "—"}</td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {preview.result.summary.stale > 0 && (
+                    <div className="p-3 rounded-md bg-amber-50 text-amber-800 text-xs border border-amber-200">
+                      ⚠️ {preview.result.summary.stale} مؤشر من استيراد سابق لم يُذكر في هذا الملف — سيبقى كما هو دون حذف.
+                    </div>
+                  )}
+                  {preview.result.summary.duplicatesInFile > 0 && (
+                    <div className="p-3 rounded-md bg-amber-50 text-amber-800 text-xs border border-amber-200">
+                      ⚠️ {preview.result.summary.duplicatesInFile} صف مكرر داخل الملف نفسه — سيُعتمد آخر ظهور فقط.
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-border flex items-center justify-end gap-2">
+              <button
+                onClick={cancelPreview}
+                disabled={confirming}
+                className="px-4 py-2 rounded-md border border-border hover:bg-muted/50 text-sm disabled:opacity-50"
+              >إلغاء</button>
+              <button
+                onClick={confirmPreview}
+                disabled={!preview.result || confirming || !!preview.error}
+                className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+              >
+                {confirming ? "جارٍ التأكيد..." :
+                  preview.result ? `✅ تأكيد الاستيراد (${preview.result.summary.inserted + preview.result.summary.updated} تغيير)` : "..."}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+
 }
 
 
