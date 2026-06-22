@@ -1,0 +1,1 @@
+ALTER TABLE public.initiatives ADD CONSTRAINT initiatives_code_unique UNIQUE (code);
