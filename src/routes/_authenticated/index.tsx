@@ -1295,6 +1295,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseUpload, reprocessUpload, processUpload } from "@/lib/uploads.functions";
 import { getDocumentExtractions } from "@/lib/documents.functions";
+import { listInitiatives, upsertInitiative, deleteInitiative, updateInitiativeStatus, autoGenerateInitiatives, type Initiative } from "@/lib/initiatives.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Plus, Sparkles, Trash2, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import { useRef } from "react";
 
 /* ============================ BSC Performance Map ============================ */
