@@ -1360,9 +1360,9 @@ function InitiativesSection() {
               <Card
                 key={col}
                 className={`overflow-hidden transition ${isOver ? "ring-2 ring-primary ring-offset-2" : ""}`}
-                onDragOver={(e) => isEditor && onDragOverCol(e, col)}
+                onDragOver={(e: React.DragEvent<HTMLDivElement>) => { if (isEditor) onDragOverCol(e, col); }}
                 onDragLeave={() => setDragOverCol(prev => prev === col ? null : prev)}
-                onDrop={(e) => onDropCol(e, col)}
+                onDrop={(e: React.DragEvent<HTMLDivElement>) => onDropCol(e, col)}
               >
                 <div className="px-4 py-3 border-b border-border flex items-center justify-between" style={{ background: bg }}>
                   <span className="font-bold text-sm">{col}</span>
