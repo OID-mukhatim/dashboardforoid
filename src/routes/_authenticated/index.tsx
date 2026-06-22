@@ -1293,10 +1293,17 @@ function InitiativesSection() {
     } catch (e: any) { toast.error(e?.message ?? "تعذر الحذف"); }
   }
   async function handleStatusChange(id: string, status: InitiativeStatus) {
+    const previous = qc.getQueryData<Initiative[]>(["initiatives"]) ?? [];
+    const next = previous.map((r) => (r.id === id ? { ...r, status } : r));
+    qc.setQueryData(["initiatives"], next);
     try {
       await statusFn({ data: { id, status } });
+      toast.success("تم تحديث حالة المبادرة في قاعدة البيانات");
       qc.invalidateQueries({ queryKey: ["initiatives"] });
-    } catch (e: any) { toast.error(e?.message ?? "تعذر التحديث"); }
+    } catch (e: any) {
+      qc.setQueryData(["initiatives"], previous);
+      toast.error(e?.message ?? "تعذر التحديث");
+    }
   }
   async function handleAuto() {
     try {
