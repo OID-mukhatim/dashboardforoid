@@ -1836,10 +1836,28 @@ function UploadSection() {
         }).select("id").single();
         if (insErr) throw insErr;
 
-        // Route to correct parser (Excel vs Word/PPT/PDF)
-        await processFn({ data: { uploadId: row.id, filePath: path } }).catch(() => {});
+        const ext = file.name.split(".").pop()?.toLowerCase() || "";
+        const isExcel = ext === "xlsx" || ext === "xls" || ext === "csv";
+
+        if (isExcel) {
+          // Excel: show preview modal first, defer commit until user confirms
+          setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: true });
+          try {
+            const result = await previewFn({ data: { filePath: path, period } });
+            setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, result });
+          } catch (e) {
+            setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, error: e instanceof Error ? e.message : "فشلت المعاينة" });
+          }
+          qc.invalidateQueries({ queryKey: ["uploads"] });
+          break; // Only preview one file at a time
+        } else {
+          // Word/PPT/PDF: process directly
+          await processFn({ data: { uploadId: row.id, filePath: path } }).catch(() => {});
+        }
       }
-      setMsg({ kind: "ok", text: `تم رفع ${files.length} ملف بنجاح ومعالجتها.` });
+      if (!preview) {
+        setMsg({ kind: "ok", text: `تم رفع ${files.length} ملف بنجاح ومعالجتها.` });
+      }
       qc.invalidateQueries({ queryKey: ["uploads"] });
       qc.invalidateQueries({ queryKey: ["document_extractions"] });
       qc.invalidateQueries({ queryKey: ["kpis"] });
@@ -1849,6 +1867,34 @@ function UploadSection() {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
     }
+  }
+
+  async function confirmPreview() {
+    if (!preview?.result) return;
+    setConfirming(true);
+    try {
+      await processFn({ data: { uploadId: preview.uploadId, filePath: preview.filePath } });
+      const s = preview.result.summary;
+      setMsg({ kind: "ok", text: `تم الاستيراد: +${s.inserted} جديد · ↻${s.updated} مُحدَّث · ${s.unchanged} بلا تغيير` });
+      setPreview(null);
+      qc.invalidateQueries({ queryKey: ["uploads"] });
+      qc.invalidateQueries({ queryKey: ["kpis"] });
+    } catch (e) {
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : "فشل الاستيراد" });
+    } finally {
+      setConfirming(false);
+    }
+  }
+
+  async function cancelPreview() {
+    if (!preview) return;
+    // Mark upload as cancelled by deleting the storage object & row
+    try {
+      await supabase.storage.from("uploads").remove([preview.filePath]);
+      await supabase.from("uploads").delete().eq("id", preview.uploadId);
+    } catch { /* ignore cleanup errors */ }
+    setPreview(null);
+    qc.invalidateQueries({ queryKey: ["uploads"] });
   }
 
   const orgOptions = ["الكل", ...ORGS.map(o => o.id)];
