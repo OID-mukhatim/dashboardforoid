@@ -1308,10 +1308,35 @@ function InitiativesSection() {
 
   const cols: [InitiativeStatus, string][] = [["مقترح","#fef3c7"],["قيد التنفيذ","#dbeafe"],["مكتمل","#dcfce7"]];
 
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<InitiativeStatus | null>(null);
+
+  function onDragStart(e: React.DragEvent, id: string) {
+    setDragId(id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+  }
+  function onDragEnd() { setDragId(null); setDragOverCol(null); }
+  function onDragOverCol(e: React.DragEvent, col: InitiativeStatus) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverCol !== col) setDragOverCol(col);
+  }
+  async function onDropCol(e: React.DragEvent, col: InitiativeStatus) {
+    e.preventDefault();
+    const id = e.dataTransfer.getData("text/plain") || dragId;
+    setDragOverCol(null); setDragId(null);
+    if (!id) return;
+    const item = rows.find(r => r.id === id);
+    if (!item || item.status === col) return;
+    if (!isEditor) { toast.error("صلاحيات غير كافية لتغيير الحالة"); return; }
+    await handleStatusChange(id, col);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <SectionTitle title="المبادرات التطويرية" subtitle="Kanban — إضافة يدوية + أتمتة من الفجوات" />
+        <SectionTitle title="المبادرات التطويرية" subtitle="Kanban — اسحب البطاقة بين الأعمدة لتغيير الحالة" />
         {isEditor && (
           <div className="flex gap-2">
             <Button onClick={openCreate} className="gap-1.5">
@@ -1330,15 +1355,28 @@ function InitiativesSection() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {cols.map(([col, bg]) => {
             const items = rows.filter(i => i.status === col);
+            const isOver = dragOverCol === col;
             return (
-              <Card key={col} className="overflow-hidden">
+              <Card
+                key={col}
+                className={`overflow-hidden transition ${isOver ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                onDragOver={(e: React.DragEvent<HTMLDivElement>) => { if (isEditor) onDragOverCol(e, col); }}
+                onDragLeave={() => setDragOverCol(prev => prev === col ? null : prev)}
+                onDrop={(e: React.DragEvent<HTMLDivElement>) => onDropCol(e, col)}
+              >
                 <div className="px-4 py-3 border-b border-border flex items-center justify-between" style={{ background: bg }}>
                   <span className="font-bold text-sm">{col}</span>
                   <span className="text-xs bg-white/70 px-2 py-0.5 rounded-full font-bold">{items.length}</span>
                 </div>
-                <div className="p-3 space-y-3 min-h-[300px]">
+                <div className={`p-3 space-y-3 min-h-[300px] ${isOver ? "bg-primary/5" : ""}`}>
                   {items.map(i => (
-                    <div key={i.id} className="border border-border rounded-lg p-3 bg-card hover:shadow-sm transition">
+                    <div
+                      key={i.id}
+                      draggable={isEditor}
+                      onDragStart={(e) => onDragStart(e, i.id)}
+                      onDragEnd={onDragEnd}
+                      className={`border border-border rounded-lg p-3 bg-card hover:shadow-sm transition ${isEditor ? "cursor-grab active:cursor-grabbing" : ""} ${dragId === i.id ? "opacity-40" : ""}`}
+                    >
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-mono text-[10px] text-muted-foreground">{i.code ?? i.id.slice(0,8)}</span>
                         <div className="flex items-center gap-1">
@@ -1374,13 +1412,14 @@ function InitiativesSection() {
                       )}
                     </div>
                   ))}
-                  {items.length === 0 && <div className="text-xs text-center text-muted-foreground py-8">لا توجد عناصر</div>}
+                  {items.length === 0 && <div className="text-xs text-center text-muted-foreground py-8">{isOver ? "أفلت هنا" : "لا توجد عناصر"}</div>}
                 </div>
               </Card>
             );
           })}
         </div>
       )}
+
 
       <InitiativeFormDialog
         open={dialogOpen}
