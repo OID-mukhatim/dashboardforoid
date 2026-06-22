@@ -211,3 +211,128 @@ export const reprocessUpload = createServerFn({ method: "POST" })
     return result;
   });
 
+// Preview an Excel KPI upload without writing: returns diff vs existing DB rows.
+const KPI_COMPARE_FIELDS = [
+  "kpi_name", "kpi_type", "sector", "objective",
+  "weight", "baseline", "annual_target",
+  "q1_planned", "q2_planned", "q3_planned", "q4_planned", "total_planned",
+  "q1_actual", "q2_actual", "q3_actual", "q4_actual", "total_actual",
+  "achievement_pct", "overall_pct", "final_output",
+] as const;
+
+const FIELD_LABELS_AR: Record<string, string> = {
+  kpi_name: "وصف المؤشر", kpi_type: "النوع", sector: "المنظور", objective: "الهدف",
+  weight: "الوزن", baseline: "خط الأساس", annual_target: "المستهدف السنوي",
+  q1_planned: "مخطط ر1", q2_planned: "مخطط ر2", q3_planned: "مخطط ر3", q4_planned: "مخطط ر4",
+  total_planned: "إجمالي مخطط",
+  q1_actual: "منجز ر1", q2_actual: "منجز ر2", q3_actual: "منجز ر3", q4_actual: "منجز ر4",
+  total_actual: "إجمالي منجز",
+  achievement_pct: "نسبة الإنجاز", overall_pct: "النسبة الكلية", final_output: "المخرج النهائي",
+};
+
+export const previewKpiUpload = createServerFn({ method: "POST" })
+  .inputValidator((input) => z.object({ filePath: z.string().min(1), period: z.string().optional() }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const XLSX = await import("xlsx");
+
+    const { data: file, error: dlErr } = await supabaseAdmin.storage
+      .from("uploads")
+      .download(data.filePath);
+    if (dlErr || !file) throw new Error(dlErr?.message ?? "download failed");
+
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const wb = XLSX.read(buf, { type: "array" });
+    const period = data.period || "all";
+
+    const parsed: Array<Record<string, unknown>> = [];
+    let rejected = 0;
+    for (const sheetName of wb.SheetNames) {
+      const ws = wb.Sheets[sheetName];
+      const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
+      const norm = normalizeEntity(sheetName);
+      let lastSector: string | null = null;
+      for (const row of aoa) {
+        if (!Array.isArray(row)) continue;
+        const code = toStr(row[4]);
+        const name = toStr(row[3]);
+        if (!code || !name) { if (row[3] || row[4]) rejected++; continue; }
+        if (code === "الكود ID" || code === "الكود") continue;
+        const sector = toStr(row[1]);
+        if (sector) lastSector = sector;
+        parsed.push({
+          entity_code: norm.code, entity_name: norm.name, sector: lastSector,
+          objective: toStr(row[2]), kpi_code: code, kpi_name: name, kpi_type: toStr(row[5]),
+          weight: toNum(row[6]), baseline: toNum(row[7]), annual_target: toNum(row[8]),
+          q1_planned: toNum(row[9]), q2_planned: toNum(row[10]), q3_planned: toNum(row[11]), q4_planned: toNum(row[12]),
+          total_planned: toNum(row[13]),
+          q1_actual: toNum(row[14]), q2_actual: toNum(row[15]), q3_actual: toNum(row[16]), q4_actual: toNum(row[17]),
+          total_actual: toNum(row[18]),
+          achievement_pct: toNum(row[20]), overall_pct: toNum(row[21]), final_output: toStr(row[22]),
+          period,
+        });
+      }
+    }
+
+    const uniq = Array.from(new Map(parsed.map(r => [`${r.entity_code}__${r.kpi_code}__${r.period}`, r])).values());
+    const duplicatesInFile = parsed.length - uniq.length;
+
+    const entityCodes = Array.from(new Set(uniq.map(r => r.entity_code as string)));
+    const { data: existingData, error: exErr } = await supabaseAdmin
+      .from("kpis")
+      .select("entity_code,kpi_code,period," + KPI_COMPARE_FIELDS.join(","))
+      .in("entity_code", entityCodes.length ? entityCodes : [""])
+      .eq("period", period);
+    if (exErr) throw exErr;
+    const existing = (existingData ?? []) as unknown as Array<Record<string, string | number | null>>;
+
+    const exMap = new Map(
+      existing.map((r) => [`${r.entity_code}__${r.kpi_code}__${r.period}`, r]),
+    );
+
+    type Scalar = string | number | null;
+    const inserted: Array<{ entity_code: string; kpi_code: string; kpi_name: string }> = [];
+    const updated: Array<{ entity_code: string; kpi_code: string; kpi_name: string; changes: Array<{ field: string; label: string; from: Scalar; to: Scalar }> }> = [];
+    let unchanged = 0;
+    const seen = new Set<string>();
+
+    for (const row of uniq) {
+      const key = `${row.entity_code}__${row.kpi_code}__${row.period}`;
+      seen.add(key);
+      const old = exMap.get(key);
+      if (!old) {
+        inserted.push({ entity_code: row.entity_code as string, kpi_code: row.kpi_code as string, kpi_name: (row.kpi_name as string) ?? "" });
+        continue;
+      }
+      const changes: Array<{ field: string; label: string; from: Scalar; to: Scalar }> = [];
+      for (const f of KPI_COMPARE_FIELDS) {
+        const a = (old[f] ?? null) as Scalar;
+        const b = (row[f] ?? null) as Scalar;
+        if (JSON.stringify(a) !== JSON.stringify(b)) {
+          changes.push({ field: f, label: FIELD_LABELS_AR[f] ?? f, from: a, to: b });
+        }
+      }
+      if (changes.length === 0) unchanged++;
+      else updated.push({ entity_code: row.entity_code as string, kpi_code: row.kpi_code as string, kpi_name: (row.kpi_name as string) ?? "", changes });
+    }
+
+    const stale = existing
+      .filter((r) => !seen.has(`${r.entity_code}__${r.kpi_code}__${r.period}`))
+      .map((r) => ({ entity_code: r.entity_code as string, kpi_code: r.kpi_code as string }));
+
+
+    return {
+      summary: {
+        totalInFile: uniq.length,
+        inserted: inserted.length,
+        updated: updated.length,
+        unchanged,
+        rejected,
+        duplicatesInFile,
+        stale: stale.length,
+      },
+      inserted, updated, stale,
+    };
+  });
+
+
