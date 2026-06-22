@@ -61,6 +61,63 @@ export type Database = {
           },
         ]
       }
+      initiatives: {
+        Row: {
+          code: string | null
+          cost: string | null
+          created_at: string
+          created_by: string | null
+          domain: string | null
+          gap: string | null
+          id: string
+          notes: string | null
+          objective: string | null
+          orgs: string[]
+          priority: string
+          source: string
+          status: string
+          timeline: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          cost?: string | null
+          created_at?: string
+          created_by?: string | null
+          domain?: string | null
+          gap?: string | null
+          id?: string
+          notes?: string | null
+          objective?: string | null
+          orgs?: string[]
+          priority?: string
+          source?: string
+          status?: string
+          timeline?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          cost?: string | null
+          created_at?: string
+          created_by?: string | null
+          domain?: string | null
+          gap?: string | null
+          id?: string
+          notes?: string | null
+          objective?: string | null
+          orgs?: string[]
+          priority?: string
+          source?: string
+          status?: string
+          timeline?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       kpis: {
         Row: {
           achievement_pct: number | null
