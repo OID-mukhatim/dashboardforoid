@@ -1752,9 +1752,20 @@ function UploadSection() {
   const inputRef = useRef<HTMLInputElement>(null);
   const processFn = useServerFn(processUpload);
   const reprocessFn = useServerFn(reprocessUpload);
+  const previewFn = useServerFn(previewKpiUpload);
   const qc = useQueryClient();
   const [reprocessing, setReprocessing] = useState<string | null>(null);
   const [viewExtract, setViewExtract] = useState<string | null>(null);
+  type PreviewState = {
+    uploadId: string;
+    filePath: string;
+    fileName: string;
+    loading: boolean;
+    error?: string;
+    result?: Awaited<ReturnType<typeof previewKpiUpload>>;
+  };
+  const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   async function handleReprocess(id: string) {
     setReprocessing(id); setMsg(null);
