@@ -81,6 +81,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "داشبورد مكتب الإشراف والتطوير المؤسسي - OID" },
       { name: "twitter:description", content: "Oversight & Institutional Development Dashboard - مؤسسة زمزم" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e71c2d55-9ea3-47f9-ab95-8dbaf3abf12d/id-preview-eb89ba80--15f418fb-c212-44f9-a810-38b74690781c.lovable.app-1782133853175.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e71c2d55-9ea3-47f9-ab95-8dbaf3abf12d/id-preview-eb89ba80--15f418fb-c212-44f9-a810-38b74690781c.lovable.app-1782133853175.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
