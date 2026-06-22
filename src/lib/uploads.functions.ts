@@ -278,19 +278,21 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
     const duplicatesInFile = parsed.length - uniq.length;
 
     const entityCodes = Array.from(new Set(uniq.map(r => r.entity_code as string)));
-    const { data: existing, error: exErr } = await supabaseAdmin
+    const { data: existingData, error: exErr } = await supabaseAdmin
       .from("kpis")
       .select("entity_code,kpi_code,period," + KPI_COMPARE_FIELDS.join(","))
       .in("entity_code", entityCodes.length ? entityCodes : [""])
       .eq("period", period);
     if (exErr) throw exErr;
+    const existing = (existingData ?? []) as unknown as Array<Record<string, string | number | null>>;
 
     const exMap = new Map(
-      (existing ?? []).map((r) => [`${(r as Record<string, unknown>).entity_code}__${(r as Record<string, unknown>).kpi_code}__${(r as Record<string, unknown>).period}`, r as Record<string, unknown>]),
+      existing.map((r) => [`${r.entity_code}__${r.kpi_code}__${r.period}`, r]),
     );
 
+    type Scalar = string | number | null;
     const inserted: Array<{ entity_code: string; kpi_code: string; kpi_name: string }> = [];
-    const updated: Array<{ entity_code: string; kpi_code: string; kpi_name: string; changes: Array<{ field: string; label: string; from: unknown; to: unknown }> }> = [];
+    const updated: Array<{ entity_code: string; kpi_code: string; kpi_name: string; changes: Array<{ field: string; label: string; from: Scalar; to: Scalar }> }> = [];
     let unchanged = 0;
     const seen = new Set<string>();
 
@@ -302,10 +304,10 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
         inserted.push({ entity_code: row.entity_code as string, kpi_code: row.kpi_code as string, kpi_name: (row.kpi_name as string) ?? "" });
         continue;
       }
-      const changes: Array<{ field: string; label: string; from: unknown; to: unknown }> = [];
+      const changes: Array<{ field: string; label: string; from: Scalar; to: Scalar }> = [];
       for (const f of KPI_COMPARE_FIELDS) {
-        const a = old[f] ?? null;
-        const b = row[f] ?? null;
+        const a = (old[f] ?? null) as Scalar;
+        const b = (row[f] ?? null) as Scalar;
         if (JSON.stringify(a) !== JSON.stringify(b)) {
           changes.push({ field: f, label: FIELD_LABELS_AR[f] ?? f, from: a, to: b });
         }
@@ -314,9 +316,10 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
       else updated.push({ entity_code: row.entity_code as string, kpi_code: row.kpi_code as string, kpi_name: (row.kpi_name as string) ?? "", changes });
     }
 
-    const stale = (existing ?? [])
-      .filter((r) => !seen.has(`${(r as Record<string, unknown>).entity_code}__${(r as Record<string, unknown>).kpi_code}__${(r as Record<string, unknown>).period}`))
-      .map((r) => ({ entity_code: (r as Record<string, unknown>).entity_code as string, kpi_code: (r as Record<string, unknown>).kpi_code as string }));
+    const stale = existing
+      .filter((r) => !seen.has(`${r.entity_code}__${r.kpi_code}__${r.period}`))
+      .map((r) => ({ entity_code: r.entity_code as string, kpi_code: r.kpi_code as string }));
+
 
     return {
       summary: {
