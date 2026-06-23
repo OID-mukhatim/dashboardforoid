@@ -2207,7 +2207,7 @@ function UploadSection() {
                         </td>
                       </tr>
                     )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </tbody>
