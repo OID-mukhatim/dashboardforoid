@@ -2142,8 +2142,8 @@ function UploadSection() {
                       return `${m} د ${rem} ث`;
                     };
                     return (
-                      <>
-                    <tr key={r.id} className={`border-b hover:bg-muted/30 ${selected.has(r.id) ? "bg-primary/5" : ""}`}>
+                      <Fragment key={r.id}>
+                    <tr className={`border-b hover:bg-muted/30 ${selected.has(r.id) ? "bg-primary/5" : ""}`}>
                       <td className="p-2">
                         <input
                           type="checkbox"
