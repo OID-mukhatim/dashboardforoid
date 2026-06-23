@@ -205,6 +205,58 @@ function Progress({ value, color = "var(--primary)" }: { value: number; color?: 
   );
 }
 
+const UPLOAD_PHASES: { key: string; label: string }[] = [
+  { key: "downloading", label: "تنزيل" },
+  { key: "reading_sheets", label: "قراءة الأوراق" },
+  { key: "matching", label: "مطابقة" },
+  { key: "upserting", label: "حفظ" },
+  { key: "done", label: "اكتمل" },
+];
+function UploadProgressBar({
+  phase, label, percent, message, elapsedMs, etaMs, fmtMs,
+}: {
+  phase: string; label: string; percent: number; message: string | null;
+  elapsedMs: number; etaMs: number | null;
+  fmtMs: (ms: number | null | undefined) => string;
+}) {
+  const currentIdx = Math.max(0, UPLOAD_PHASES.findIndex((p) => p.key === phase));
+  const safePercent = Math.min(100, Math.max(0, percent));
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-semibold text-amber-800">{label}</span>
+          {message && <span className="text-muted-foreground truncate">— {message}</span>}
+        </div>
+        <div className="flex items-center gap-3 whitespace-nowrap tabular-nums">
+          <span className="font-bold text-amber-800">{safePercent}%</span>
+          <span className="text-muted-foreground">⏱ {fmtMs(elapsedMs)}</span>
+          {etaMs != null && <span className="text-muted-foreground">⏳ ~{fmtMs(etaMs)}</span>}
+        </div>
+      </div>
+      <Progress value={safePercent} color="#d97706" />
+      <div className="flex items-center justify-between gap-1 text-[10px]" dir="rtl">
+        {UPLOAD_PHASES.map((p, i) => {
+          const done = i < currentIdx || (i === currentIdx && safePercent >= 100);
+          const active = i === currentIdx && safePercent < 100;
+          return (
+            <div key={p.key} className="flex items-center gap-1 flex-1">
+              <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${
+                done ? "bg-emerald-600 text-white" :
+                active ? "bg-amber-500 text-white animate-pulse" :
+                "bg-gray-200 text-gray-500"
+              }`}>
+                {done ? "✓" : i + 1}
+              </span>
+              <span className={done || active ? "text-foreground" : "text-muted-foreground"}>{p.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ============================ DASHBOARD ============================ */
 const MATURITY_OF_LEVEL: Record<number, string> = { 1: "أولي", 2: "ناشئ", 3: "متطور", 4: "متقدم", 5: "ريادي" };
 function extractBeneficiaries(s: string | null | undefined): number {
