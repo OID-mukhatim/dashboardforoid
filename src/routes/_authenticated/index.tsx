@@ -2090,13 +2090,34 @@ function UploadSection() {
       )}
 
       <Card>
-        <CardHeader title="سجل التحديثات الأخيرة" />
+        <CardHeader
+          title="سجل التحديثات الأخيرة"
+          action={
+            selected.size > 0 ? (
+              <button
+                type="button"
+                onClick={() => handleDelete(Array.from(selected))}
+                disabled={deleting}
+                className="text-xs px-3 py-1.5 rounded-md bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
+              >
+                {deleting ? "جارٍ الحذف..." : `🗑 حذف المحدّد (${selected.size})`}
+              </button>
+            ) : null
+          }
+        />
         <div className="p-5">
           {rows.length === 0 ? <EmptyData msg="لا توجد ملفات مرفوعة بعد" /> : (
             <ScrollableTable>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-right border-b">
+                    <th className="p-2 w-8">
+                      <input
+                        type="checkbox"
+                        checked={rows.length > 0 && rows.every((r: any) => selected.has(r.id))}
+                        onChange={() => toggleAll(rows.map((r: any) => r.id))}
+                      />
+                    </th>
                     <th className="p-2">الملف</th><th className="p-2">النوع</th>
                     <th className="p-2">المؤسسة</th><th className="p-2">الفترة</th>
                     <th className="p-2">الحالة</th><th className="p-2">صفوف</th>
@@ -2105,7 +2126,14 @@ function UploadSection() {
                 </thead>
                 <tbody>
                   {rows.map((r: any) => (
-                    <tr key={r.id} className="border-b hover:bg-muted/30">
+                    <tr key={r.id} className={`border-b hover:bg-muted/30 ${selected.has(r.id) ? "bg-primary/5" : ""}`}>
+                      <td className="p-2">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(r.id)}
+                          onChange={() => toggleOne(r.id)}
+                        />
+                      </td>
                       <td className="p-2 font-medium truncate max-w-[200px]">
                         <span className="mr-1">{fileIcon(r.file_name)}</span>
                         {r.file_name}
@@ -2124,15 +2152,26 @@ function UploadSection() {
                       </td>
                       <td className="p-2">{r.rows_extracted ?? 0}</td>
                       <td className="p-2 text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleString("ar")}</td>
-                      <td className="p-2">
-                        <button
-                          type="button"
-                          onClick={() => handleReprocess(r.id)}
-                          disabled={reprocessing === r.id}
-                          className="text-xs px-3 py-1 rounded-md border border-border hover:bg-primary hover:text-primary-foreground transition disabled:opacity-50"
-                        >
-                          {reprocessing === r.id ? "..." : "إعادة المعالجة"}
-                        </button>
+                      <td className="p-2 whitespace-nowrap">
+                        <div className="flex items-center gap-1 justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleReprocess(r.id)}
+                            disabled={reprocessing === r.id}
+                            className="text-xs px-2 py-1 rounded-md border border-border hover:bg-primary hover:text-primary-foreground transition disabled:opacity-50"
+                          >
+                            {reprocessing === r.id ? "..." : "إعادة المعالجة"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete([r.id])}
+                            disabled={deleting}
+                            title="حذف الملف وبياناته"
+                            className="text-xs px-2 py-1 rounded-md border border-rose-200 text-rose-700 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition disabled:opacity-50"
+                          >
+                            🗑
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
