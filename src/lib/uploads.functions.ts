@@ -183,6 +183,28 @@ export const parseUpload = createServerFn({ method: "POST" })
     }
   });
 
+// Delete one or more uploads — removes storage objects, related kpis/extractions, and the upload row.
+export const deleteUploads = createServerFn({ method: "POST" })
+  .inputValidator((input) => z.object({ uploadIds: z.array(z.string().uuid()).min(1) }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("uploads")
+      .select("id,file_path")
+      .in("id", data.uploadIds);
+    if (error) throw error;
+    const paths = (rows ?? []).map((r) => r.file_path).filter(Boolean) as string[];
+    if (paths.length) {
+      await supabaseAdmin.storage.from("uploads").remove(paths);
+    }
+    // Cascade: remove derived data linked to these uploads.
+    await supabaseAdmin.from("kpis").delete().in("upload_id", data.uploadIds);
+    await supabaseAdmin.from("document_extractions").delete().in("upload_id", data.uploadIds);
+    const { error: delErr } = await supabaseAdmin.from("uploads").delete().in("id", data.uploadIds);
+    if (delErr) throw delErr;
+    return { ok: true, deleted: data.uploadIds.length };
+  });
+
 // Route an upload to the correct parser based on file extension
 export const processUpload = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ uploadId: z.string().uuid(), filePath: z.string().min(1) }).parse(input))
