@@ -57,6 +57,39 @@ export const parseUpload = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const XLSX = await import("xlsx");
 
+    const startedAt = Date.now();
+    const PHASES = ["downloading", "reading_sheets", "matching", "upserting", "done"] as const;
+    type Phase = typeof PHASES[number];
+    const PHASE_LABELS: Record<Phase, string> = {
+      downloading: "تنزيل الملف",
+      reading_sheets: "قراءة الأوراق",
+      matching: "مطابقة وتجهيز",
+      upserting: "حفظ في قاعدة البيانات",
+      done: "اكتمل",
+    };
+    async function setProgress(phase: Phase, percent: number, message?: string) {
+      const elapsed = Date.now() - startedAt;
+      const eta_ms = percent > 5 && percent < 100 ? Math.round((elapsed / percent) * (100 - percent)) : null;
+      await supabaseAdmin
+        .from("uploads")
+        .update({
+          status: phase === "done" ? "processed" : "processing",
+          progress: {
+            phase,
+            label: PHASE_LABELS[phase],
+            percent,
+            message: message ?? null,
+            elapsed_ms: elapsed,
+            eta_ms,
+            started_at: new Date(startedAt).toISOString(),
+            updated_at: new Date().toISOString(),
+          } as unknown as never,
+        })
+        .eq("id", data.uploadId);
+    }
+
+    await setProgress("downloading", 5);
+
     const { data: uploadRow } = await supabaseAdmin
       .from("uploads")
       .select("period")
@@ -70,10 +103,12 @@ export const parseUpload = createServerFn({ method: "POST" })
     if (dlErr || !file) {
       await supabaseAdmin
         .from("uploads")
-        .update({ status: "error", error_message: dlErr?.message ?? "download failed" })
+        .update({ status: "error", error_message: dlErr?.message ?? "download failed", progress: null })
         .eq("id", data.uploadId);
       throw new Error(dlErr?.message ?? "download failed");
     }
+
+    await setProgress("reading_sheets", 20);
 
     try {
       const buf = new Uint8Array(await file.arrayBuffer());
@@ -83,7 +118,9 @@ export const parseUpload = createServerFn({ method: "POST" })
       const kpiRows: Array<Record<string, unknown>> = [];
       const sheetsSummary: Array<{ name: string; rows: number; kpis: number }> = [];
 
-      for (const sheetName of wb.SheetNames) {
+      const totalSheets = wb.SheetNames.length;
+      for (let si = 0; si < totalSheets; si++) {
+        const sheetName = wb.SheetNames[si];
         const ws = wb.Sheets[sheetName];
         const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
         const normalized = normalizeEntity(sheetName);
@@ -96,7 +133,6 @@ export const parseUpload = createServerFn({ method: "POST" })
           if (!Array.isArray(row)) continue;
           const code = toStr(row[4]);
           const name = toStr(row[3]);
-          // skip header / non-data rows
           if (!code || !name) continue;
           if (code === "الكود ID" || code === "الكود") continue;
 
@@ -134,10 +170,12 @@ export const parseUpload = createServerFn({ method: "POST" })
           kpiCount += 1;
         }
         sheetsSummary.push({ name: sheetName, rows: aoa.length, kpis: kpiCount });
+        const sheetPct = 20 + Math.round(((si + 1) / totalSheets) * 30); // 20→50
+        await setProgress("reading_sheets", sheetPct, `ورقة ${si + 1}/${totalSheets}: ${sheetName}`);
       }
 
-      // Deduplicate within the same file before upsert. PostgreSQL cannot update the
-      // same conflict key twice in one INSERT statement; the latest row in the file wins.
+      await setProgress("matching", 55, `${kpiRows.length} صف للمطابقة`);
+
       const uniqueRows = Array.from(
         new Map(
           kpiRows.map((row) => [JSON.stringify([row.entity_code, row.kpi_code, row.period]), row]),
@@ -145,9 +183,11 @@ export const parseUpload = createServerFn({ method: "POST" })
       );
       const duplicateCount = kpiRows.length - uniqueRows.length;
 
-      // Upsert in chunks on (entity_code, kpi_code, period) — re-uploads update existing rows.
+      await setProgress("upserting", 60, `${uniqueRows.length} مؤشر فريد`);
+
       let upserted = 0;
       const chunk = 200;
+      const totalChunks = Math.max(1, Math.ceil(uniqueRows.length / chunk));
       for (let i = 0; i < uniqueRows.length; i += chunk) {
         const slice = uniqueRows.slice(i, i + chunk);
         const { error } = await supabaseAdmin
@@ -155,6 +195,9 @@ export const parseUpload = createServerFn({ method: "POST" })
           .upsert(slice as never, { onConflict: "entity_code,kpi_code,period" });
         if (error) throw error;
         upserted += slice.length;
+        const chunkIdx = Math.floor(i / chunk) + 1;
+        const pct = 60 + Math.round((chunkIdx / totalChunks) * 38); // 60→98
+        await setProgress("upserting", pct, `دفعة ${chunkIdx}/${totalChunks} (${upserted}/${uniqueRows.length})`);
       }
 
       await supabaseAdmin
@@ -169,6 +212,15 @@ export const parseUpload = createServerFn({ method: "POST" })
             duplicates_merged: duplicateCount,
           } as unknown as never,
           error_message: null,
+          progress: {
+            phase: "done",
+            label: PHASE_LABELS.done,
+            percent: 100,
+            elapsed_ms: Date.now() - startedAt,
+            eta_ms: 0,
+            started_at: new Date(startedAt).toISOString(),
+            updated_at: new Date().toISOString(),
+          } as unknown as never,
         })
         .eq("id", data.uploadId);
 
@@ -177,7 +229,7 @@ export const parseUpload = createServerFn({ method: "POST" })
       const msg = e instanceof Error ? e.message : String(e);
       await supabaseAdmin
         .from("uploads")
-        .update({ status: "error", error_message: msg })
+        .update({ status: "error", error_message: msg, progress: null })
         .eq("id", data.uploadId);
       throw e;
     }
