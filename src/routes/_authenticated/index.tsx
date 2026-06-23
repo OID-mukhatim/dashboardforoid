@@ -84,19 +84,13 @@ function Page() {
 
 /* ============================== Header ============================== */
 function Header() {
-  const { user, isAdmin, roles } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
-  const roleLabel = roles.includes("admin")
-    ? "مدير عام"
-    : roles.includes("developer")
-    ? "مطور"
-    : roles.includes("viewer")
-    ? "مشاهد"
-    : "—";
+
   return (
     <header className="header-grad text-white shadow-lg">
       <div className="flex items-center justify-between px-6 py-4">
