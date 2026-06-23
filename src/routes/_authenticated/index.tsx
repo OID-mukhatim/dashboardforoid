@@ -1560,7 +1560,7 @@ function InitiativeFormDialog({
 /* ============================ UPLOAD ============================ */
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseUpload, reprocessUpload, processUpload, previewKpiUpload } from "@/lib/uploads.functions";
+import { parseUpload, reprocessUpload, processUpload, previewKpiUpload, deleteUploads } from "@/lib/uploads.functions";
 import { getDocumentExtractions } from "@/lib/documents.functions";
 import { listInitiatives, upsertInitiative, deleteInitiative, updateInitiativeStatus, autoGenerateInitiatives, type Initiative } from "@/lib/initiatives.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
