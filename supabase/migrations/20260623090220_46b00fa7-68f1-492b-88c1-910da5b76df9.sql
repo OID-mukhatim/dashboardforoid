@@ -1,0 +1,1 @@
+ALTER TABLE public.uploads ADD COLUMN IF NOT EXISTS progress jsonb;
