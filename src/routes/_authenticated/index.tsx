@@ -102,15 +102,10 @@ function Header() {
       <div className="flex items-center justify-between px-6 py-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight">مكتب الإشراف والتطوير المؤسسي</h1>
-          <p className="text-xs text-white/70 font-serif mt-0.5">Oversight & Institutional Development — OID</p>
+          <p className="text-lg text-white/80 font-serif mt-0.5">Oversight & Institutional Development — OID</p>
         </div>
         <div className="flex items-center gap-3">
-          {user && (
-            <div className="text-xs text-right">
-              <div className="opacity-90" dir="ltr">{user.email}</div>
-              <div className="opacity-70 text-[10px]">{roleLabel}</div>
-            </div>
-          )}
+
           {isAdmin && (
             <Link to="/users" className="p-2 rounded-lg hover:bg-white/15 transition" title="إدارة المستخدمين">
               <Shield size={18} />
