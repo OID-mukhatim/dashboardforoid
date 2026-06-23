@@ -1742,9 +1742,44 @@ function UploadSection() {
   const processFn = useServerFn(processUpload);
   const reprocessFn = useServerFn(reprocessUpload);
   const previewFn = useServerFn(previewKpiUpload);
+  const deleteFn = useServerFn(deleteUploads);
   const qc = useQueryClient();
   const [reprocessing, setReprocessing] = useState<string | null>(null);
   const [viewExtract, setViewExtract] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function toggleAll(ids: string[]) {
+    setSelected((prev) => {
+      const allSelected = ids.every((id) => prev.has(id));
+      if (allSelected) return new Set();
+      return new Set(ids);
+    });
+  }
+  async function handleDelete(ids: string[]) {
+    if (ids.length === 0) return;
+    if (!confirm(`هل تريد حذف ${ids.length} ملف؟ سيُحذف الملف وكل البيانات المرتبطة به (مؤشرات / استخراجات) نهائياً.`)) return;
+    setDeleting(true); setMsg(null);
+    try {
+      await deleteFn({ data: { uploadIds: ids } });
+      setSelected(new Set());
+      setMsg({ kind: "ok", text: `تم حذف ${ids.length} ملف وبياناتها المرتبطة.` });
+      qc.invalidateQueries({ queryKey: ["uploads"] });
+      qc.invalidateQueries({ queryKey: ["kpis"] });
+      qc.invalidateQueries({ queryKey: ["document_extractions"] });
+    } catch (e) {
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : "فشل الحذف" });
+    } finally {
+      setDeleting(false);
+    }
+  }
   type PreviewState = {
     uploadId: string;
     filePath: string;
