@@ -235,6 +235,7 @@ export type Database = {
           mime_type: string | null
           org_id: string
           period: string
+          progress: Json | null
           rows_extracted: number | null
           status: string
           uploaded_by: string | null
@@ -251,6 +252,7 @@ export type Database = {
           mime_type?: string | null
           org_id?: string
           period?: string
+          progress?: Json | null
           rows_extracted?: number | null
           status?: string
           uploaded_by?: string | null
@@ -267,6 +269,7 @@ export type Database = {
           mime_type?: string | null
           org_id?: string
           period?: string
+          progress?: Json | null
           rows_extracted?: number | null
           status?: string
           uploaded_by?: string | null

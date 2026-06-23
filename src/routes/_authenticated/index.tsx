@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -201,6 +201,58 @@ function Progress({ value, color = "var(--primary)" }: { value: number; color?: 
   return (
     <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
       <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(0, value))}%`, background: color }} />
+    </div>
+  );
+}
+
+const UPLOAD_PHASES: { key: string; label: string }[] = [
+  { key: "downloading", label: "تنزيل" },
+  { key: "reading_sheets", label: "قراءة الأوراق" },
+  { key: "matching", label: "مطابقة" },
+  { key: "upserting", label: "حفظ" },
+  { key: "done", label: "اكتمل" },
+];
+function UploadProgressBar({
+  phase, label, percent, message, elapsedMs, etaMs, fmtMs,
+}: {
+  phase: string; label: string; percent: number; message: string | null;
+  elapsedMs: number; etaMs: number | null;
+  fmtMs: (ms: number | null | undefined) => string;
+}) {
+  const currentIdx = Math.max(0, UPLOAD_PHASES.findIndex((p) => p.key === phase));
+  const safePercent = Math.min(100, Math.max(0, percent));
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-semibold text-amber-800">{label}</span>
+          {message && <span className="text-muted-foreground truncate">— {message}</span>}
+        </div>
+        <div className="flex items-center gap-3 whitespace-nowrap tabular-nums">
+          <span className="font-bold text-amber-800">{safePercent}%</span>
+          <span className="text-muted-foreground">⏱ {fmtMs(elapsedMs)}</span>
+          {etaMs != null && <span className="text-muted-foreground">⏳ ~{fmtMs(etaMs)}</span>}
+        </div>
+      </div>
+      <Progress value={safePercent} color="#d97706" />
+      <div className="flex items-center justify-between gap-1 text-[10px]" dir="rtl">
+        {UPLOAD_PHASES.map((p, i) => {
+          const done = i < currentIdx || (i === currentIdx && safePercent >= 100);
+          const active = i === currentIdx && safePercent < 100;
+          return (
+            <div key={p.key} className="flex items-center gap-1 flex-1">
+              <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${
+                done ? "bg-emerald-600 text-white" :
+                active ? "bg-amber-500 text-white animate-pulse" :
+                "bg-gray-200 text-gray-500"
+              }`}>
+                {done ? "✓" : i + 1}
+              </span>
+              <span className={done || active ? "text-foreground" : "text-muted-foreground"}>{p.label}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1821,7 +1873,12 @@ function UploadSection() {
       if (error) throw error;
       return data ?? [];
     },
-    refetchInterval: 5000,
+    // Poll fast while any upload is in-flight, otherwise slow down.
+    refetchInterval: (q) => {
+      const data = q.state.data as any[] | undefined;
+      const active = data?.some((r) => r.status === "processing" || r.status === "uploaded");
+      return active ? 1000 : 5000;
+    },
   });
 
   const { data: extractions = [] } = useQuery({
@@ -2125,8 +2182,20 @@ function UploadSection() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r: any) => (
-                    <tr key={r.id} className={`border-b hover:bg-muted/30 ${selected.has(r.id) ? "bg-primary/5" : ""}`}>
+                  {rows.map((r: any) => {
+                    const prog = r.progress as null | { phase: string; label: string; percent: number; message?: string | null; elapsed_ms: number; eta_ms: number | null };
+                    const isActive = r.status === "processing" || r.status === "uploaded";
+                    const showProgress = isActive || (prog && prog.percent < 100 && r.status !== "error");
+                    const fmtMs = (ms: number | null | undefined) => {
+                      if (ms == null || !Number.isFinite(ms)) return "—";
+                      const s = Math.round(ms / 1000);
+                      if (s < 60) return `${s} ث`;
+                      const m = Math.floor(s / 60), rem = s % 60;
+                      return `${m} د ${rem} ث`;
+                    };
+                    return (
+                      <Fragment key={r.id}>
+                    <tr className={`border-b hover:bg-muted/30 ${selected.has(r.id) ? "bg-primary/5" : ""}`}>
                       <td className="p-2">
                         <input
                           type="checkbox"
@@ -2174,7 +2243,25 @@ function UploadSection() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    {showProgress && (
+                      <tr key={`${r.id}-progress`} className="border-b bg-amber-50/40">
+                        <td className="p-2" />
+                        <td colSpan={8} className="p-2">
+                          <UploadProgressBar
+                            phase={prog?.phase ?? "downloading"}
+                            label={prog?.label ?? "بدء المعالجة..."}
+                            percent={prog?.percent ?? 0}
+                            message={prog?.message ?? null}
+                            elapsedMs={prog?.elapsed_ms ?? 0}
+                            etaMs={prog?.eta_ms ?? null}
+                            fmtMs={fmtMs}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </ScrollableTable>
