@@ -1821,7 +1821,12 @@ function UploadSection() {
       if (error) throw error;
       return data ?? [];
     },
-    refetchInterval: 5000,
+    // Poll fast while any upload is in-flight, otherwise slow down.
+    refetchInterval: (q) => {
+      const data = q.state.data as any[] | undefined;
+      const active = data?.some((r) => r.status === "processing" || r.status === "uploaded");
+      return active ? 1000 : 5000;
+    },
   });
 
   const { data: extractions = [] } = useQuery({
