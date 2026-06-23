@@ -2130,7 +2130,19 @@ function UploadSection() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r: any) => (
+                  {rows.map((r: any) => {
+                    const prog = r.progress as null | { phase: string; label: string; percent: number; message?: string | null; elapsed_ms: number; eta_ms: number | null };
+                    const isActive = r.status === "processing" || r.status === "uploaded";
+                    const showProgress = isActive || (prog && prog.percent < 100 && r.status !== "error");
+                    const fmtMs = (ms: number | null | undefined) => {
+                      if (ms == null || !Number.isFinite(ms)) return "—";
+                      const s = Math.round(ms / 1000);
+                      if (s < 60) return `${s} ث`;
+                      const m = Math.floor(s / 60), rem = s % 60;
+                      return `${m} د ${rem} ث`;
+                    };
+                    return (
+                      <>
                     <tr key={r.id} className={`border-b hover:bg-muted/30 ${selected.has(r.id) ? "bg-primary/5" : ""}`}>
                       <td className="p-2">
                         <input
@@ -2179,7 +2191,25 @@ function UploadSection() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    {showProgress && (
+                      <tr key={`${r.id}-progress`} className="border-b bg-amber-50/40">
+                        <td className="p-2" />
+                        <td colSpan={8} className="p-2">
+                          <UploadProgressBar
+                            phase={prog?.phase ?? "downloading"}
+                            label={prog?.label ?? "بدء المعالجة..."}
+                            percent={prog?.percent ?? 0}
+                            message={prog?.message ?? null}
+                            elapsedMs={prog?.elapsed_ms ?? 0}
+                            etaMs={prog?.eta_ms ?? null}
+                            fmtMs={fmtMs}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                      </>
+                    );
+                  })}
                 </tbody>
               </table>
             </ScrollableTable>
