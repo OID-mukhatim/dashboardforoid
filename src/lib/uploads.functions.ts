@@ -148,7 +148,7 @@ export const parseUpload = createServerFn({ method: "POST" })
       const buf = new Uint8Array(await file.arrayBuffer());
       const wb = XLSX.read(buf, { type: "array" });
 
-      const fileIsInstitutional = looksLikeNetworksSheet(data.filePath);
+      const fileIsInstitutional = looksLikeNetworksSheet(originalFileName) || looksLikeNetworksSheet(data.filePath);
 
       let lastSector: string | null = null;
       const kpiRows: Array<Record<string, unknown>> = [];
