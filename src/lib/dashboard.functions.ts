@@ -129,3 +129,48 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
     };
     return snap;
   });
+
+export type InstitutionalProfileEntry = {
+  fields: Record<string, string>;
+  fieldCount: number;
+  sourceSheet: string | null;
+  fileName: string | null;
+  updatedAt: string;
+};
+
+export const loadInstitutionalProfiles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("document_extractions")
+      .select("entity_code, payload, file_name, created_at")
+      .eq("kind", "institutional_profile")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+
+    const out: Record<string, InstitutionalProfileEntry> = {};
+    for (const r of data ?? []) {
+      const code = String(r.entity_code ?? "");
+      if (!code || !VALID_ORGS.includes(code as OrgCode)) continue;
+      const payload = (r.payload ?? {}) as { fields?: Record<string, string>; source_sheet?: string };
+      const fields = payload.fields ?? {};
+      const existing = out[code];
+      if (!existing) {
+        out[code] = {
+          fields: { ...fields },
+          fieldCount: Object.keys(fields).length,
+          sourceSheet: payload.source_sheet ?? null,
+          fileName: r.file_name ?? null,
+          updatedAt: r.created_at,
+        };
+      } else {
+        // older rows fill missing fields only
+        for (const [k, v] of Object.entries(fields)) {
+          if (!(k in existing.fields)) existing.fields[k] = v;
+        }
+        existing.fieldCount = Object.keys(existing.fields).length;
+      }
+    }
+    return out;
+  });
+
