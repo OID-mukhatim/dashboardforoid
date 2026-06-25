@@ -3,7 +3,7 @@
  */
 import { ORGS, type OrgId } from "@/lib/oid-data";
 import { ORG_LOGOS } from "@/lib/oid-logos";
-import { computeProfile } from "@/lib/oid-composite";
+import { computeProfile, type InstitutionProfile } from "@/lib/oid-composite";
 import { DATA_STATES } from "@/lib/oid-data-states";
 import { formatScore, formatPct } from "@/lib/oid-formatting";
 import { openOrgProfile } from "@/lib/oid-drill";
@@ -11,9 +11,9 @@ import { computeTrend } from "@/lib/oid-timeline";
 import { TrendBadge } from "./TrendBadge";
 import { AlertTriangle } from "lucide-react";
 
-export function CompositeScoreCard({ orgId }: { orgId: OrgId }) {
+export function CompositeScoreCard({ orgId, profile }: { orgId: OrgId; profile?: InstitutionProfile }) {
   const org = ORGS.find((o) => o.id === orgId)!;
-  const p = computeProfile(orgId);
+  const p = profile ?? computeProfile(orgId);
   const trend = computeTrend(orgId, "composite");
   const logo = ORG_LOGOS[orgId];
 
