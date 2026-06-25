@@ -81,6 +81,29 @@ function looksLikeNetworksSheet(name: string): boolean {
   return /شبك(ات|ة)|البيانات\s*المؤسسية|مؤسسي|institutional|networks?/i.test(name);
 }
 
+// Detect "profile layout": a row near the top that contains ≥2 known org names
+// across columns (each org becomes a column of values). Used by the institutional
+// data form (نموذج 1: استمارة البيانات المؤسسية).
+function detectProfileLayout(
+  aoa: unknown[][],
+): { headerIdx: number; orgCols: Array<{ idx: number; code: string; name: string }> } | null {
+  for (let r = 0; r < Math.min(aoa.length, 20); r++) {
+    const row = aoa[r];
+    if (!Array.isArray(row)) continue;
+    const seen = new Set<string>();
+    const orgCols: Array<{ idx: number; code: string; name: string }> = [];
+    for (let c = 0; c < row.length; c++) {
+      const hit = detectKnownOrg(row[c]);
+      if (hit && !seen.has(hit.code)) {
+        seen.add(hit.code);
+        orgCols.push({ idx: c, ...hit });
+      }
+    }
+    if (orgCols.length >= 2) return { headerIdx: r, orgCols };
+  }
+  return null;
+}
+
 function looksLikeKpiFile(name: string): boolean {
   return /مؤشرات\s*الأداء|مصفوفة\s*المؤشرات|مؤشر\s*الأداء|kpis?|performance\s*indicators?|balanced\s*scorecard|بطاقة\s*الأداء/i.test(name);
 }
