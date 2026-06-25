@@ -78,7 +78,7 @@ function classifyAxis(header: string): { bucket: MatrixBucket; key: string } {
 }
 
 function looksLikeNetworksSheet(name: string): boolean {
-  return /شبك(ات|ة)|networks?/i.test(name);
+  return /شبك(ات|ة)|البيانات\s*المؤسسية|مؤسسي|institutional|networks?/i.test(name);
 }
 
 
