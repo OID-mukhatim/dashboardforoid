@@ -429,26 +429,29 @@ function DashboardSection() {
         </Card>
 
         <Card>
-          <CardHeader title="ترتيب المؤسسات حسب الأداء العام" />
+          <CardHeader title="ترتيب المؤسسات حسب الأداء العام" subtitle="مرتّبة حسب الدرجة المركّبة الحيّة" />
           <div className="p-5 space-y-4">
-            {orgOverallScores.map((o) => (
-              <button
-                key={o.id}
-                type="button"
-                onClick={() => openOrgProfile(o.id as OrgId)}
-                className="w-full text-right hover:bg-muted/30 rounded-md px-2 py-1 -mx-2 transition"
-                title="افتح الملف التفصيلي"
-              >
-                <div className="flex items-center justify-between mb-1.5 text-sm">
-                  <span className="font-medium">{o.name}</span>
-                  <span className="tabular-nums font-bold" style={{ color: o.color }}>
-                    {o.score !== null ? o.score.toFixed(2) : "—"}
-                    {o.maturity && <span className="text-xs text-muted-foreground font-normal mr-2">({MATURITY_LABELS[o.maturity]})</span>}
-                  </span>
-                </div>
-                <Progress value={o.score ? (o.score / 5) * 100 : 0} color={o.color} />
-              </button>
-            ))}
+            {[...ORGS]
+              .map((o) => ({ o, p: liveProfiles[o.id] }))
+              .sort((a, b) => (b.p.compositeScore ?? -1) - (a.p.compositeScore ?? -1))
+              .map(({ o, p }) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => openOrgProfile(o.id)}
+                  className="w-full text-right hover:bg-muted/30 rounded-md px-2 py-1 -mx-2 transition"
+                  title="افتح الملف التفصيلي"
+                >
+                  <div className="flex items-center justify-between mb-1.5 text-sm">
+                    <span className="font-medium">{o.nameAr}</span>
+                    <span className="tabular-nums font-bold" style={{ color: o.color }}>
+                      {p.compositeScore !== null ? p.compositeScore.toFixed(2) : "—"}
+                      {p.maturityLevel && <span className="text-xs text-muted-foreground font-normal mr-2">({MATURITY_LABELS[p.maturityLevel]})</span>}
+                    </span>
+                  </div>
+                  <Progress value={p.compositeScore ? (p.compositeScore / 5) * 100 : 0} color={o.color} />
+                </button>
+              ))}
           </div>
         </Card>
       </div>
