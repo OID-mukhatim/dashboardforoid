@@ -314,8 +314,10 @@ export const parseUpload = createServerFn({ method: "POST" })
         }
 
         // ── Institutional matrix branch (Networks/الشبكات consolidated sheet) ──
-
+        // Detects: org name in any early column + axis headers in remaining columns.
+        if (fileIsInstitutional || looksLikeNetworksSheet(sheetName)) {
           // Find the header row: the first row that contains at least one axis we can classify.
+
           let headerIdx = -1;
           let headerCols: { idx: number; bucket: MatrixBucket; key: string }[] = [];
           let orgColIdx = -1;
