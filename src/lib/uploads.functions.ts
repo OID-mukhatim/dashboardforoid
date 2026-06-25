@@ -81,6 +81,29 @@ function looksLikeNetworksSheet(name: string): boolean {
   return /شبك(ات|ة)|البيانات\s*المؤسسية|مؤسسي|institutional|networks?/i.test(name);
 }
 
+// Detect "profile layout": a row near the top that contains ≥2 known org names
+// across columns (each org becomes a column of values). Used by the institutional
+// data form (نموذج 1: استمارة البيانات المؤسسية).
+function detectProfileLayout(
+  aoa: unknown[][],
+): { headerIdx: number; orgCols: Array<{ idx: number; code: string; name: string }> } | null {
+  for (let r = 0; r < Math.min(aoa.length, 20); r++) {
+    const row = aoa[r];
+    if (!Array.isArray(row)) continue;
+    const seen = new Set<string>();
+    const orgCols: Array<{ idx: number; code: string; name: string }> = [];
+    for (let c = 0; c < row.length; c++) {
+      const hit = detectKnownOrg(row[c]);
+      if (hit && !seen.has(hit.code)) {
+        seen.add(hit.code);
+        orgCols.push({ idx: c, ...hit });
+      }
+    }
+    if (orgCols.length >= 2) return { headerIdx: r, orgCols };
+  }
+  return null;
+}
+
 function looksLikeKpiFile(name: string): boolean {
   return /مؤشرات\s*الأداء|مصفوفة\s*المؤشرات|مؤشر\s*الأداء|kpis?|performance\s*indicators?|balanced\s*scorecard|بطاقة\s*الأداء/i.test(name);
 }
@@ -231,10 +254,70 @@ export const parseUpload = createServerFn({ method: "POST" })
         const kpiHeaderIdx = findKpiHeaderRow(aoa);
         const sheetLooksKpi = kpiHeaderIdx >= 0 && (fileIsKpi || looksLikeKpiFile(sheetName) || hasKpiStructure(aoa));
 
+        // ── Profile layout branch (نموذج 1 — orgs as columns, fields as rows) ──
+        if (fileIsInstitutional || looksLikeNetworksSheet(sheetName)) {
+          const profile = detectProfileLayout(aoa);
+          if (profile) {
+            const perOrg: Record<string, Record<string, string>> = {};
+            const orgNames: Record<string, string> = {};
+            for (const o of profile.orgCols) { perOrg[o.code] = {}; orgNames[o.code] = o.name; }
+            let currentSection: string | null = null;
+            for (let r = profile.headerIdx + 1; r < aoa.length; r++) {
+              const row = aoa[r];
+              if (!Array.isArray(row)) continue;
+              const label = toStr(row[1]) ?? toStr(row[0]);
+              if (!label) continue;
+              const numCol = toStr(row[0]) ?? "";
+              const isSection = numCol === "#" || profile.orgCols.every((o) => {
+                const v = row[o.idx];
+                return v === null || v === undefined || String(v).trim() === "";
+              });
+              if (isSection && numCol === "#") { currentSection = label; continue; }
+              for (const o of profile.orgCols) {
+                const v = row[o.idx];
+                if (v === null || v === undefined) continue;
+                const str = v instanceof Date
+                  ? v.toISOString().slice(0, 10)
+                  : String(v).replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+                if (!str) continue;
+                const key = currentSection ? `${currentSection} › ${label}` : label;
+                perOrg[o.code][key] = str;
+              }
+            }
+            let saved = 0;
+            for (const o of profile.orgCols) {
+              const fields = perOrg[o.code];
+              const count = Object.keys(fields).length;
+              if (count === 0) continue;
+              matrixRows.push({
+                upload_id: data.uploadId,
+                kind: "institutional_profile",
+                entity_code: o.code,
+                file_path: data.filePath,
+                file_name: originalFileName,
+                payload: { fields, source_sheet: sheetName, field_count: count } as unknown as never,
+                summary: `ملف مؤسسي — ${o.name} (${count} حقل)`,
+                org_mentions: [o.code] as unknown as never,
+                entities: [{ code: o.code, name: o.name }] as unknown as never,
+                numbers_found: [] as unknown as never,
+              });
+              saved += 1;
+              matrixCount += 1;
+            }
+            if (saved > 0) {
+              sheetsSummary.push({ name: sheetName, rows: aoa.length, kpis: 0, matrix: saved });
+              const sheetPct = 20 + Math.round(((si + 1) / totalSheets) * 30);
+              await setProgress("reading_sheets", sheetPct, `ورقة ${si + 1}/${totalSheets}: ${sheetName} (ملفات مؤسسية: ${saved})`);
+              continue;
+            }
+          }
+        }
+
         // ── Institutional matrix branch (Networks/الشبكات consolidated sheet) ──
         // Detects: org name in any early column + axis headers in remaining columns.
         if (fileIsInstitutional || looksLikeNetworksSheet(sheetName)) {
           // Find the header row: the first row that contains at least one axis we can classify.
+
           let headerIdx = -1;
           let headerCols: { idx: number; bucket: MatrixBucket; key: string }[] = [];
           let orgColIdx = -1;
