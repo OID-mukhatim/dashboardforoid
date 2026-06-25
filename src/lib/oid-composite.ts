@@ -109,3 +109,56 @@ export function computeAllProfiles(): Record<OrgId, InstitutionProfile> {
   for (const o of ORGS) out[o.id] = computeProfile(o.id);
   return out;
 }
+
+/**
+ * Live variant: builds the same profile from DB-derived aggregates instead of
+ * the static fallback arrays. Each component falls back to the static value
+ * when the live source is missing, so dashboards keep working pre-upload.
+ */
+export type LiveInputs = {
+  gapAvg?: number | null;
+  govScore?: number | null;
+  kpiScorePct?: number | null; // 0..100
+  finScore?: number | null;
+};
+
+export function computeProfileFromLive(orgId: OrgId, live: LiveInputs): InstitutionProfile {
+  const gap = live.gapAvg ?? gapAvg(orgId);
+  const gov = live.govScore ?? govScoreOf(orgId);
+  const kpi =
+    typeof live.kpiScorePct === "number" && Number.isFinite(live.kpiScorePct)
+      ? Math.round((live.kpiScorePct / 20) * 100) / 100
+      : kpiScoreOf(orgId);
+  const fin = live.finScore ?? finScoreOf(orgId);
+
+  const components: ProfileComponent[] = [
+    { source: "gap", label: "الفجوات المؤسسية", weight: WEIGHTS.gap, score: gap, state: inferState(gap) },
+    { source: "governance", label: "الحوكمة والامتثال", weight: WEIGHTS.gov, score: gov, state: inferState(gov) },
+    { source: "kpi", label: "تحقيق مؤشرات الأداء", weight: WEIGHTS.kpi, score: kpi, state: inferState(kpi) },
+    { source: "financial", label: "الإدارة المالية", weight: WEIGHTS.fin, score: fin, state: inferState(fin) },
+  ];
+
+  const valid = components.filter((c) => c.state === "achieved" && c.score !== null);
+  const totalWeight = valid.reduce((s, c) => s + c.weight, 0);
+  const composite =
+    totalWeight > 0
+      ? valid.reduce((s, c) => s + (c.score as number) * c.weight, 0) / totalWeight
+      : null;
+
+  const dataCompleteness = valid.length / components.length;
+  const maturity = getMaturityLevel(composite);
+
+  return {
+    orgId,
+    compositeScore: composite !== null ? Math.round(composite * 100) / 100 : null,
+    gapScore: gap !== null ? Math.round(gap * 100) / 100 : null,
+    govScore: gov,
+    kpiScore: kpi !== null ? Math.round(kpi * 100) / 100 : null,
+    finScore: fin,
+    components,
+    dataCompleteness,
+    maturityLabel: maturity?.labelAr ?? null,
+    maturityLevel: maturity?.level ?? null,
+    maturityColor: maturity?.color ?? null,
+  };
+}

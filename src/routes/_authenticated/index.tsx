@@ -29,6 +29,8 @@ import { openOrgProfile } from "@/lib/oid-drill";
 import { formatScore, formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
 import { MATURITY_SCALE } from "@/lib/oid-maturity";
 import { BSC_PERSPECTIVES, BSC_LABELS, matchPerspective, perspectiveLabelOf } from "@/lib/oid-bsc";
+import { loadDashboardSnapshot } from "@/lib/dashboard.functions";
+import { computeProfileFromLive } from "@/lib/oid-composite";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Page });
 
@@ -271,28 +273,63 @@ const fmtNum = (n: number) => formatCount(n);
 
 function DashboardSection() {
   const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
+  const snapshotFn = useServerFn(loadDashboardSnapshot);
+  const { data: snap } = useQuery({
+    queryKey: ["dashboard-snapshot"],
+    queryFn: () => snapshotFn(),
+    refetchInterval: 10000,
+  });
+
+  // Live per-org profiles (DB-backed, with static fallback inside the helper).
+  const liveProfiles = useMemo(() => {
+    const out = {} as Record<OrgId, ReturnType<typeof computeProfileFromLive>>;
+    for (const o of ORGS) {
+      const m = snap?.matrix?.[o.id];
+      const k = snap?.kpi?.[o.id];
+      out[o.id] = computeProfileFromLive(o.id, {
+        gapAvg: m?.gapAvg ?? null,
+        govScore: m?.govScore ?? null,
+        kpiScorePct: k?.weightedAvgPct ?? null,
+        finScore: m?.finScore ?? null,
+      });
+    }
+    return out;
+  }, [snap]);
+
   const radarData = GAP_AXES.map((axis, i) => {
     const row: any = { axis };
-    ORGS.forEach((o) => { row[o.id] = gapScores[o.id][i] ?? 0; });
+    ORGS.forEach((o) => {
+      const liveGap = snap?.matrix?.[o.id]?.gaps?.[axis];
+      row[o.id] = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? 0);
+    });
     return row;
   });
 
   const stats = useMemo(() => {
     const list = orgFilter === "all" ? institutions : institutions.filter((i) => i.id === orgFilter);
-    const scoreList = orgFilter === "all" ? orgOverallScores : orgOverallScores.filter((s) => s.id === orgFilter);
     const staff = list.reduce((sum, i) => sum + (i.staff?.total ?? 0), 0);
     const budget = list.reduce((sum, i) => sum + (i.budget ?? 0), 0);
     const beneficiaries = list.reduce((sum, i) => sum + extractBeneficiaries(i.branches), 0);
-    const scored = scoreList.filter((s) => s.score != null);
-    const avgScore = scored.length ? scored.reduce((a, s) => a + (s.score as number), 0) / scored.length : null;
-    const matured = scoreList.filter((s) => s.maturity != null);
-    const avgMaturity = matured.length ? Math.round(matured.reduce((a, s) => a + (s.maturity as number), 0) / matured.length) : null;
+
+    // Composite scores: live profiles for selected orgs.
+    const targetOrgs = orgFilter === "all" ? ORGS : ORGS.filter((o) => o.id === orgFilter);
+    const composites = targetOrgs
+      .map((o) => liveProfiles[o.id]?.compositeScore)
+      .filter((v): v is number => typeof v === "number");
+    const avgScore = composites.length ? composites.reduce((a, b) => a + b, 0) / composites.length : null;
+    const maturities = targetOrgs
+      .map((o) => liveProfiles[o.id]?.maturityLevel)
+      .filter((v): v is number => typeof v === "number");
+    const avgMaturity = maturities.length ? Math.round(maturities.reduce((a, b) => a + b, 0) / maturities.length) : null;
+
+    const kpisLive = snap?.totals?.kpisCount ?? 0;
     return {
       orgsCount: orgFilter === "all" ? ORGS.length : 1,
       orgsSub: orgFilter === "all" ? "مؤسسات رئيسية" : (ORGS.find((o) => o.id === orgFilter)?.nameAr ?? ""),
       staff, budget, beneficiaries, avgScore, avgMaturity,
+      kpisLive,
     };
-  }, [orgFilter]);
+  }, [orgFilter, liveProfiles, snap]);
 
   return (
     <div className="space-y-6">
@@ -319,7 +356,7 @@ function DashboardSection() {
         <StatCard label="الميزانية الإجمالية" value={fmtBudget(stats.budget)} sub="إجمالي 2026" icon={Coins} accent="#7c3aed" />
         <StatCard label="متوسط الأداء" value={stats.avgScore != null ? `${formatScore(stats.avgScore)} / 5` : "—"} sub={stats.avgMaturity ? `↑ ${MATURITY_OF_LEVEL[stats.avgMaturity]}` : "—"} icon={TrendingUp} accent="#d97706" />
         <StatCard label="مستوى النضج" value={stats.avgMaturity ? MATURITY_OF_LEVEL[stats.avgMaturity] : "—"} sub={stats.avgMaturity ? `المستوى ${stats.avgMaturity}` : "—"} icon={BarChart3} accent="#2e9bd4" />
-        <StatCard label="مؤشرات الأداء الفاعلة" value="80+" sub="KPIs نشطة" icon={Target} accent="#15803d" />
+        <StatCard label="مؤشرات الأداء الفاعلة" value={stats.kpisLive ? `${fmtNum(stats.kpisLive)}` : "—"} sub="من قاعدة البيانات" icon={Target} accent="#15803d" />
         <StatCard label="الشراكات الفاعلة" value="13+" sub="شراكات استراتيجية" icon={Handshake} accent="#0e4d2e" />
       </div>
 
@@ -336,7 +373,7 @@ function DashboardSection() {
             {ORGS
               .filter((o) => orgFilter === "all" || o.id === orgFilter)
               .map((o) => (
-                <CompositeScoreCard key={o.id} orgId={o.id} />
+                <CompositeScoreCard key={o.id} orgId={o.id} profile={liveProfiles[o.id]} />
               ))}
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-border flex-wrap gap-3">
@@ -392,26 +429,29 @@ function DashboardSection() {
         </Card>
 
         <Card>
-          <CardHeader title="ترتيب المؤسسات حسب الأداء العام" />
+          <CardHeader title="ترتيب المؤسسات حسب الأداء العام" subtitle="مرتّبة حسب الدرجة المركّبة الحيّة" />
           <div className="p-5 space-y-4">
-            {orgOverallScores.map((o) => (
-              <button
-                key={o.id}
-                type="button"
-                onClick={() => openOrgProfile(o.id as OrgId)}
-                className="w-full text-right hover:bg-muted/30 rounded-md px-2 py-1 -mx-2 transition"
-                title="افتح الملف التفصيلي"
-              >
-                <div className="flex items-center justify-between mb-1.5 text-sm">
-                  <span className="font-medium">{o.name}</span>
-                  <span className="tabular-nums font-bold" style={{ color: o.color }}>
-                    {o.score !== null ? o.score.toFixed(2) : "—"}
-                    {o.maturity && <span className="text-xs text-muted-foreground font-normal mr-2">({MATURITY_LABELS[o.maturity]})</span>}
-                  </span>
-                </div>
-                <Progress value={o.score ? (o.score / 5) * 100 : 0} color={o.color} />
-              </button>
-            ))}
+            {[...ORGS]
+              .map((o) => ({ o, p: liveProfiles[o.id] }))
+              .sort((a, b) => (b.p.compositeScore ?? -1) - (a.p.compositeScore ?? -1))
+              .map(({ o, p }) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => openOrgProfile(o.id)}
+                  className="w-full text-right hover:bg-muted/30 rounded-md px-2 py-1 -mx-2 transition"
+                  title="افتح الملف التفصيلي"
+                >
+                  <div className="flex items-center justify-between mb-1.5 text-sm">
+                    <span className="font-medium">{o.nameAr}</span>
+                    <span className="tabular-nums font-bold" style={{ color: o.color }}>
+                      {p.compositeScore !== null ? p.compositeScore.toFixed(2) : "—"}
+                      {p.maturityLevel && <span className="text-xs text-muted-foreground font-normal mr-2">({MATURITY_LABELS[p.maturityLevel]})</span>}
+                    </span>
+                  </div>
+                  <Progress value={p.compositeScore ? (p.compositeScore / 5) * 100 : 0} color={o.color} />
+                </button>
+              ))}
           </div>
         </Card>
       </div>
@@ -444,16 +484,21 @@ function DashboardSection() {
         </Card>
 
         <Card>
-          <CardHeader title="ملخص الحوكمة السريع" />
+          <CardHeader title="ملخص الحوكمة السريع" subtitle="من ورقة الشبكات المؤسسية" />
           <div className="p-5 grid grid-cols-2 gap-3">
-            {orgOverallScores.map((o) => (
-              <div key={o.id} className="border border-border rounded-lg p-3 text-center">
-                <div className="text-xs text-muted-foreground mb-1 truncate">{o.name}</div>
-                <div className="text-xl font-bold tabular-nums" style={{ color: o.color }}>
-                  {o.govPct !== null ? `${o.govPct}%` : "—"}
+            {ORGS.map((o) => {
+              const liveGov = snap?.matrix?.[o.id]?.govPct;
+              const fallback = orgOverallScores.find((s) => s.id === o.id)?.govPct ?? null;
+              const pct = typeof liveGov === "number" ? liveGov : fallback;
+              return (
+                <div key={o.id} className="border border-border rounded-lg p-3 text-center">
+                  <div className="text-xs text-muted-foreground mb-1 truncate">{o.nameAr}</div>
+                  <div className="text-xl font-bold tabular-nums" style={{ color: o.color }}>
+                    {pct !== null ? `${pct}%` : "—"}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       </div>

@@ -48,6 +48,39 @@ function normalizeEntity(raw: string): { code: string; name: string } {
   return { code: s, name: s };
 }
 
+// Recognise a known org from any free-text cell (used when org is in a column,
+// not the sheet name — e.g. the consolidated "Networks" sheet).
+function detectKnownOrg(raw: unknown): { code: string; name: string } | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  for (const a of ENTITY_ALIASES) {
+    if (a.patterns.some((re) => re.test(s))) return { code: a.id, name: a.name };
+  }
+  return null;
+}
+
+// Classify a header (axis name) into one of the institutional matrix buckets.
+type MatrixBucket = "gap" | "gov" | "fin" | "maturity" | null;
+function classifyAxis(header: string): { bucket: MatrixBucket; key: string } {
+  const h = header.replace(/\s+/g, " ").trim();
+  if (!h) return { bucket: null, key: h };
+  // Maturity column
+  if (/نضج|مستوى\s*النضج|maturity/i.test(h)) return { bucket: "maturity", key: "maturity" };
+  // Governance
+  if (/حوكمة|سياس|امتثال|governance|compliance/i.test(h)) return { bucket: "gov", key: "governance" };
+  // Financial assessment column
+  if (/(تقييم|قدرة|إدارة)\s*مالي|financial\s*(assessment|score)/i.test(h)) return { bucket: "fin", key: "financial" };
+  // Seven-axis gap names
+  if (/استراتيجي|قيادة|أداء|عمليات|مالية|بنية|infrastructure|strategy|leadership|operations/i.test(h)) {
+    return { bucket: "gap", key: h };
+  }
+  return { bucket: null, key: h };
+}
+
+function looksLikeNetworksSheet(name: string): boolean {
+  return /شبك(ات|ة)|networks?/i.test(name);
+}
+
 
 export const parseUpload = createServerFn({ method: "POST" })
   .inputValidator((input) =>
@@ -116,7 +149,8 @@ export const parseUpload = createServerFn({ method: "POST" })
 
       let lastSector: string | null = null;
       const kpiRows: Array<Record<string, unknown>> = [];
-      const sheetsSummary: Array<{ name: string; rows: number; kpis: number }> = [];
+      const sheetsSummary: Array<{ name: string; rows: number; kpis: number; matrix?: number }> = [];
+      const matrixRows: Array<Record<string, unknown>> = [];
 
       const totalSheets = wb.SheetNames.length;
       for (let si = 0; si < totalSheets; si++) {
@@ -127,7 +161,82 @@ export const parseUpload = createServerFn({ method: "POST" })
         const entityCode = normalized.code;
         const entityName = normalized.name;
         let kpiCount = 0;
+        let matrixCount = 0;
         lastSector = null;
+
+        // ── Institutional matrix branch (Networks/الشبكات consolidated sheet) ──
+        // Detects: org name in any early column + axis headers in remaining columns.
+        if (looksLikeNetworksSheet(sheetName)) {
+          // Find the header row: the first row that contains at least one axis we can classify.
+          let headerIdx = -1;
+          let headerCols: { idx: number; bucket: MatrixBucket; key: string }[] = [];
+          let orgColIdx = -1;
+          for (let r = 0; r < Math.min(aoa.length, 15); r++) {
+            const row = aoa[r];
+            if (!Array.isArray(row)) continue;
+            const classified = row.map((cell, idx) => ({ idx, ...classifyAxis(toStr(cell) ?? "") }));
+            const axes = classified.filter((c) => c.bucket !== null);
+            if (axes.length >= 3) {
+              headerIdx = r;
+              headerCols = axes;
+              // Org column is the first non-empty, non-axis text column.
+              for (let c = 0; c < row.length; c++) {
+                if (axes.some((a) => a.idx === c)) continue;
+                const t = toStr(row[c]) ?? "";
+                if (/مؤسسة|الكيان|المنظمة|entity|organization|اسم/i.test(t)) { orgColIdx = c; break; }
+              }
+              if (orgColIdx < 0) orgColIdx = 0;
+              break;
+            }
+          }
+
+          if (headerIdx >= 0) {
+            for (let r = headerIdx + 1; r < aoa.length; r++) {
+              const row = aoa[r];
+              if (!Array.isArray(row)) continue;
+              // Try the candidate org cell first, then scan any cell for a known org.
+              let org = detectKnownOrg(row[orgColIdx]);
+              if (!org) {
+                for (const cell of row) {
+                  const hit = detectKnownOrg(cell);
+                  if (hit) { org = hit; break; }
+                }
+              }
+              if (!org) continue;
+
+              const payload: { gaps: Record<string, number>; gov?: number; fin?: number; maturity?: number } = { gaps: {} };
+              for (const h of headerCols) {
+                const raw = toNum(row[h.idx]);
+                if (raw === null) continue;
+                // Normalise to 0..5 scale (accept percentages too).
+                const score = raw > 5 ? Math.max(0, Math.min(5, raw / 20)) : raw;
+                if (h.bucket === "gap") payload.gaps[h.key] = score;
+                else if (h.bucket === "gov") payload.gov = score;
+                else if (h.bucket === "fin") payload.fin = score;
+                else if (h.bucket === "maturity") payload.maturity = Math.round(raw);
+              }
+              if (Object.keys(payload.gaps).length === 0 && payload.gov == null && payload.fin == null && payload.maturity == null) continue;
+
+              matrixRows.push({
+                upload_id: data.uploadId,
+                kind: "institutional_matrix",
+                entity_code: org.code,
+                file_path: data.filePath,
+                file_name: data.filePath.split("/").pop() ?? data.filePath,
+                payload: payload as unknown as never,
+                summary: `مصفوفة مؤسسية — ${org.name}`,
+                org_mentions: [org.code] as unknown as never,
+                entities: [{ code: org.code, name: org.name }] as unknown as never,
+                numbers_found: [] as unknown as never,
+              });
+              matrixCount += 1;
+            }
+          }
+          sheetsSummary.push({ name: sheetName, rows: aoa.length, kpis: 0, matrix: matrixCount });
+          const sheetPct = 20 + Math.round(((si + 1) / totalSheets) * 30);
+          await setProgress("reading_sheets", sheetPct, `ورقة ${si + 1}/${totalSheets}: ${sheetName} (مصفوفة مؤسسية)`);
+          continue;
+        }
 
         for (const row of aoa) {
           if (!Array.isArray(row)) continue;
@@ -173,6 +282,20 @@ export const parseUpload = createServerFn({ method: "POST" })
         const sheetPct = 20 + Math.round(((si + 1) / totalSheets) * 30); // 20→50
         await setProgress("reading_sheets", sheetPct, `ورقة ${si + 1}/${totalSheets}: ${sheetName}`);
       }
+
+      // Persist institutional matrix rows (replace previous for same upload).
+      if (matrixRows.length) {
+        await supabaseAdmin
+          .from("document_extractions")
+          .delete()
+          .eq("upload_id", data.uploadId)
+          .eq("kind", "institutional_matrix");
+        const { error: mErr } = await supabaseAdmin
+          .from("document_extractions")
+          .insert(matrixRows as never);
+        if (mErr) throw mErr;
+      }
+
 
       await setProgress("matching", 55, `${kpiRows.length} صف للمطابقة`);
 

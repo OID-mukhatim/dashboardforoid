@@ -18,11 +18,14 @@ export type Database = {
         Row: {
           created_at: string
           entities: Json | null
+          entity_code: string | null
           file_name: string
           file_path: string
           id: string
+          kind: string
           numbers_found: Json | null
           org_mentions: Json | null
+          payload: Json | null
           summary: string | null
           text_preview: string | null
           upload_id: string | null
@@ -30,11 +33,14 @@ export type Database = {
         Insert: {
           created_at?: string
           entities?: Json | null
+          entity_code?: string | null
           file_name: string
           file_path: string
           id?: string
+          kind?: string
           numbers_found?: Json | null
           org_mentions?: Json | null
+          payload?: Json | null
           summary?: string | null
           text_preview?: string | null
           upload_id?: string | null
@@ -42,11 +48,14 @@ export type Database = {
         Update: {
           created_at?: string
           entities?: Json | null
+          entity_code?: string | null
           file_name?: string
           file_path?: string
           id?: string
+          kind?: string
           numbers_found?: Json | null
           org_mentions?: Json | null
+          payload?: Json | null
           summary?: string | null
           text_preview?: string | null
           upload_id?: string | null
