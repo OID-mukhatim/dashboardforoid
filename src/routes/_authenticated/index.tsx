@@ -1965,19 +1965,32 @@ function UploadSection() {
         const ext = file.name.split(".").pop()?.toLowerCase() || "";
         const isExcel = ext === "xlsx" || ext === "xls" || ext === "csv";
 
-        if (isExcel) {
+        const isInstitutionalSpreadsheet =
+          /شبك(ات|ة)|البيانات\s*المؤسسية|مؤسسي|institutional|networks?/i.test(file.name) ||
+          /البيانات\s*المؤسسية|بيانات\s*الفجوات|بيانات\s*الحوكمة|التقرير\s*المالي/i.test(dataType);
+
+        if (isExcel && !isInstitutionalSpreadsheet) {
           // Excel: show preview modal first, defer commit until user confirms
           setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: true });
+          let handledAsNonKpi = false;
           try {
-            const result = await previewFn({ data: { filePath: path, period } });
+            const result = await previewFn({ data: { filePath: path, period, fileName: file.name, dataType } });
             setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, result });
           } catch (e) {
-            setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, error: e instanceof Error ? e.message : "فشلت المعاينة" });
+            const errText = e instanceof Error ? e.message : "فشلت المعاينة";
+            if (/ليس ملف مؤشرات|لم يتم العثور على قالب مؤشرات/.test(errText)) {
+              await processFn({ data: { uploadId: row.id, filePath: path } }).catch(() => {});
+              setPreview(null);
+              handledAsNonKpi = true;
+            } else {
+              setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, error: errText });
+            }
           }
           qc.invalidateQueries({ queryKey: ["uploads"] });
+          if (handledAsNonKpi) continue;
           break; // Only preview one file at a time
         } else {
-          // Word/PPT/PDF: process directly
+          // Non-KPI Excel and Word/PPT/PDF: process directly through the classifier
           await processFn({ data: { uploadId: row.id, filePath: path } }).catch(() => {});
         }
       }
@@ -2083,7 +2096,7 @@ function UploadSection() {
           <div className="text-xs text-muted-foreground mt-4">
             💡 اختر «الكل» لأي حقل لرفع بيانات عامة غير مرتبطة بفلتر محدد.
             <br />
-            📊 Excel/CSV → يُستخرج KPIs تلقائياً. 📝 Word / 📽️ PowerPoint / 📄 PDF → يُستخرج النص والأرقام والمؤسسات.
+            📊 Excel/CSV يُصنّف أولاً: مؤشرات فقط عند تطابق قالب المؤشرات، والبيانات المؤسسية تُحفظ كاستخراجات. 📝 Word / 📽️ PowerPoint / 📄 PDF → يُستخرج النص والأرقام والمؤسسات.
           </div>
         </div>
       </Card>
