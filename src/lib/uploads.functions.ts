@@ -48,6 +48,39 @@ function normalizeEntity(raw: string): { code: string; name: string } {
   return { code: s, name: s };
 }
 
+// Recognise a known org from any free-text cell (used when org is in a column,
+// not the sheet name — e.g. the consolidated "Networks" sheet).
+function detectKnownOrg(raw: unknown): { code: string; name: string } | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  for (const a of ENTITY_ALIASES) {
+    if (a.patterns.some((re) => re.test(s))) return { code: a.id, name: a.name };
+  }
+  return null;
+}
+
+// Classify a header (axis name) into one of the institutional matrix buckets.
+type MatrixBucket = "gap" | "gov" | "fin" | "maturity" | null;
+function classifyAxis(header: string): { bucket: MatrixBucket; key: string } {
+  const h = header.replace(/\s+/g, " ").trim();
+  if (!h) return { bucket: null, key: h };
+  // Maturity column
+  if (/نضج|مستوى\s*النضج|maturity/i.test(h)) return { bucket: "maturity", key: "maturity" };
+  // Governance
+  if (/حوكمة|سياس|امتثال|governance|compliance/i.test(h)) return { bucket: "gov", key: "governance" };
+  // Financial assessment column
+  if (/(تقييم|قدرة|إدارة)\s*مالي|financial\s*(assessment|score)/i.test(h)) return { bucket: "fin", key: "financial" };
+  // Seven-axis gap names
+  if (/استراتيجي|قيادة|أداء|عمليات|مالية|بنية|infrastructure|strategy|leadership|operations/i.test(h)) {
+    return { bucket: "gap", key: h };
+  }
+  return { bucket: null, key: h };
+}
+
+function looksLikeNetworksSheet(name: string): boolean {
+  return /شبك(ات|ة)|networks?/i.test(name);
+}
+
 
 export const parseUpload = createServerFn({ method: "POST" })
   .inputValidator((input) =>
