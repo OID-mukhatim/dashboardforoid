@@ -484,16 +484,21 @@ function DashboardSection() {
         </Card>
 
         <Card>
-          <CardHeader title="ملخص الحوكمة السريع" />
+          <CardHeader title="ملخص الحوكمة السريع" subtitle="من ورقة الشبكات المؤسسية" />
           <div className="p-5 grid grid-cols-2 gap-3">
-            {orgOverallScores.map((o) => (
-              <div key={o.id} className="border border-border rounded-lg p-3 text-center">
-                <div className="text-xs text-muted-foreground mb-1 truncate">{o.name}</div>
-                <div className="text-xl font-bold tabular-nums" style={{ color: o.color }}>
-                  {o.govPct !== null ? `${o.govPct}%` : "—"}
+            {ORGS.map((o) => {
+              const liveGov = snap?.matrix?.[o.id]?.govPct;
+              const fallback = orgOverallScores.find((s) => s.id === o.id)?.govPct ?? null;
+              const pct = typeof liveGov === "number" ? liveGov : fallback;
+              return (
+                <div key={o.id} className="border border-border rounded-lg p-3 text-center">
+                  <div className="text-xs text-muted-foreground mb-1 truncate">{o.nameAr}</div>
+                  <div className="text-xl font-bold tabular-nums" style={{ color: o.color }}>
+                    {pct !== null ? `${pct}%` : "—"}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       </div>
