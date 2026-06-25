@@ -299,7 +299,25 @@ export const parseUpload = createServerFn({ method: "POST" })
               matrixCount += 1;
             }
           }
-          sheetsSummary.push({ name: sheetName, rows: aoa.length, kpis: 0, matrix: matrixCount });
+          if (matrixCount === 0) {
+            const preview = spreadsheetTextPreview(aoa);
+            if (preview) {
+              spreadsheetExtracts.push({
+                upload_id: data.uploadId,
+                kind: "institutional_spreadsheet",
+                entity_code: uploadRow?.org_id && uploadRow.org_id !== "الكل" ? uploadRow.org_id : null,
+                file_path: data.filePath,
+                file_name: originalFileName,
+                text_preview: preview,
+                payload: { sheet_name: sheetName, rows: aoa.length, selected_data_type: selectedDataType } as unknown as never,
+                summary: `بيانات مؤسسية جدولية — ${sheetName}`,
+                org_mentions: [] as unknown as never,
+                entities: [] as unknown as never,
+                numbers_found: [] as unknown as never,
+              });
+            }
+          }
+          sheetsSummary.push({ name: sheetName, rows: aoa.length, kpis: 0, matrix: matrixCount, skipped: matrixCount === 0, reason: matrixCount === 0 ? "بيانات مؤسسية غير مطابقة لقالب المصفوفة" : undefined });
           const sheetPct = 20 + Math.round(((si + 1) / totalSheets) * 30);
           await setProgress("reading_sheets", sheetPct, `ورقة ${si + 1}/${totalSheets}: ${sheetName} (مصفوفة مؤسسية)`);
           continue;
@@ -426,7 +444,7 @@ export const parseUpload = createServerFn({ method: "POST" })
           rows_extracted: upserted || matrixRows.length || spreadsheetExtracts.length,
           extracted_summary: {
             sheets: sheetsSummary,
-            classification: matrixRows.length ? "institutional_matrix" : kpiRows.length ? "kpi" : "spreadsheet_data",
+            classification: matrixRows.length ? "institutional_matrix" : kpiRows.length ? "kpi" : fileIsInstitutional ? "institutional_spreadsheet" : "spreadsheet_data",
             selected_data_type: selectedDataType,
             matrix_rows: matrixRows.length,
             spreadsheet_extractions: spreadsheetExtracts.length,
