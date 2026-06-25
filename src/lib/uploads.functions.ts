@@ -112,6 +112,12 @@ function findKpiHeaderRow(aoa: unknown[][]): number {
   return -1;
 }
 
+function hasKpiStructure(aoa: unknown[][]): boolean {
+  if (findKpiHeaderRow(aoa) < 0) return false;
+  const rows = aoa.slice(findKpiHeaderRow(aoa) + 1, findKpiHeaderRow(aoa) + 31);
+  return rows.some((row) => Array.isArray(row) && isValidKpiRow(row));
+}
+
 const KPI_ROW_REJECT = /^(data|البيانات|تحليل|التحليل|جامعة|الجامعة|الربعي|ربع[يية]|الهدف|هدف|تعزيز\s*الشفافية|توسيع\s*قاعدة\s*المانحين|النتائج\s*المباشرة|نتائج\s*تقييم\s*السياسات|مؤشر\s*الأداء|الكود|الكود\s*id|المنظور)$/i;
 
 function isValidKpiRow(row: unknown[]): boolean {
@@ -223,7 +229,7 @@ export const parseUpload = createServerFn({ method: "POST" })
         let matrixCount = 0;
         lastSector = null;
         const kpiHeaderIdx = findKpiHeaderRow(aoa);
-        const sheetLooksKpi = fileIsKpi || looksLikeKpiFile(sheetName) || kpiHeaderIdx >= 0;
+        const sheetLooksKpi = kpiHeaderIdx >= 0 && (fileIsKpi || looksLikeKpiFile(sheetName) || hasKpiStructure(aoa));
 
         // ── Institutional matrix branch (Networks/الشبكات consolidated sheet) ──
         // Detects: org name in any early column + axis headers in remaining columns.
@@ -546,7 +552,7 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
       const ws = wb.Sheets[sheetName];
       const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
       const headerIdx = findKpiHeaderRow(aoa);
-      const sheetLooksKpi = isKpiDataType(data.dataType ?? "") || looksLikeKpiFile(fileName) || looksLikeKpiFile(sheetName) || headerIdx >= 0;
+      const sheetLooksKpi = headerIdx >= 0 && (isKpiDataType(data.dataType ?? "") || looksLikeKpiFile(fileName) || looksLikeKpiFile(sheetName) || hasKpiStructure(aoa));
       if (!sheetLooksKpi) continue;
       const norm = normalizeEntity(sheetName);
       let lastSector: string | null = null;
