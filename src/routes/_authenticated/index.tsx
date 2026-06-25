@@ -29,7 +29,7 @@ import { openOrgProfile } from "@/lib/oid-drill";
 import { formatScore, formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
 import { MATURITY_SCALE } from "@/lib/oid-maturity";
 import { BSC_PERSPECTIVES, BSC_LABELS, matchPerspective, perspectiveLabelOf } from "@/lib/oid-bsc";
-import { loadDashboardSnapshot } from "@/lib/dashboard.functions";
+import { loadDashboardSnapshot, loadInstitutionalProfiles } from "@/lib/dashboard.functions";
 import { computeProfileFromLive } from "@/lib/oid-composite";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Page });
