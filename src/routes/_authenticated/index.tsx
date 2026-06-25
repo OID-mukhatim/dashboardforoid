@@ -1972,13 +1972,22 @@ function UploadSection() {
         if (isExcel && !isInstitutionalSpreadsheet) {
           // Excel: show preview modal first, defer commit until user confirms
           setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: true });
+          let handledAsNonKpi = false;
           try {
             const result = await previewFn({ data: { filePath: path, period, fileName: file.name, dataType } });
             setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, result });
           } catch (e) {
-            setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, error: e instanceof Error ? e.message : "فشلت المعاينة" });
+            const errText = e instanceof Error ? e.message : "فشلت المعاينة";
+            if (/ليس ملف مؤشرات|لم يتم العثور على قالب مؤشرات/.test(errText)) {
+              await processFn({ data: { uploadId: row.id, filePath: path } }).catch(() => {});
+              setPreview(null);
+              handledAsNonKpi = true;
+            } else {
+              setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, error: errText });
+            }
           }
           qc.invalidateQueries({ queryKey: ["uploads"] });
+          if (handledAsNonKpi) continue;
           break; // Only preview one file at a time
         } else {
           // Non-KPI Excel and Word/PPT/PDF: process directly through the classifier
