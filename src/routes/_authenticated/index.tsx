@@ -273,28 +273,63 @@ const fmtNum = (n: number) => formatCount(n);
 
 function DashboardSection() {
   const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
+  const snapshotFn = useServerFn(loadDashboardSnapshot);
+  const { data: snap } = useQuery({
+    queryKey: ["dashboard-snapshot"],
+    queryFn: () => snapshotFn(),
+    refetchInterval: 10000,
+  });
+
+  // Live per-org profiles (DB-backed, with static fallback inside the helper).
+  const liveProfiles = useMemo(() => {
+    const out = {} as Record<OrgId, ReturnType<typeof computeProfileFromLive>>;
+    for (const o of ORGS) {
+      const m = snap?.matrix?.[o.id];
+      const k = snap?.kpi?.[o.id];
+      out[o.id] = computeProfileFromLive(o.id, {
+        gapAvg: m?.gapAvg ?? null,
+        govScore: m?.govScore ?? null,
+        kpiScorePct: k?.weightedAvgPct ?? null,
+        finScore: m?.finScore ?? null,
+      });
+    }
+    return out;
+  }, [snap]);
+
   const radarData = GAP_AXES.map((axis, i) => {
     const row: any = { axis };
-    ORGS.forEach((o) => { row[o.id] = gapScores[o.id][i] ?? 0; });
+    ORGS.forEach((o) => {
+      const liveGap = snap?.matrix?.[o.id]?.gaps?.[axis];
+      row[o.id] = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? 0);
+    });
     return row;
   });
 
   const stats = useMemo(() => {
     const list = orgFilter === "all" ? institutions : institutions.filter((i) => i.id === orgFilter);
-    const scoreList = orgFilter === "all" ? orgOverallScores : orgOverallScores.filter((s) => s.id === orgFilter);
     const staff = list.reduce((sum, i) => sum + (i.staff?.total ?? 0), 0);
     const budget = list.reduce((sum, i) => sum + (i.budget ?? 0), 0);
     const beneficiaries = list.reduce((sum, i) => sum + extractBeneficiaries(i.branches), 0);
-    const scored = scoreList.filter((s) => s.score != null);
-    const avgScore = scored.length ? scored.reduce((a, s) => a + (s.score as number), 0) / scored.length : null;
-    const matured = scoreList.filter((s) => s.maturity != null);
-    const avgMaturity = matured.length ? Math.round(matured.reduce((a, s) => a + (s.maturity as number), 0) / matured.length) : null;
+
+    // Composite scores: live profiles for selected orgs.
+    const targetOrgs = orgFilter === "all" ? ORGS : ORGS.filter((o) => o.id === orgFilter);
+    const composites = targetOrgs
+      .map((o) => liveProfiles[o.id]?.compositeScore)
+      .filter((v): v is number => typeof v === "number");
+    const avgScore = composites.length ? composites.reduce((a, b) => a + b, 0) / composites.length : null;
+    const maturities = targetOrgs
+      .map((o) => liveProfiles[o.id]?.maturityLevel)
+      .filter((v): v is number => typeof v === "number");
+    const avgMaturity = maturities.length ? Math.round(maturities.reduce((a, b) => a + b, 0) / maturities.length) : null;
+
+    const kpisLive = snap?.totals?.kpisCount ?? 0;
     return {
       orgsCount: orgFilter === "all" ? ORGS.length : 1,
       orgsSub: orgFilter === "all" ? "مؤسسات رئيسية" : (ORGS.find((o) => o.id === orgFilter)?.nameAr ?? ""),
       staff, budget, beneficiaries, avgScore, avgMaturity,
+      kpisLive,
     };
-  }, [orgFilter]);
+  }, [orgFilter, liveProfiles, snap]);
 
   return (
     <div className="space-y-6">
