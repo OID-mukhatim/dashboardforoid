@@ -81,6 +81,59 @@ function looksLikeNetworksSheet(name: string): boolean {
   return /شبك(ات|ة)|البيانات\s*المؤسسية|مؤسسي|institutional|networks?/i.test(name);
 }
 
+function looksLikeKpiFile(name: string): boolean {
+  return /مؤشرات\s*الأداء|مصفوفة\s*المؤشرات|مؤشر\s*الأداء|kpis?|performance\s*indicators?|balanced\s*scorecard|بطاقة\s*الأداء/i.test(name);
+}
+
+function isInstitutionalDataType(dataType: string): boolean {
+  return /البيانات\s*المؤسسية|بيانات\s*الفجوات|بيانات\s*الحوكمة|التقرير\s*المالي/i.test(dataType);
+}
+
+function isKpiDataType(dataType: string): boolean {
+  return /مؤشرات\s*الأداء|kpis?/i.test(dataType);
+}
+
+function findKpiHeaderRow(aoa: unknown[][]): number {
+  for (let r = 0; r < Math.min(aoa.length, 25); r++) {
+    const row = aoa[r] ?? [];
+    const joined = row.map((cell) => toStr(cell) ?? "").join(" ");
+    const fixedColumnsMatch = /مؤشر\s*الأداء|وصف\s*المؤشر/i.test(String(row[3] ?? "")) && /الكود|code|id/i.test(String(row[4] ?? ""));
+    const labels = [
+      /المنظور|perspective/i,
+      /الهدف|objective/i,
+      /مؤشر\s*الأداء|وصف\s*المؤشر|indicator/i,
+      /الكود|code|id/i,
+      /الوزن|weight/i,
+      /خط\s*الأساس|baseline/i,
+      /المستهدف|target/i,
+    ].filter((re) => re.test(joined)).length;
+    if (fixedColumnsMatch || labels >= 5) return r;
+  }
+  return -1;
+}
+
+const KPI_ROW_REJECT = /^(data|البيانات|تحليل|التحليل|جامعة|الجامعة|الربعي|ربع[يية]|الهدف|هدف|تعزيز\s*الشفافية|توسيع\s*قاعدة\s*المانحين|النتائج\s*المباشرة|نتائج\s*تقييم\s*السياسات|مؤشر\s*الأداء|الكود|الكود\s*id|المنظور)$/i;
+
+function isValidKpiRow(row: unknown[]): boolean {
+  const code = toStr(row[4]);
+  const name = toStr(row[3]);
+  if (!code || !name) return false;
+  if (KPI_ROW_REJECT.test(code) || KPI_ROW_REJECT.test(name)) return false;
+  if (code.length > 48 || name.length < 4) return false;
+  // KPI codes are compact identifiers. Descriptive Arabic section titles with spaces are not KPI codes.
+  if (!/[A-Za-z0-9٠-٩۰-۹]/.test(code) && /\s/.test(code)) return false;
+  return true;
+}
+
+function spreadsheetTextPreview(aoa: unknown[][], maxRows = 20): string {
+  return aoa
+    .slice(0, maxRows)
+    .map((row) => row.map((cell) => toStr(cell) ?? "").filter(Boolean).join(" | "))
+    .filter(Boolean)
+    .join("\n")
+    .slice(0, 5000);
+}
+
 
 export const parseUpload = createServerFn({ method: "POST" })
   .inputValidator((input) =>
@@ -125,11 +178,12 @@ export const parseUpload = createServerFn({ method: "POST" })
 
     const { data: uploadRow } = await supabaseAdmin
       .from("uploads")
-      .select("period, file_name")
+      .select("period, file_name, data_type, org_id")
       .eq("id", data.uploadId)
       .maybeSingle();
     const period = uploadRow?.period ?? "all";
     const originalFileName = uploadRow?.file_name ?? data.filePath;
+    const selectedDataType = uploadRow?.data_type ?? "";
 
     const { data: file, error: dlErr } = await supabaseAdmin.storage
       .from("uploads")
@@ -148,12 +202,14 @@ export const parseUpload = createServerFn({ method: "POST" })
       const buf = new Uint8Array(await file.arrayBuffer());
       const wb = XLSX.read(buf, { type: "array" });
 
-      const fileIsInstitutional = looksLikeNetworksSheet(originalFileName) || looksLikeNetworksSheet(data.filePath);
+      const fileIsInstitutional = isInstitutionalDataType(selectedDataType) || looksLikeNetworksSheet(originalFileName) || looksLikeNetworksSheet(data.filePath);
+      const fileIsKpi = isKpiDataType(selectedDataType) || looksLikeKpiFile(originalFileName) || looksLikeKpiFile(data.filePath);
 
       let lastSector: string | null = null;
       const kpiRows: Array<Record<string, unknown>> = [];
-      const sheetsSummary: Array<{ name: string; rows: number; kpis: number; matrix?: number }> = [];
+      const sheetsSummary: Array<{ name: string; rows: number; kpis: number; matrix?: number; skipped?: boolean; reason?: string }> = [];
       const matrixRows: Array<Record<string, unknown>> = [];
+      const spreadsheetExtracts: Array<Record<string, unknown>> = [];
 
       const totalSheets = wb.SheetNames.length;
       for (let si = 0; si < totalSheets; si++) {
@@ -166,6 +222,8 @@ export const parseUpload = createServerFn({ method: "POST" })
         let kpiCount = 0;
         let matrixCount = 0;
         lastSector = null;
+        const kpiHeaderIdx = findKpiHeaderRow(aoa);
+        const sheetLooksKpi = fileIsKpi || looksLikeKpiFile(sheetName) || kpiHeaderIdx >= 0;
 
         // ── Institutional matrix branch (Networks/الشبكات consolidated sheet) ──
         // Detects: org name in any early column + axis headers in remaining columns.
@@ -225,7 +283,7 @@ export const parseUpload = createServerFn({ method: "POST" })
                 kind: "institutional_matrix",
                 entity_code: org.code,
                 file_path: data.filePath,
-                file_name: data.filePath.split("/").pop() ?? data.filePath,
+                file_name: originalFileName,
                 payload: payload as unknown as never,
                 summary: `مصفوفة مؤسسية — ${org.name}`,
                 org_mentions: [org.code] as unknown as never,
@@ -241,12 +299,35 @@ export const parseUpload = createServerFn({ method: "POST" })
           continue;
         }
 
-        for (const row of aoa) {
+        if (!sheetLooksKpi) {
+          const preview = spreadsheetTextPreview(aoa);
+          if (preview) {
+            spreadsheetExtracts.push({
+              upload_id: data.uploadId,
+              kind: "spreadsheet_data",
+              entity_code: uploadRow?.org_id && uploadRow.org_id !== "الكل" ? uploadRow.org_id : null,
+              file_path: data.filePath,
+              file_name: originalFileName,
+              text_preview: preview,
+              payload: { sheet_name: sheetName, rows: aoa.length, selected_data_type: selectedDataType } as unknown as never,
+              summary: `بيانات جدولية غير مصنفة كمؤشرات — ${sheetName}`,
+              org_mentions: [] as unknown as never,
+              entities: [] as unknown as never,
+              numbers_found: [] as unknown as never,
+            });
+          }
+          sheetsSummary.push({ name: sheetName, rows: aoa.length, kpis: 0, skipped: true, reason: "ليست قالب مؤشرات أداء" });
+          const sheetPct = 20 + Math.round(((si + 1) / totalSheets) * 30);
+          await setProgress("reading_sheets", sheetPct, `ورقة ${si + 1}/${totalSheets}: ${sheetName} (ليست مؤشرات)`);
+          continue;
+        }
+
+        const rowsToParse = kpiHeaderIdx >= 0 ? aoa.slice(kpiHeaderIdx + 1) : aoa;
+        for (const row of rowsToParse) {
           if (!Array.isArray(row)) continue;
+          if (!isValidKpiRow(row)) continue;
           const code = toStr(row[4]);
           const name = toStr(row[3]);
-          if (!code || !name) continue;
-          if (code === "الكود ID" || code === "الكود") continue;
 
           const sector = toStr(row[1]);
           if (sector) lastSector = sector;
@@ -286,21 +367,27 @@ export const parseUpload = createServerFn({ method: "POST" })
         await setProgress("reading_sheets", sheetPct, `ورقة ${si + 1}/${totalSheets}: ${sheetName}`);
       }
 
+      // Reprocessing must remove stale derived rows from the same upload first.
+      await supabaseAdmin.from("kpis").delete().eq("upload_id", data.uploadId);
+      await supabaseAdmin.from("document_extractions").delete().eq("upload_id", data.uploadId);
+
       // Persist institutional matrix rows (replace previous for same upload).
       if (matrixRows.length) {
-        await supabaseAdmin
-          .from("document_extractions")
-          .delete()
-          .eq("upload_id", data.uploadId)
-          .eq("kind", "institutional_matrix");
         const { error: mErr } = await supabaseAdmin
           .from("document_extractions")
           .insert(matrixRows as never);
         if (mErr) throw mErr;
       }
 
+      if (spreadsheetExtracts.length) {
+        const { error: sErr } = await supabaseAdmin
+          .from("document_extractions")
+          .insert(spreadsheetExtracts as never);
+        if (sErr) throw sErr;
+      }
 
-      await setProgress("matching", 55, `${kpiRows.length} صف للمطابقة`);
+
+      await setProgress("matching", 55, kpiRows.length ? `${kpiRows.length} صف للمطابقة` : "لا توجد صفوف مؤشرات مطابقة");
 
       const uniqueRows = Array.from(
         new Map(
@@ -330,9 +417,13 @@ export const parseUpload = createServerFn({ method: "POST" })
         .from("uploads")
         .update({
           status: "processed",
-          rows_extracted: upserted,
+          rows_extracted: upserted || matrixRows.length || spreadsheetExtracts.length,
           extracted_summary: {
             sheets: sheetsSummary,
+            classification: matrixRows.length ? "institutional_matrix" : kpiRows.length ? "kpi" : "spreadsheet_data",
+            selected_data_type: selectedDataType,
+            matrix_rows: matrixRows.length,
+            spreadsheet_extractions: spreadsheetExtracts.length,
             kpis_read: kpiRows.length,
             kpis_upserted: upserted,
             duplicates_merged: duplicateCount,
@@ -431,7 +522,7 @@ const FIELD_LABELS_AR: Record<string, string> = {
 };
 
 export const previewKpiUpload = createServerFn({ method: "POST" })
-  .inputValidator((input) => z.object({ filePath: z.string().min(1), period: z.string().optional() }).parse(input))
+  .inputValidator((input) => z.object({ filePath: z.string().min(1), period: z.string().optional(), fileName: z.string().optional(), dataType: z.string().optional() }).parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const XLSX = await import("xlsx");
@@ -444,20 +535,27 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
     const buf = new Uint8Array(await file.arrayBuffer());
     const wb = XLSX.read(buf, { type: "array" });
     const period = data.period || "all";
+    const fileName = data.fileName ?? data.filePath;
+    if (isInstitutionalDataType(data.dataType ?? "") || looksLikeNetworksSheet(fileName)) {
+      throw new Error("هذا الملف مصنّف كبيانات مؤسسية، وليس ملف مؤشرات أداء. ستتم معالجته دون إدخاله في جدول المؤشرات.");
+    }
 
     const parsed: Array<Record<string, unknown>> = [];
     let rejected = 0;
     for (const sheetName of wb.SheetNames) {
       const ws = wb.Sheets[sheetName];
       const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
+      const headerIdx = findKpiHeaderRow(aoa);
+      const sheetLooksKpi = isKpiDataType(data.dataType ?? "") || looksLikeKpiFile(fileName) || looksLikeKpiFile(sheetName) || headerIdx >= 0;
+      if (!sheetLooksKpi) continue;
       const norm = normalizeEntity(sheetName);
       let lastSector: string | null = null;
-      for (const row of aoa) {
+      const rowsToParse = headerIdx >= 0 ? aoa.slice(headerIdx + 1) : aoa;
+      for (const row of rowsToParse) {
         if (!Array.isArray(row)) continue;
+        if (!isValidKpiRow(row)) { if (row[3] || row[4]) rejected++; continue; }
         const code = toStr(row[4]);
         const name = toStr(row[3]);
-        if (!code || !name) { if (row[3] || row[4]) rejected++; continue; }
-        if (code === "الكود ID" || code === "الكود") continue;
         const sector = toStr(row[1]);
         if (sector) lastSector = sector;
         parsed.push({
@@ -472,6 +570,10 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
           period,
         });
       }
+    }
+
+    if (parsed.length === 0) {
+      throw new Error("لم يتم العثور على قالب مؤشرات أداء داخل الملف؛ لن يتم اعتباره مؤشرات جديدة.");
     }
 
     const uniq = Array.from(new Map(parsed.map(r => [`${r.entity_code}__${r.kpi_code}__${r.period}`, r])).values());
