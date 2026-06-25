@@ -125,10 +125,11 @@ export const parseUpload = createServerFn({ method: "POST" })
 
     const { data: uploadRow } = await supabaseAdmin
       .from("uploads")
-      .select("period")
+      .select("period, file_name")
       .eq("id", data.uploadId)
       .maybeSingle();
     const period = uploadRow?.period ?? "all";
+    const originalFileName = uploadRow?.file_name ?? data.filePath;
 
     const { data: file, error: dlErr } = await supabaseAdmin.storage
       .from("uploads")
@@ -147,7 +148,7 @@ export const parseUpload = createServerFn({ method: "POST" })
       const buf = new Uint8Array(await file.arrayBuffer());
       const wb = XLSX.read(buf, { type: "array" });
 
-      const fileIsInstitutional = looksLikeNetworksSheet(data.filePath);
+      const fileIsInstitutional = looksLikeNetworksSheet(originalFileName) || looksLikeNetworksSheet(data.filePath);
 
       let lastSector: string | null = null;
       const kpiRows: Array<Record<string, unknown>> = [];
