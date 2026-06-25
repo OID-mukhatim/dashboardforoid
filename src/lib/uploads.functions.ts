@@ -78,7 +78,7 @@ function classifyAxis(header: string): { bucket: MatrixBucket; key: string } {
 }
 
 function looksLikeNetworksSheet(name: string): boolean {
-  return /شبك(ات|ة)|networks?/i.test(name);
+  return /شبك(ات|ة)|البيانات\s*المؤسسية|مؤسسي|institutional|networks?/i.test(name);
 }
 
 
@@ -147,6 +147,8 @@ export const parseUpload = createServerFn({ method: "POST" })
       const buf = new Uint8Array(await file.arrayBuffer());
       const wb = XLSX.read(buf, { type: "array" });
 
+      const fileIsInstitutional = looksLikeNetworksSheet(data.filePath);
+
       let lastSector: string | null = null;
       const kpiRows: Array<Record<string, unknown>> = [];
       const sheetsSummary: Array<{ name: string; rows: number; kpis: number; matrix?: number }> = [];
@@ -166,7 +168,7 @@ export const parseUpload = createServerFn({ method: "POST" })
 
         // ── Institutional matrix branch (Networks/الشبكات consolidated sheet) ──
         // Detects: org name in any early column + axis headers in remaining columns.
-        if (looksLikeNetworksSheet(sheetName)) {
+        if (fileIsInstitutional || looksLikeNetworksSheet(sheetName)) {
           // Find the header row: the first row that contains at least one axis we can classify.
           let headerIdx = -1;
           let headerCols: { idx: number; bucket: MatrixBucket; key: string }[] = [];
