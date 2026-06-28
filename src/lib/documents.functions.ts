@@ -14,7 +14,7 @@ function isValidEntity(name: string): { id: string; name: string } | null {
     { id: "ZF", patterns: [/زمزم/, /zamzam/i, /^\s*zf\s*$/i] },
     { id: "ZUST", patterns: [/جامعة\s*زمزم/, /zust/i] },
     { id: "ZAD", patterns: [/زاد/, /zad/i] },
-    { id: "HAMDI", patterns: [/حمدي/, /hamdi/i] },
+    { id: "HAMDI", patterns: [/حمد[يى]/, /hamdi/i] },
   ];
   for (const a of aliases) {
     if (a.patterns.some((re) => re.test(s))) return { id: a.id, name: s };
