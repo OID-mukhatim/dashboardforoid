@@ -276,12 +276,30 @@ export const parseUpload = createServerFn({ method: "POST" })
 
       const fileIsInstitutional = isInstitutionalDataType(selectedDataType) || looksLikeNetworksSheet(originalFileName) || looksLikeNetworksSheet(data.filePath);
       const fileIsKpi = isKpiDataType(selectedDataType) || looksLikeKpiFile(originalFileName) || looksLikeKpiFile(data.filePath);
+      const fileIsGap = looksLikeGapFile(originalFileName) || looksLikeGapFile(data.filePath);
+      const fileIsGov = looksLikeGovFile(originalFileName) || looksLikeGovFile(data.filePath);
 
       let lastSector: string | null = null;
       const kpiRows: Array<Record<string, unknown>> = [];
       const sheetsSummary: Array<{ name: string; rows: number; kpis: number; matrix?: number; skipped?: boolean; reason?: string }> = [];
       const matrixRows: Array<Record<string, unknown>> = [];
       const spreadsheetExtracts: Array<Record<string, unknown>> = [];
+
+      // Per-org accumulator for Gaps/Governance template files.
+      // Merged into matrixRows after the per-sheet loop.
+      type OrgAccum = {
+        name: string;
+        gapDomain: Record<string, number[]>; // canonical domain → samples (0..5)
+        gapOverall: number[]; // overall gap samples (when only a single avg is available)
+        govSamples: number[];
+        sources: Set<string>;
+      };
+      const orgAccum: Record<string, OrgAccum> = {};
+      const ensureOrg = (code: string, name: string): OrgAccum => {
+        if (!orgAccum[code]) orgAccum[code] = { name, gapDomain: {}, gapOverall: [], govSamples: [], sources: new Set() };
+        return orgAccum[code];
+      };
+
 
       const totalSheets = wb.SheetNames.length;
       for (let si = 0; si < totalSheets; si++) {
