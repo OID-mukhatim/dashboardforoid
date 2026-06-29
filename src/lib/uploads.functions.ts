@@ -315,6 +315,158 @@ export const parseUpload = createServerFn({ method: "POST" })
         const kpiHeaderIdx = findKpiHeaderRow(aoa);
         const sheetLooksKpi = kpiHeaderIdx >= 0 && (fileIsKpi || looksLikeKpiFile(sheetName) || hasKpiStructure(aoa));
 
+        // ── Gaps / Governance template branch ────────────────────────────────
+        // Handles three layouts found in OID Gaps & Governance workbooks:
+        //  A) "Domain report": sections headed by "محور …" then a header row
+        //     containing "الجهة" and ending with "متوسط المحور".
+        //  B) "Org-columns matrix": row with ≥3 known orgs as column headers
+        //     and criterion labels in the leftmost label column (numeric or
+        //     textual cell values).
+        //  C) "Org-rows survey" (Form1): each data row is one org response
+        //     with a long series of textual answers.
+        if (fileIsGap || fileIsGov) {
+          let consumed = false;
+          let consumedRows = 0;
+
+          // (A) Domain-section layout — taqreer "البيانات".
+          for (let r = 0; r < aoa.length; r++) {
+            const row = aoa[r];
+            if (!Array.isArray(row)) continue;
+            const first = toStr(row[0]) ?? "";
+            const second = toStr(row[1]) ?? "";
+            // Section title cell ("محور …") sitting alone in column A.
+            const titleCell = first || second;
+            if (!/^محور\s+/.test(titleCell)) continue;
+            const domain = normDomainKey(titleCell);
+            if (!domain) continue;
+            // Find next header row containing "الجهة" with an average column.
+            let hdr = -1;
+            for (let h = r + 1; h < Math.min(r + 4, aoa.length); h++) {
+              const hr = aoa[h];
+              if (!Array.isArray(hr)) continue;
+              if (hr.some((v) => /الجهة|المؤسسة/.test(String(v ?? "")))) { hdr = h; break; }
+            }
+            if (hdr < 0) continue;
+            const hdrRow = aoa[hdr] as unknown[];
+            const avgIdx = hdrRow.findIndex((v) => /متوسط\s*المحور|average/i.test(String(v ?? "")));
+            const orgIdx = hdrRow.findIndex((v) => /الجهة|المؤسسة|entity|organization/i.test(String(v ?? "")));
+            for (let d = hdr + 1; d < aoa.length; d++) {
+              const dr = aoa[d];
+              if (!Array.isArray(dr)) break;
+              const orgCell = orgIdx >= 0 ? dr[orgIdx] : dr[1];
+              const org = detectKnownOrg(orgCell);
+              if (!org) {
+                // Stop when we hit the next section header.
+                if (typeof orgCell === "string" && /^محور\s+/.test(orgCell)) break;
+                if (dr.every((v) => v === null || v === undefined || String(v).trim() === "")) break;
+                continue;
+              }
+              let avg: number | null = null;
+              if (avgIdx >= 0) avg = toNum(dr[avgIdx]);
+              if (avg === null) {
+                // Compute from criterion columns (numeric cells between org and end).
+                const nums: number[] = [];
+                for (let c = (orgIdx >= 0 ? orgIdx + 1 : 2); c < dr.length; c++) {
+                  const n = toNum(dr[c]);
+                  if (n !== null && n <= 5) nums.push(n);
+                }
+                if (nums.length) avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+              }
+              if (avg === null) continue;
+              const acc = ensureOrg(org.code, org.name);
+              acc.sources.add(sheetName);
+              (acc.gapDomain[domain] ??= []).push(avg);
+              if (domain === "الحوكمة والامتثال") acc.govSamples.push(avg);
+              consumedRows += 1;
+            }
+            consumed = true;
+          }
+
+          // (B) Orgs-as-columns criterion matrix — bayanat "تقرير مفصل"/
+          //     "النتائج المباشرة" or taqreer "نتائج تقييم السياسات".
+          if (!consumed) {
+            for (let r = 0; r < Math.min(aoa.length, 12); r++) {
+              const row = aoa[r];
+              if (!Array.isArray(row)) continue;
+              const orgCols: Array<{ idx: number; code: string; name: string }> = [];
+              const seen = new Set<string>();
+              for (let c = 0; c < row.length; c++) {
+                const hit = detectKnownOrg(row[c]);
+                if (hit && !seen.has(hit.code)) { seen.add(hit.code); orgCols.push({ idx: c, ...hit }); }
+              }
+              if (orgCols.length < 3) continue;
+              // Accumulate per-org averages over subsequent criterion rows.
+              const perOrg: Record<string, number[]> = {};
+              for (const o of orgCols) perOrg[o.code] = [];
+              for (let d = r + 1; d < aoa.length; d++) {
+                const dr = aoa[d];
+                if (!Array.isArray(dr)) continue;
+                if (dr.every((v) => v === null || v === undefined || String(v).trim() === "")) continue;
+                for (const o of orgCols) {
+                  const raw = dr[o.idx];
+                  let v = toNum(raw);
+                  if (v === null) v = textToScore(raw, GOV_TEXT_SCORE) ?? textToScore(raw, AGREE_TEXT_SCORE);
+                  if (v === null) continue;
+                  if (v > 5) v = Math.max(0, Math.min(5, v / 20));
+                  perOrg[o.code].push(v);
+                }
+              }
+              let anyCaptured = false;
+              for (const o of orgCols) {
+                const vs = perOrg[o.code];
+                if (!vs.length) continue;
+                const avg = vs.reduce((a, b) => a + b, 0) / vs.length;
+                const acc = ensureOrg(o.code, o.name);
+                acc.sources.add(sheetName);
+                if (fileIsGov) acc.govSamples.push(avg);
+                else acc.gapOverall.push(avg);
+                anyCaptured = true;
+                consumedRows += 1;
+              }
+              if (anyCaptured) { consumed = true; break; }
+            }
+          }
+
+          // (C) Orgs-as-rows survey form (Form1) — each row is one respondent.
+          if (!consumed) {
+            // Find the org-name column in the first 4 rows.
+            for (let r = 0; r < Math.min(aoa.length, 4); r++) {
+              const row = aoa[r];
+              if (!Array.isArray(row)) continue;
+              const orgColIdx = row.findIndex((v) => /اسم\s*المؤسسة|entity\s*name|organization\s*name/i.test(String(v ?? "")));
+              if (orgColIdx < 0) continue;
+              const scaleTable = fileIsGov ? GOV_TEXT_SCORE : AGREE_TEXT_SCORE;
+              for (let d = r + 1; d < aoa.length; d++) {
+                const dr = aoa[d];
+                if (!Array.isArray(dr)) continue;
+                const org = detectKnownOrg(dr[orgColIdx]);
+                if (!org) continue;
+                const vals: number[] = [];
+                for (let c = orgColIdx + 1; c < dr.length; c++) {
+                  const v = textToScore(dr[c], scaleTable);
+                  if (v !== null) vals.push(v);
+                }
+                if (!vals.length) continue;
+                const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+                const acc = ensureOrg(org.code, org.name);
+                acc.sources.add(sheetName);
+                if (fileIsGov) acc.govSamples.push(avg);
+                else acc.gapOverall.push(avg);
+                consumedRows += 1;
+              }
+              if (consumedRows > 0) { consumed = true; break; }
+            }
+          }
+
+          if (consumed) {
+            sheetsSummary.push({ name: sheetName, rows: aoa.length, kpis: 0, matrix: consumedRows });
+            const sheetPct = 20 + Math.round(((si + 1) / totalSheets) * 30);
+            await setProgress("reading_sheets", sheetPct, `ورقة ${si + 1}/${totalSheets}: ${sheetName} (${fileIsGov ? "حوكمة" : "فجوات"})`);
+            continue;
+          }
+        }
+
+
         // ── Profile layout branch (نموذج 1 — orgs as columns, fields as rows) ──
         if (fileIsInstitutional || looksLikeNetworksSheet(sheetName)) {
           const profile = detectProfileLayout(aoa);
