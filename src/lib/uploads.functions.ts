@@ -687,6 +687,35 @@ export const parseUpload = createServerFn({ method: "POST" })
         await setProgress("reading_sheets", sheetPct, `ورقة ${si + 1}/${totalSheets}: ${sheetName}`);
       }
 
+      // Flush Gap/Governance accumulator into institutional_matrix rows.
+      const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+      for (const [code, acc] of Object.entries(orgAccum)) {
+        const gaps: Record<string, number> = {};
+        for (const [domain, samples] of Object.entries(acc.gapDomain)) {
+          if (samples.length) gaps[domain] = Math.round(avg(samples) * 100) / 100;
+        }
+        if (acc.gapOverall.length) {
+          gaps["متوسط عام"] = Math.round(avg(acc.gapOverall) * 100) / 100;
+        }
+        const payload: { gaps: Record<string, number>; gov?: number; fin?: number } = { gaps };
+        if (acc.govSamples.length) payload.gov = Math.round(avg(acc.govSamples) * 100) / 100;
+        if (gaps["الاستدامة المالية"] != null) payload.fin = gaps["الاستدامة المالية"];
+        if (Object.keys(gaps).length === 0 && payload.gov == null) continue;
+        matrixRows.push({
+          upload_id: data.uploadId,
+          kind: "institutional_matrix",
+          entity_code: code,
+          file_path: data.filePath,
+          file_name: originalFileName,
+          payload: payload as unknown as never,
+          summary: `${fileIsGov ? "حوكمة" : "فجوات"} — ${acc.name}`,
+          org_mentions: [code] as unknown as never,
+          entities: [{ code, name: acc.name }] as unknown as never,
+          numbers_found: [] as unknown as never,
+        });
+      }
+
+
       // Reprocessing must remove stale derived rows from the same upload first.
       await supabaseAdmin.from("kpis").delete().eq("upload_id", data.uploadId);
       await supabaseAdmin.from("document_extractions").delete().eq("upload_id", data.uploadId);
