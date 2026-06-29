@@ -90,32 +90,37 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
     const matrix: Record<string, LiveMatrixEntry> = {};
     for (const code of VALID_ORGS) matrix[code] = emptyMatrix();
 
-    // Latest row wins per org
-    const seen = new Set<string>();
+    // Merge across all matrix rows per org (most recent → oldest). For each
+    // field, the latest non-null value wins; gaps maps are unioned with newer
+    // keys overriding older ones. This lets the Gap, Governance and Networks
+    // uploads each contribute their own slice of the institutional profile.
     for (const r of extractions ?? []) {
       const code = String(r.entity_code ?? "");
-      if (!VALID_ORGS.includes(code as OrgCode) || seen.has(code)) continue;
-      seen.add(code);
+      if (!VALID_ORGS.includes(code as OrgCode)) continue;
       const p = (r.payload ?? {}) as {
         gaps?: Record<string, number>;
         gov?: number;
         fin?: number;
         maturity?: number;
       };
-      const gaps = p.gaps ?? {};
-      const gapVals = Object.values(gaps).filter((v) => typeof v === "number" && Number.isFinite(v));
-      const gapAvg = gapVals.length ? gapVals.reduce((a, b) => a + b, 0) / gapVals.length : null;
-      const gov = typeof p.gov === "number" ? p.gov : null;
-      matrix[code] = {
-        gaps,
-        gapAvg: gapAvg !== null ? Math.round(gapAvg * 100) / 100 : null,
-        govScore: gov,
-        govPct: gov !== null ? Math.round((gov / 5) * 100) : null,
-        finScore: typeof p.fin === "number" ? p.fin : null,
-        maturity: typeof p.maturity === "number" ? p.maturity : null,
-        source: "extraction",
-      };
+      const cur = matrix[code];
+      if (p.gaps) {
+        for (const [k, v] of Object.entries(p.gaps)) {
+          if (typeof v === "number" && Number.isFinite(v) && !(k in cur.gaps)) cur.gaps[k] = v;
+        }
+      }
+      if (cur.govScore === null && typeof p.gov === "number") cur.govScore = p.gov;
+      if (cur.finScore === null && typeof p.fin === "number") cur.finScore = p.fin;
+      if (cur.maturity === null && typeof p.maturity === "number") cur.maturity = p.maturity;
+      cur.source = "extraction";
     }
+    for (const code of VALID_ORGS) {
+      const cur = matrix[code];
+      const gapVals = Object.values(cur.gaps).filter((v) => typeof v === "number" && Number.isFinite(v));
+      if (gapVals.length) cur.gapAvg = Math.round((gapVals.reduce((a, b) => a + b, 0) / gapVals.length) * 100) / 100;
+      if (cur.govScore !== null) cur.govPct = Math.round((cur.govScore / 5) * 100);
+    }
+
 
     const snap: DashboardSnapshot = {
       matrix,
