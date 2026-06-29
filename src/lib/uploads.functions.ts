@@ -81,6 +81,49 @@ function looksLikeNetworksSheet(name: string): boolean {
   return /شبك(ات|ة)|البيانات\s*المؤسسية|مؤسسي|institutional|networks?/i.test(name);
 }
 
+function looksLikeGapFile(name: string): boolean {
+  return /فجو|gap\b|gaps?/i.test(name);
+}
+function looksLikeGovFile(name: string): boolean {
+  return /حوكم|امتثال|سياس(ات|ة)|policies|governance|compliance/i.test(name);
+}
+
+// Textual scales used in survey-style sheets
+const GOV_TEXT_SCORE: Array<[RegExp, number]> = [
+  [/موجود\s*ومفعّ?ل|existing\s*and\s*activated/i, 5],
+  [/موجود\s*وغير\s*مفعّ?ل|existing\s*but\s*not\s*activated/i, 3],
+  [/بحاجة\s*إلى\s*تحديث|needs\s*review/i, 2],
+  [/قيد\s*الإعداد|under\s*development/i, 1.5],
+  [/غير\s*موجود|not\s*exist/i, 0],
+];
+const AGREE_TEXT_SCORE: Array<[RegExp, number]> = [
+  [/موافق\s*جدًا|strongly\s*agree/i, 5],
+  [/غير\s*موافق\s*(إطلاقًا|تمامًا)|strongly\s*disagree/i, 1],
+  [/نسبيًا|relatively/i, 3],
+  [/غير\s*موافق|disagree/i, 2],
+  [/موافق|agree/i, 4],
+];
+function textToScore(v: unknown, table: Array<[RegExp, number]>): number | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  for (const [re, n] of table) if (re.test(s)) return n;
+  return null;
+}
+
+// Normalize a domain label to one of the seven canonical OID axes.
+function normDomainKey(label: string): string | null {
+  const s = label.replace(/\s+/g, " ").trim();
+  if (!s) return null;
+  if (/استراتيج|strategy|strategic/i.test(s)) return "الاستراتيجية";
+  if (/حوكمة|سياس|امتثال|governance|compliance/i.test(s)) return "الحوكمة والامتثال";
+  if (/قيادة|كفاء|leader|competency/i.test(s)) return "القيادة والكفاءات";
+  if (/أداء|نتائج|performance/i.test(s)) return "الأداء والنتائج";
+  if (/عمليات|أنظمة|operations|systems/i.test(s)) return "العمليات والأنظمة";
+  if (/مالي|تمويل|financial|finance/i.test(s)) return "الاستدامة المالية";
+  if (/بنية\s*تحتية|infrastructure/i.test(s)) return "البنية التحتية";
+  return null;
+}
+
 // Detect "profile layout": a row near the top that contains ≥2 known org names
 // across columns (each org becomes a column of values). Used by the institutional
 // data form (نموذج 1: استمارة البيانات المؤسسية).
