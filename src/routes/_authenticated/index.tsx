@@ -271,14 +271,38 @@ function extractBeneficiaries(s: string | null | undefined): number {
 const fmtBudget = (n: number) => fmtBudgetWestern(n);
 const fmtNum = (n: number) => formatCount(n);
 
-function DashboardSection() {
-  const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
+const GAP_AXIS_SOURCE_KEYS: Record<string, string[]> = {
+  الاستراتيجية: ["الاستراتيجية"],
+  القيادة: ["القيادة", "القيادة والكفاءات"],
+  الأداء: ["الأداء", "الأداء والنتائج"],
+  العمليات: ["العمليات", "العمليات والأنظمة"],
+  المالية: ["المالية", "الاستدامة المالية"],
+  "البنية التحتية": ["البنية التحتية"],
+  الحوكمة: ["الحوكمة", "الحوكمة والامتثال"],
+};
+
+function useDashboardSnapshotQuery() {
   const snapshotFn = useServerFn(loadDashboardSnapshot);
-  const { data: snap } = useQuery({
+  return useQuery({
     queryKey: ["dashboard-snapshot"],
     queryFn: () => snapshotFn(),
     refetchInterval: 10000,
   });
+}
+
+function getLiveGapValue(snap: any, orgId: OrgId, axis: string): number | null {
+  const gaps = snap?.matrix?.[orgId]?.gaps;
+  if (!gaps) return null;
+  for (const key of GAP_AXIS_SOURCE_KEYS[axis] ?? [axis]) {
+    const value = gaps[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+  }
+  return null;
+}
+
+function DashboardSection() {
+  const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
+  const { data: snap } = useDashboardSnapshotQuery();
 
   // Live per-org profiles (DB-backed, with static fallback inside the helper).
   const liveProfiles = useMemo(() => {
@@ -299,7 +323,7 @@ function DashboardSection() {
   const radarData = GAP_AXES.map((axis, i) => {
     const row: any = { axis };
     ORGS.forEach((o) => {
-      const liveGap = snap?.matrix?.[o.id]?.gaps?.[axis];
+      const liveGap = getLiveGapValue(snap, o.id, axis);
       row[o.id] = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? 0);
     });
     return row;
@@ -809,6 +833,7 @@ function FilterSelect({ label, value, onChange, options }: { label: string; valu
 
 /* ============================ GAPS ============================ */
 function GapsSection() {
+  const { data: snap } = useDashboardSnapshotQuery();
   const heatColor = (v: number | null) => {
     if (v === null) return "bg-gray-100 text-gray-400";
     if (v < 2) return "bg-red-100 text-red-700";
@@ -819,7 +844,10 @@ function GapsSection() {
   };
   const radarData = GAP_AXES.map((axis, i) => {
     const row: any = { axis };
-    ORGS.forEach((o) => { row[o.id] = gapScores[o.id][i] ?? 0; });
+    ORGS.forEach((o) => {
+      const liveGap = getLiveGapValue(snap, o.id, axis);
+      row[o.id] = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? 0);
+    });
     return row;
   });
   return (
@@ -837,11 +865,15 @@ function GapsSection() {
               {ORGS.map(o => (
                 <tr key={o.id} className="border-t border-border">
                   <td className="px-3 py-2 font-medium">{o.nameAr}</td>
-                  {gapScores[o.id].map((v, i) => (
-                    <td key={i} className="px-2 py-2 text-center">
-                      <span className={`inline-block w-14 py-1 rounded text-xs font-semibold tabular-nums ${heatColor(v)}`}>{v !== null ? v.toFixed(2) : "—"}</span>
-                    </td>
-                  ))}
+                  {GAP_AXES.map((axis, i) => {
+                    const liveGap = getLiveGapValue(snap, o.id, axis);
+                    const v = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? null);
+                    return (
+                      <td key={axis} className="px-2 py-2 text-center">
+                        <span className={`inline-block w-14 py-1 rounded text-xs font-semibold tabular-nums ${heatColor(v)}`}>{v !== null ? v.toFixed(2) : "—"}</span>
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -891,6 +923,7 @@ function GapsSection() {
 
 /* ============================ GOVERNANCE ============================ */
 function GovernanceSection() {
+  const { data: snap } = useDashboardSnapshotQuery();
   const [cat, setCat] = useState<"all"|"general"|"university"|"humanitarian"|"education">("general");
   const data = useMemo(() => {
     if (cat === "general") return generalPolicies;
@@ -900,13 +933,35 @@ function GovernanceSection() {
     return [...generalPolicies, ...universityPolicies, ...humanitarianPolicies, ...educationPolicies];
   }, [cat]);
 
+  const statusFromGovScore = (score: number | null | undefined): PolicyStatus | null => {
+    if (typeof score !== "number" || !Number.isFinite(score)) return null;
+    if (score >= 4) return "active";
+    if (score >= 3) return "inactive";
+    if (score >= 2) return "review";
+    if (score >= 1) return "inDev";
+    return "missing";
+  };
+
+  const effectivePolicyStatus = (orgId: OrgId, raw: PolicyStatus | undefined): PolicyStatus | undefined => {
+    if (raw !== "pending") return raw;
+    return statusFromGovScore(snap?.matrix?.[orgId]?.govScore) ?? raw;
+  };
+
   const stackedData = ORGS.map(o => {
     const counts: any = { org: o.abbr, active: 0, inactive: 0, review: 0, inDev: 0, missing: 0, pending: 0 };
     [...generalPolicies, ...universityPolicies, ...humanitarianPolicies, ...educationPolicies].forEach(p => {
-      const s = p.values[o.id];
+      const s = effectivePolicyStatus(o.id, p.values[o.id]);
       if (s) counts[s]++;
     });
     return counts;
+  });
+
+  const governanceScores = ORGS.map((org) => {
+    const liveGovScore = snap?.matrix?.[org.id]?.govScore;
+    const fallback = orgOverallScores.find((s) => s.id === org.id) ?? null;
+    const govScore = typeof liveGovScore === "number" ? liveGovScore : fallback?.govScore ?? null;
+    const govPct = typeof govScore === "number" ? Math.round((govScore / 5) * 100) : fallback?.govPct ?? null;
+    return { ...org, govScore, govPct };
   });
 
   return (
@@ -914,9 +969,9 @@ function GovernanceSection() {
       <SectionTitle title="الحوكمة والامتثال" subtitle="حالة السياسات والوثائق المؤسسية" />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {orgOverallScores.map(o => (
+        {governanceScores.map(o => (
           <Card key={o.id} className="p-4 text-center">
-            <div className="text-xs text-muted-foreground mb-2 truncate">{o.name}</div>
+            <div className="text-xs text-muted-foreground mb-2 truncate">{o.nameAr}</div>
             <div className="text-3xl font-bold tabular-nums mb-1" style={{ color: o.color }}>{o.govPct !== null ? `${o.govPct}%` : "—"}</div>
             <div className="text-[11px] text-muted-foreground">
               {o.govPct === null ? "بيانات ناقصة" :
@@ -972,10 +1027,11 @@ function GovernanceSection() {
                   <td className="px-3 py-2 font-mono text-xs">{p.id}</td>
                   <td className="px-3 py-2">{p.name}</td>
                   {ORGS.map(o => {
-                    const s = p.values[o.id];
+                    const raw = p.values[o.id];
+                    const s = effectivePolicyStatus(o.id, raw);
                     if (!s) return <td key={o.id} className="px-2 py-2 text-center text-gray-300">·</td>;
                     const meta = POLICY_STATUS_META[s];
-                    return <td key={o.id} className={`px-2 py-2 text-center text-xs ${meta.bg} ${meta.fg}`} title={meta.label}>{meta.icon}</td>;
+                    return <td key={o.id} className={`px-2 py-2 text-center text-xs ${meta.bg} ${meta.fg}`} title={raw === "pending" && s !== "pending" ? `${meta.label} — من درجة الحوكمة الحية` : meta.label}>{meta.icon}</td>;
                   })}
                 </tr>
               ))}
