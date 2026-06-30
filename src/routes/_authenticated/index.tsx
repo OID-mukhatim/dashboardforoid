@@ -933,13 +933,26 @@ function GovernanceSection() {
     return [...generalPolicies, ...universityPolicies, ...humanitarianPolicies, ...educationPolicies];
   }, [cat]);
 
+  const statusFromGovScore = (score: number | null | undefined): PolicyStatus | null => {
+    if (typeof score !== "number" || !Number.isFinite(score)) return null;
+    if (score >= 4) return "active";
+    if (score >= 3) return "inactive";
+    if (score >= 2) return "review";
+    if (score >= 1) return "inDev";
+    return "missing";
+  };
+
+  const effectivePolicyStatus = (orgId: OrgId, raw: PolicyStatus | undefined): PolicyStatus | undefined => {
+    if (raw !== "pending") return raw;
+    return statusFromGovScore(snap?.matrix?.[orgId]?.govScore) ?? raw;
+  };
+
   const stackedData = ORGS.map(o => {
     const counts: any = { org: o.abbr, active: 0, inactive: 0, review: 0, inDev: 0, missing: 0, pending: 0 };
     [...generalPolicies, ...universityPolicies, ...humanitarianPolicies, ...educationPolicies].forEach(p => {
-      const s = p.values[o.id];
+      const s = effectivePolicyStatus(o.id, p.values[o.id]);
       if (s) counts[s]++;
     });
-    if (typeof snap?.matrix?.[o.id]?.govScore === "number") counts.pending = 0;
     return counts;
   });
 
@@ -1014,10 +1027,11 @@ function GovernanceSection() {
                   <td className="px-3 py-2 font-mono text-xs">{p.id}</td>
                   <td className="px-3 py-2">{p.name}</td>
                   {ORGS.map(o => {
-                    const s = p.values[o.id];
+                    const raw = p.values[o.id];
+                    const s = effectivePolicyStatus(o.id, raw);
                     if (!s) return <td key={o.id} className="px-2 py-2 text-center text-gray-300">·</td>;
                     const meta = POLICY_STATUS_META[s];
-                    return <td key={o.id} className={`px-2 py-2 text-center text-xs ${meta.bg} ${meta.fg}`} title={meta.label}>{meta.icon}</td>;
+                    return <td key={o.id} className={`px-2 py-2 text-center text-xs ${meta.bg} ${meta.fg}`} title={raw === "pending" && s !== "pending" ? `${meta.label} — من درجة الحوكمة الحية` : meta.label}>{meta.icon}</td>;
                   })}
                 </tr>
               ))}
