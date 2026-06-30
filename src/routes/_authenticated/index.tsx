@@ -271,14 +271,38 @@ function extractBeneficiaries(s: string | null | undefined): number {
 const fmtBudget = (n: number) => fmtBudgetWestern(n);
 const fmtNum = (n: number) => formatCount(n);
 
-function DashboardSection() {
-  const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
+const GAP_AXIS_SOURCE_KEYS: Record<string, string[]> = {
+  الاستراتيجية: ["الاستراتيجية"],
+  القيادة: ["القيادة", "القيادة والكفاءات"],
+  الأداء: ["الأداء", "الأداء والنتائج"],
+  العمليات: ["العمليات", "العمليات والأنظمة"],
+  المالية: ["المالية", "الاستدامة المالية"],
+  "البنية التحتية": ["البنية التحتية"],
+  الحوكمة: ["الحوكمة", "الحوكمة والامتثال"],
+};
+
+function useDashboardSnapshotQuery() {
   const snapshotFn = useServerFn(loadDashboardSnapshot);
-  const { data: snap } = useQuery({
+  return useQuery({
     queryKey: ["dashboard-snapshot"],
     queryFn: () => snapshotFn(),
     refetchInterval: 10000,
   });
+}
+
+function getLiveGapValue(snap: any, orgId: OrgId, axis: string): number | null {
+  const gaps = snap?.matrix?.[orgId]?.gaps;
+  if (!gaps) return null;
+  for (const key of GAP_AXIS_SOURCE_KEYS[axis] ?? [axis]) {
+    const value = gaps[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+  }
+  return null;
+}
+
+function DashboardSection() {
+  const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
+  const { data: snap } = useDashboardSnapshotQuery();
 
   // Live per-org profiles (DB-backed, with static fallback inside the helper).
   const liveProfiles = useMemo(() => {
@@ -299,7 +323,7 @@ function DashboardSection() {
   const radarData = GAP_AXES.map((axis, i) => {
     const row: any = { axis };
     ORGS.forEach((o) => {
-      const liveGap = snap?.matrix?.[o.id]?.gaps?.[axis];
+      const liveGap = getLiveGapValue(snap, o.id, axis);
       row[o.id] = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? 0);
     });
     return row;
