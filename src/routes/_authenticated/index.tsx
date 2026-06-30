@@ -923,6 +923,7 @@ function GapsSection() {
 
 /* ============================ GOVERNANCE ============================ */
 function GovernanceSection() {
+  const { data: snap } = useDashboardSnapshotQuery();
   const [cat, setCat] = useState<"all"|"general"|"university"|"humanitarian"|"education">("general");
   const data = useMemo(() => {
     if (cat === "general") return generalPolicies;
@@ -938,7 +939,16 @@ function GovernanceSection() {
       const s = p.values[o.id];
       if (s) counts[s]++;
     });
+    if (typeof snap?.matrix?.[o.id]?.govScore === "number") counts.pending = 0;
     return counts;
+  });
+
+  const governanceScores = ORGS.map((org) => {
+    const liveGovScore = snap?.matrix?.[org.id]?.govScore;
+    const fallback = orgOverallScores.find((s) => s.id === org.id) ?? null;
+    const govScore = typeof liveGovScore === "number" ? liveGovScore : fallback?.govScore ?? null;
+    const govPct = typeof govScore === "number" ? Math.round((govScore / 5) * 100) : fallback?.govPct ?? null;
+    return { ...org, govScore, govPct };
   });
 
   return (
@@ -946,9 +956,9 @@ function GovernanceSection() {
       <SectionTitle title="الحوكمة والامتثال" subtitle="حالة السياسات والوثائق المؤسسية" />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {orgOverallScores.map(o => (
+        {governanceScores.map(o => (
           <Card key={o.id} className="p-4 text-center">
-            <div className="text-xs text-muted-foreground mb-2 truncate">{o.name}</div>
+            <div className="text-xs text-muted-foreground mb-2 truncate">{o.nameAr}</div>
             <div className="text-3xl font-bold tabular-nums mb-1" style={{ color: o.color }}>{o.govPct !== null ? `${o.govPct}%` : "—"}</div>
             <div className="text-[11px] text-muted-foreground">
               {o.govPct === null ? "بيانات ناقصة" :
