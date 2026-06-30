@@ -833,6 +833,7 @@ function FilterSelect({ label, value, onChange, options }: { label: string; valu
 
 /* ============================ GAPS ============================ */
 function GapsSection() {
+  const { data: snap } = useDashboardSnapshotQuery();
   const heatColor = (v: number | null) => {
     if (v === null) return "bg-gray-100 text-gray-400";
     if (v < 2) return "bg-red-100 text-red-700";
@@ -843,7 +844,10 @@ function GapsSection() {
   };
   const radarData = GAP_AXES.map((axis, i) => {
     const row: any = { axis };
-    ORGS.forEach((o) => { row[o.id] = gapScores[o.id][i] ?? 0; });
+    ORGS.forEach((o) => {
+      const liveGap = getLiveGapValue(snap, o.id, axis);
+      row[o.id] = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? 0);
+    });
     return row;
   });
   return (
@@ -861,11 +865,15 @@ function GapsSection() {
               {ORGS.map(o => (
                 <tr key={o.id} className="border-t border-border">
                   <td className="px-3 py-2 font-medium">{o.nameAr}</td>
-                  {gapScores[o.id].map((v, i) => (
-                    <td key={i} className="px-2 py-2 text-center">
-                      <span className={`inline-block w-14 py-1 rounded text-xs font-semibold tabular-nums ${heatColor(v)}`}>{v !== null ? v.toFixed(2) : "—"}</span>
-                    </td>
-                  ))}
+                  {GAP_AXES.map((axis, i) => {
+                    const liveGap = getLiveGapValue(snap, o.id, axis);
+                    const v = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? null);
+                    return (
+                      <td key={axis} className="px-2 py-2 text-center">
+                        <span className={`inline-block w-14 py-1 rounded text-xs font-semibold tabular-nums ${heatColor(v)}`}>{v !== null ? v.toFixed(2) : "—"}</span>
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
