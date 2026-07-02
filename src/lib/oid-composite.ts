@@ -73,13 +73,13 @@ export function computeProfile(orgId: OrgId): InstitutionProfile {
   const fin = finScoreOf(orgId);
 
   const components: ProfileComponent[] = [
-    { source: "gap", label: "الفجوات المؤسسية", weight: 0.6, score: gap, state: inferState(gap) },
-    { source: "governance", label: "الحوكمة والامتثال", weight: 0.4, score: gov, state: inferState(gov) },
-    { source: "kpi", label: "تحقيق مؤشرات الأداء (مرجعي)", weight: 0, score: kpi, state: inferState(kpi) },
-    { source: "financial", label: "الإدارة المالية (مرجعي)", weight: 0, score: fin, state: inferState(fin) },
+    { source: "gap", label: "الفجوات المؤسسية", weight: 0.25, score: gap, state: inferState(gap) },
+    { source: "governance", label: "الحوكمة والامتثال", weight: 0.25, score: gov, state: inferState(gov) },
+    { source: "kpi", label: "تحقيق مؤشرات الأداء", weight: 0.25, score: kpi, state: inferState(kpi) },
+    { source: "financial", label: "الإدارة المالية", weight: 0.25, score: fin, state: inferState(fin) },
   ];
 
-  // الدرجة المركّبة = دالة لمحوري الفجوات والحوكمة فقط (وفق طلب المستخدم).
+  // الدرجة المركّبة = متوسط مرجّح بأوزان متساوية (25% لكل محور) للمحاور المتوفرة.
   const core = components.filter((c) => c.weight > 0 && c.state === "achieved" && c.score !== null);
   const totalWeight = core.reduce((s, c) => s + c.weight, 0);
   const composite =
@@ -133,13 +133,13 @@ export function computeProfileFromLive(orgId: OrgId, live: LiveInputs): Institut
   const fin = live.finScore ?? finScoreOf(orgId);
 
   const components: ProfileComponent[] = [
-    { source: "gap", label: "الفجوات المؤسسية", weight: 0.6, score: gap, state: inferState(gap) },
-    { source: "governance", label: "الحوكمة والامتثال", weight: 0.4, score: gov, state: inferState(gov) },
-    { source: "kpi", label: "تحقيق مؤشرات الأداء (مرجعي)", weight: 0, score: kpi, state: inferState(kpi) },
-    { source: "financial", label: "الإدارة المالية (مرجعي)", weight: 0, score: fin, state: inferState(fin) },
+    { source: "gap", label: "الفجوات المؤسسية", weight: 0.25, score: gap, state: inferState(gap) },
+    { source: "governance", label: "الحوكمة والامتثال", weight: 0.25, score: gov, state: inferState(gov) },
+    { source: "kpi", label: "تحقيق مؤشرات الأداء", weight: 0.25, score: kpi, state: inferState(kpi) },
+    { source: "financial", label: "الإدارة المالية", weight: 0.25, score: fin, state: inferState(fin) },
   ];
 
-  // الدرجة المركّبة مبنية حصراً على محوري الفجوات والحوكمة (60/40).
+  // الدرجة المركّبة = متوسط مرجّح بأوزان متساوية (25% لكل محور) للمحاور المتوفرة.
   const core = components.filter((c) => c.weight > 0 && c.state === "achieved" && c.score !== null);
   const totalWeight = core.reduce((s, c) => s + c.weight, 0);
   const composite =
