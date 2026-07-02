@@ -110,7 +110,7 @@ function Header() {
           )}
           <span className="text-xs px-2 py-1 rounded-md bg-white/15 border border-white/20">v1.0 — 2026</span>
           <IconBtn icon={Download} label="تصدير PDF" onClick={() => window.print()} />
-          <IconBtn icon={Bell} label="تنبيهات" badge={alerts.filter(a=>a.level==="danger").length} />
+          <NotificationsBell alerts={alerts} />
           <button onClick={signOut} className="p-2 rounded-lg hover:bg-white/15 transition" title="خروج">
             <LogOut size={18} />
           </button>
