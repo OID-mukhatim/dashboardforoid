@@ -128,7 +128,7 @@ function IconBtn({ icon: Icon, label, badge, onClick }: any) {
   );
 }
 
-function NotificationsBell({ alerts }: { alerts: Array<{ level: "danger" | "warning" | "success"; title: string; action: string }> }) {
+function NotificationsBell({ alerts }: { alerts: Array<{ level: string; title: string; action: string }> }) {
   const dangerCount = alerts.filter(a => a.level === "danger").length;
   const styleFor = (level: string) => ({
     danger: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", Ic: XCircle },
