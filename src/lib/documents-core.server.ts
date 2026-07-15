@@ -209,7 +209,7 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
     // NOTE: financial reports are no longer auto-attributed to كافي. Attribution
     // now requires the file name or content to explicitly reference the org.
 
-    await supabaseAdmin.from("document_extractions").insert({
+    const extractionRows = [{
       upload_id: uploadId,
       file_path: filePath,
       file_name: fileName,
@@ -219,7 +219,8 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
       numbers_found: analysis.numbers as unknown as never,
       summary: analysis.summary,
       kind: "document",
-    });
+      entity_code: null,
+    }];
 
     // Per-org rows so each institution's dashboard picks up the report
     const orgIds = Array.from(new Set([...analysis.orgMentions.map((o) => o.id), ...filenameOrgs]));
@@ -236,7 +237,31 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
         kind: "document",
         entity_code: code,
       }));
-      await supabaseAdmin.from("document_extractions").insert(rows);
+      extractionRows.push(...rows);
+    }
+
+    // Insert the complete replacement first. If insertion fails, the previous
+    // extraction remains intact; only after success are stale rows removed.
+    const { data: insertedRows, error: insertErr } = await supabaseAdmin
+      .from("document_extractions")
+      .insert(extractionRows)
+      .select("id");
+    if (insertErr) throw insertErr;
+
+    const insertedIds = (insertedRows ?? []).map((row) => row.id);
+    const { data: staleRows, error: staleReadErr } = await supabaseAdmin
+      .from("document_extractions")
+      .select("id")
+      .eq("upload_id", uploadId)
+      .not("id", "in", `(${insertedIds.join(",")})`);
+    if (staleReadErr) throw staleReadErr;
+    const staleIds = (staleRows ?? []).map((row) => row.id);
+    if (staleIds.length) {
+      const { error: staleDeleteErr } = await supabaseAdmin
+        .from("document_extractions")
+        .delete()
+        .in("id", staleIds);
+      if (staleDeleteErr) throw staleDeleteErr;
     }
 
     await supabaseAdmin

@@ -1812,7 +1812,7 @@ function InitiativeFormDialog({
 /* ============================ UPLOAD ============================ */
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseUpload, reprocessUpload, processUpload, previewKpiUpload, deleteUploads } from "@/lib/uploads.functions";
+import { parseUpload, processUpload, previewKpiUpload, deleteUploads } from "@/lib/uploads.functions";
 import { getDocumentExtractions } from "@/lib/documents.functions";
 import { listInitiatives, upsertInitiative, deleteInitiative, updateInitiativeStatus, autoGenerateInitiatives, type Initiative } from "@/lib/initiatives.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -1991,8 +1991,8 @@ function UploadSection() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const parseFn = useServerFn(parseUpload);
   const processFn = useServerFn(processUpload);
-  const reprocessFn = useServerFn(reprocessUpload);
   const previewFn = useServerFn(previewKpiUpload);
   const deleteFn = useServerFn(deleteUploads);
   const qc = useQueryClient();
@@ -2043,10 +2043,18 @@ function UploadSection() {
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [confirming, setConfirming] = useState(false);
 
-  async function handleReprocess(id: string) {
+  async function runProcessing(uploadId: string, filePath: string) {
+    const ext = filePath.split(".").pop()?.toLowerCase() || "";
+    if (["xlsx", "xls", "csv"].includes(ext)) {
+      return parseFn({ data: { uploadId, filePath } });
+    }
+    return processFn({ data: { uploadId, filePath } });
+  }
+
+  async function handleReprocess(id: string, filePath: string) {
     setReprocessing(id); setMsg(null);
     try {
-      const r = await reprocessFn({ data: { uploadId: id } }) as { ok?: boolean; upserted?: number; fileType?: string; orgsFound?: string[]; numbersCount?: number };
+      const r = await runProcessing(id, filePath) as { ok?: boolean; upserted?: number; fileType?: string; orgsFound?: string[]; numbersCount?: number };
       const isDoc = r.fileType && ["docx", "pptx", "pdf"].includes(r.fileType);
       setMsg({
         kind: "ok",
@@ -2134,7 +2142,7 @@ function UploadSection() {
           } catch (e) {
             const errText = e instanceof Error ? e.message : "فشلت المعاينة";
             if (/ليس ملف مؤشرات|لم يتم العثور على قالب مؤشرات/.test(errText)) {
-              await processFn({ data: { uploadId: row.id, filePath: path } }).catch(() => {});
+              await runProcessing(row.id, path).catch(() => {});
               setPreview(null);
               handledAsNonKpi = true;
             } else {
@@ -2146,7 +2154,7 @@ function UploadSection() {
           break; // Only preview one file at a time
         } else {
           // Non-KPI Excel and Word/PPT/PDF: process directly through the classifier
-          await processFn({ data: { uploadId: row.id, filePath: path } }).catch(() => {});
+          await runProcessing(row.id, path).catch(() => {});
         }
       }
       if (!preview) {
@@ -2167,7 +2175,7 @@ function UploadSection() {
     if (!preview?.result) return;
     setConfirming(true);
     try {
-      await processFn({ data: { uploadId: preview.uploadId, filePath: preview.filePath } });
+      await runProcessing(preview.uploadId, preview.filePath);
       const s = preview.result.summary;
       setMsg({ kind: "ok", text: `تم الاستيراد: +${s.inserted} جديد · ↻${s.updated} مُحدَّث · ${s.unchanged} بلا تغيير` });
       setPreview(null);
@@ -2438,7 +2446,7 @@ function UploadSection() {
                         <div className="flex items-center gap-1 justify-end">
                           <button
                             type="button"
-                            onClick={() => handleReprocess(r.id)}
+                            onClick={() => handleReprocess(r.id, r.file_path)}
                             disabled={reprocessing === r.id}
                             className="text-xs px-2 py-1 rounded-md border border-border hover:bg-primary hover:text-primary-foreground transition disabled:opacity-50"
                           >
