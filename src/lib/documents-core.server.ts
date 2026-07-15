@@ -25,28 +25,42 @@ function isValidEntity(name: string): { id: string; name: string } | null {
 
 /** Extract text from Word .docx by unzipping and reading document.xml.
  *  Uses fflate (pure JS, Worker-compatible) instead of `mammoth`, which
- *  depends on Node-only streams and fails on Cloudflare Workers. */
+ *  depends on Node-only streams and fails on Cloudflare Workers.
+ *  Walks the XML with indexOf so complex tables / nested runs don't leak
+ *  raw markup into the extracted text. */
 async function extractDocx(buf: ArrayBuffer): Promise<string> {
   const { unzipSync, strFromU8 } = await import("fflate");
   const files = unzipSync(new Uint8Array(buf), {
     filter: (f) => f.name === "word/document.xml" || f.name.startsWith("word/header") || f.name.startsWith("word/footer"),
   });
+  const decodeEntities = (s: string) =>
+    s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+     .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)));
   const parts: string[] = [];
   for (const name of Object.keys(files)) {
     const xml = strFromU8(files[name]);
-    // Concatenate every <w:t>…</w:t> run in document order and treat
-    // paragraph breaks (<w:p>) as newlines.
-    const withBreaks = xml
-      .replace(/<w:p[ >]/g, "\n<w:p ")
-      .replace(/<w:br\s*\/>/g, "\n");
-    const matches = withBreaks.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) ?? [];
-    for (const m of matches) {
-      const inner = m.replace(/<w:t[^>]*>/, "").replace(/<\/w:t>$/, "");
-      parts.push(inner.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"'));
+    let i = 0;
+    while (i < xml.length) {
+      const openStart = xml.indexOf("<w:t", i);
+      if (openStart < 0) break;
+      const nextChar = xml[openStart + 4];
+      if (nextChar !== " " && nextChar !== ">" && nextChar !== "/") { i = openStart + 4; continue; }
+      const openEnd = xml.indexOf(">", openStart);
+      if (openEnd < 0) break;
+      if (xml[openEnd - 1] === "/") { i = openEnd + 1; continue; }
+      const closeStart = xml.indexOf("</w:t>", openEnd);
+      if (closeStart < 0) break;
+      const inner = xml.slice(openEnd + 1, closeStart);
+      const clean = decodeEntities(inner.replace(/<[^>]+>/g, ""));
+      if (clean) parts.push(clean);
+      i = closeStart + 6;
+      const nextP = xml.indexOf("</w:p>", i);
+      const nextT = xml.indexOf("<w:t", i);
+      if (nextP >= 0 && (nextT < 0 || nextP < nextT)) parts.push("\n");
     }
     parts.push("\n");
   }
-  return parts.join("").replace(/\n{3,}/g, "\n\n").trim();
+  return parts.join("").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 /** Extract text from PowerPoint .pptx by unzipping slide XML. */
