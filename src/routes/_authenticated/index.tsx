@@ -1140,7 +1140,7 @@ function FinancialSection() {
 
           <Card>
             <CardHeader title="التقييم التفصيلي والتوصيات" />
-            <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
               {(Object.entries(financialAssessment) as ["ZUST"|"ZAD"|"TAYO"|"KAFI", any][]).map(([id, a]) => {
                 const o = ORGS.find(x => x.id === id)!;
                 return (
