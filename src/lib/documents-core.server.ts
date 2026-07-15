@@ -191,6 +191,19 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
 
     const analysis = analyzeDocument(rawText);
 
+    // Filename-derived org hints (نتائج المؤسسة تظهر في بطاقتها حتى لو
+    // لم يُذكر اسمها صراحة داخل النص).
+    const filenameOrgs = new Set<string>();
+    const fnCheck = fileName.toLowerCase();
+    if (/كافي|kafi/i.test(fileName)) filenameOrgs.add("KAFI");
+    if (/تيو|tayo/i.test(fileName)) filenameOrgs.add("TAYO");
+    if (/زاد|zad/i.test(fileName)) filenameOrgs.add("ZAD");
+    if (/حمد[يى]|hamdi/i.test(fileName)) filenameOrgs.add("HAMDI");
+    if (/جامعة\s*زمزم|zust/i.test(fileName)) filenameOrgs.add("ZUST");
+    if (/زمزم|zamzam|^zf$/i.test(fileName) && !filenameOrgs.has("ZUST")) filenameOrgs.add("ZF");
+    // التقارير المالية الشهرية تُنسب افتراضياً إلى كافي (جهة الرقابة المالية)
+    if (/التقرير\s*المالي|القوائم\s*المالية|financial/i.test(fnCheck)) filenameOrgs.add("KAFI");
+
     await supabaseAdmin.from("document_extractions").insert({
       upload_id: uploadId,
       file_path: filePath,
@@ -204,7 +217,7 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
     });
 
     // Per-org rows so each institution's dashboard picks up the report
-    const orgIds = Array.from(new Set(analysis.orgMentions.map((o) => o.id)));
+    const orgIds = Array.from(new Set([...analysis.orgMentions.map((o) => o.id), ...filenameOrgs]));
     if (orgIds.length) {
       const rows = orgIds.map((code) => ({
         upload_id: uploadId,
