@@ -253,7 +253,7 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
     return {
       ok: true,
       fileType: ext,
-      orgsFound: analysis.orgMentions.map((o) => o.id),
+      orgsFound: orgIds,
       numbersCount: analysis.numbers.length,
       textLength: analysis.text.length,
     };
