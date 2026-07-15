@@ -281,7 +281,15 @@ export const financialProgram = {
     { domain: "التقرير المالي السنوي 2025", status: "done", note: "قوائم 2025 مكتملة" },
     { domain: "تدريب مسؤولي المدارس", status: "notYet", note: "مجدول لمايو 2026" },
   ],
-} as Record<"ZUST" | "ZAD" | "TAYO", { domain: string; status: ProgramStatus; note: string }[]>;
+  KAFI: [
+    { domain: "النظام المحاسبي (QuickBooks Online)", status: "inProgress", note: "بدأ التطبيق في يونيو 2026، تحديث البيانات المالية مستمر" },
+    { domain: "دليل الحسابات (Chart of Accounts)", status: "done", note: "أُعد خلال يونيو 2026" },
+    { domain: "تأهيل المحاسب الجديد", status: "inProgress", note: "مراجعة مهارات حفظ السجلات ودعم فني مستمر" },
+    { domain: "دليل السياسات المالية", status: "notYet", note: "لم يبدأ بعد" },
+    { domain: "الميزانية الربعية", status: "notYet", note: "لم تبدأ بعد" },
+    { domain: "التقرير المالي السنوي والتدقيق الخارجي", status: "notYet", note: "لم يبدأ بعد" },
+  ],
+} as Record<"ZUST" | "ZAD" | "TAYO" | "KAFI", { domain: string; status: ProgramStatus; note: string }[]>;
 
 export const financialTimeline = [
   { period: "نوف-ديس 2025", title: "تقييم أولي", done: true },
