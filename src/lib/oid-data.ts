@@ -219,6 +219,26 @@ export const financialAssessment = {
     ],
     nextMilestone: "إطلاق دليل إجراءات مالية مبسّط للمدارس — يونيو 2026",
   },
+  KAFI: {
+    rating: 3.0,
+    label: "متوسط — انطلاقة جديدة",
+    strengths: [
+      "بدء تطبيق QuickBooks Online كنظام محاسبي (يونيو 2026)",
+      "إعداد دليل الحسابات (Chart of Accounts)",
+      "التحاق محاسب جديد وبدء مراجعة مهاراته في حفظ السجلات",
+    ],
+    weaknesses: [
+      "تحديث البيانات المالية لا يزال جارياً ولم يكتمل",
+      "لم يبدأ التدقيق الخارجي ولا الميزانية الربعية بعد",
+      "دليل السياسات والإجراءات المالية لم يُعتمد",
+    ],
+    recommendations: [
+      "استكمال تحديث البيانات المالية في QuickBooks Online — أولوية يوليو 2026",
+      "مواصلة الدعم الفني والتدريب أثناء العمل للمحاسب الجديد",
+      "التخطيط لإطلاق ورشة إعداد دليل السياسات المالية",
+    ],
+    nextMilestone: "استكمال تحديث البيانات المالية في QuickBooks Online — يوليو 2026",
+  },
 } as const;
 
 export type ProgramStatus = "done" | "inProgress" | "delayed" | "notYet";
@@ -261,7 +281,15 @@ export const financialProgram = {
     { domain: "التقرير المالي السنوي 2025", status: "done", note: "قوائم 2025 مكتملة" },
     { domain: "تدريب مسؤولي المدارس", status: "notYet", note: "مجدول لمايو 2026" },
   ],
-} as Record<"ZUST" | "ZAD" | "TAYO", { domain: string; status: ProgramStatus; note: string }[]>;
+  KAFI: [
+    { domain: "النظام المحاسبي (QuickBooks Online)", status: "inProgress", note: "بدأ التطبيق في يونيو 2026، تحديث البيانات المالية مستمر" },
+    { domain: "دليل الحسابات (Chart of Accounts)", status: "done", note: "أُعد خلال يونيو 2026" },
+    { domain: "تأهيل المحاسب الجديد", status: "inProgress", note: "مراجعة مهارات حفظ السجلات ودعم فني مستمر" },
+    { domain: "دليل السياسات المالية", status: "notYet", note: "لم يبدأ بعد" },
+    { domain: "الميزانية الربعية", status: "notYet", note: "لم تبدأ بعد" },
+    { domain: "التقرير المالي السنوي والتدقيق الخارجي", status: "notYet", note: "لم يبدأ بعد" },
+  ],
+} as Record<"ZUST" | "ZAD" | "TAYO" | "KAFI", { domain: string; status: ProgramStatus; note: string }[]>;
 
 export const financialTimeline = [
   { period: "نوف-ديس 2025", title: "تقييم أولي", done: true },
