@@ -203,6 +203,24 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
       kind: "document",
     });
 
+    // Per-org rows so each institution's dashboard picks up the report
+    const orgIds = Array.from(new Set(analysis.orgMentions.map((o) => o.id)));
+    if (orgIds.length) {
+      const rows = orgIds.map((code) => ({
+        upload_id: uploadId,
+        file_path: filePath,
+        file_name: fileName,
+        text_preview: analysis.text.substring(0, 5000),
+        entities: analysis.entities as unknown as never,
+        org_mentions: analysis.orgMentions as unknown as never,
+        numbers_found: analysis.numbers as unknown as never,
+        summary: analysis.summary,
+        kind: "document",
+        entity_code: code,
+      }));
+      await supabaseAdmin.from("document_extractions").insert(rows);
+    }
+
     await supabaseAdmin
       .from("uploads")
       .update({
