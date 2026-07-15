@@ -1,2 +1,2 @@
-declare module "unzipper";
-declare module "xml2js";
+// Module declarations for third-party libraries without bundled types.
+export {};
