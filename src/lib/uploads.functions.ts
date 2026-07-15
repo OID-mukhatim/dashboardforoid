@@ -839,21 +839,6 @@ export const processUpload = createServerFn({ method: "POST" })
 
   });
 
-// Re-run parsing for an existing upload (manual refresh)
-export const reprocessUpload = createServerFn({ method: "POST" })
-  .inputValidator((input) => z.object({ uploadId: z.string().uuid() }).parse(input))
-  .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
-      .from("uploads")
-      .select("id,file_path")
-      .eq("id", data.uploadId)
-      .single();
-    if (error || !row) throw new Error(error?.message ?? "upload not found");
-    const result = await processUpload({ data: { uploadId: row.id, filePath: row.file_path } });
-    return result;
-  });
-
 // Preview an Excel KPI upload without writing: returns diff vs existing DB rows.
 const KPI_COMPARE_FIELDS = [
   "kpi_name", "kpi_type", "sector", "objective",
