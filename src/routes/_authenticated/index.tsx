@@ -20,6 +20,8 @@ import {
   partnerships, institutions, initiatives, alerts,
 } from "@/lib/oid-data";
 import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
+import { OverdueBadge } from "@/components/oid/OverdueBadge";
+import { detectDeadline } from "@/lib/oid-overdue";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DataStateLegend } from "@/components/oid/DataStateCell";
 import { AnomaliesPanel } from "@/components/oid/AnomaliesPanel";
@@ -1129,6 +1131,7 @@ function FinancialSection() {
                   <div className="text-xs text-muted-foreground border-t border-border pt-2">
                     <div className="font-medium text-primary mb-1">المعلم القادم:</div>
                     {a.nextMilestone}
+                    <OverdueBadge text={a.nextMilestone} />
                   </div>
                 </Card>
               );
@@ -1152,13 +1155,13 @@ function FinancialSection() {
                     <div>
                       <div className="text-xs font-medium text-red-700 mb-1">⚠️ نقاط الضعف</div>
                       <ul className="text-xs space-y-1 text-muted-foreground">
-                        {a.weaknesses.map((s: string, i: number) => <li key={i}>• {s}</li>)}
+                        {a.weaknesses.map((s: string, i: number) => <li key={i}>• {s}<OverdueBadge text={s} /></li>)}
                       </ul>
                     </div>
                     <div>
                       <div className="text-xs font-medium text-blue-700 mb-1">💡 التوصيات</div>
                       <ul className="text-xs space-y-1 text-muted-foreground">
-                        {a.recommendations.map((s: string, i: number) => <li key={i}>• {s}</li>)}
+                        {a.recommendations.map((s: string, i: number) => <li key={i}>• {s}<OverdueBadge text={s} /></li>)}
                       </ul>
                     </div>
                   </div>
@@ -1182,13 +1185,14 @@ function FinancialSection() {
                 <div className="p-5 space-y-2">
                   {rows.map((r, i) => {
                     const m = PROGRAM_STATUS_META[r.status as keyof typeof PROGRAM_STATUS_META];
+                    const noteOverdue = detectDeadline(r.note).overdue && r.status !== "done";
                     return (
-                      <div key={i} className="border border-border rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-1">
+                      <div key={i} className={`border rounded-lg p-3 ${noteOverdue ? "border-red-300 bg-red-50/40" : "border-border"}`}>
+                        <div className="flex items-center justify-between mb-1 gap-2">
                           <span className="text-sm font-medium">{r.domain}</span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${m.color}`}>{m.label}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${m.color}`}>{noteOverdue ? "متأخر" : m.label}</span>
                         </div>
-                        <div className="text-xs text-muted-foreground">{r.note}</div>
+                        <div className="text-xs text-muted-foreground">{r.note}<OverdueBadge text={r.note} /></div>
                       </div>
                     );
                   })}
@@ -1202,15 +1206,20 @@ function FinancialSection() {
       {tab === "timeline" && (
         <Card className="p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            {financialTimeline.map((m, i) => (
-              <div key={i} className="flex-1 text-center min-w-[120px]">
-                <div className={`mx-auto mb-2 w-12 h-12 rounded-full flex items-center justify-center text-2xl ${m.done?"bg-green-100":"bg-blue-100"}`}>
-                  {m.done ? "✅" : "🔄"}
+            {financialTimeline.map((m, i) => {
+              const info = detectDeadline(m.period);
+              const late = !m.done && info.overdue;
+              return (
+                <div key={i} className="flex-1 text-center min-w-[120px]">
+                  <div className={`mx-auto mb-2 w-12 h-12 rounded-full flex items-center justify-center text-2xl ${m.done?"bg-green-100":late?"bg-red-100":"bg-blue-100"}`}>
+                    {m.done ? "✅" : late ? "⚠️" : "🔄"}
+                  </div>
+                  <div className="text-xs font-bold">{m.period}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{m.title}</div>
+                  {late && <div className="text-[10px] text-red-700 font-medium mt-1">متأخر {info.monthsLate} شهر</div>}
                 </div>
-                <div className="text-xs font-bold">{m.period}</div>
-                <div className="text-xs text-muted-foreground mt-1">{m.title}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       )}
