@@ -7,15 +7,19 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+/** Strict entity matching — avoid false positives from generic Arabic words.
+ *  "كافي" alone means "enough"; "زاد" means "increased"; "تيو" can appear in
+ *  unrelated contexts. Require a qualifier ("للتنمية" / "مؤسسة" / "شركة") or
+ *  an explicit section header pattern (e.g. "رابعا: كافي للتنمية"). */
 function isValidEntity(name: string): { id: string; name: string } | null {
   const s = (name ?? "").trim();
   const aliases: Array<{ id: string; patterns: RegExp[] }> = [
-    { id: "TAYO", patterns: [/تيو/, /tayo/i] },
-    { id: "KAFI", patterns: [/كافي/, /kafi/i] },
-    { id: "ZF", patterns: [/زمزم/, /zamzam/i, /^\s*zf\s*$/i] },
-    { id: "ZUST", patterns: [/جامعة\s*زمزم/, /zust/i] },
-    { id: "ZAD", patterns: [/زاد/, /zad/i] },
-    { id: "HAMDI", patterns: [/حمد[يى]/, /hamdi/i] },
+    { id: "TAYO", patterns: [/مؤسسة\s*تيو/, /شركة\s*تيو/, /تيو\s*للتنمية/, /\bTAYO\b/] },
+    { id: "KAFI", patterns: [/كافي\s*للتنمية/, /مؤسسة\s*كافي/, /شركة\s*كافي/, /\bKAFI\b/] },
+    { id: "ZF", patterns: [/مؤسسة\s*زمزم/, /شركة\s*زمزم/, /زمزم\s*للتنمية/, /\bZamzam\b/, /^\s*ZF\s*$/] },
+    { id: "ZUST", patterns: [/جامعة\s*زمزم/, /\bZUST\b/] },
+    { id: "ZAD", patterns: [/مؤسسة\s*زاد/, /شركة\s*زاد/, /زاد\s*للتنمية/, /\bZAD\b/] },
+    { id: "HAMDI", patterns: [/مؤسسة\s*حمد[يى]/, /شركة\s*حمد[يى]/, /حمد[يى]\s*للتنمية/, /\bHAMDI\b/i] },
   ];
   for (const a of aliases) {
     if (a.patterns.some((re) => re.test(s))) return { id: a.id, name: s };
@@ -191,18 +195,19 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
 
     const analysis = analyzeDocument(rawText);
 
-    // Filename-derived org hints (نتائج المؤسسة تظهر في بطاقتها حتى لو
-    // لم يُذكر اسمها صراحة داخل النص).
+    // Filename-derived org hints — only when the filename explicitly names the
+    // institution ("كافي للتنمية" / "مؤسسة كافي" / uppercase code KAFI). A bare
+    // word like "كافي" is NOT enough; it means "enough" in Arabic and would
+    // wrongly attribute unrelated reports to كافي للتنمية.
     const filenameOrgs = new Set<string>();
-    const fnCheck = fileName.toLowerCase();
-    if (/كافي|kafi/i.test(fileName)) filenameOrgs.add("KAFI");
-    if (/تيو|tayo/i.test(fileName)) filenameOrgs.add("TAYO");
-    if (/زاد|zad/i.test(fileName)) filenameOrgs.add("ZAD");
-    if (/حمد[يى]|hamdi/i.test(fileName)) filenameOrgs.add("HAMDI");
-    if (/جامعة\s*زمزم|zust/i.test(fileName)) filenameOrgs.add("ZUST");
-    if (/زمزم|zamzam|^zf$/i.test(fileName) && !filenameOrgs.has("ZUST")) filenameOrgs.add("ZF");
-    // التقارير المالية الشهرية تُنسب افتراضياً إلى كافي (جهة الرقابة المالية)
-    if (/التقرير\s*المالي|القوائم\s*المالية|financial/i.test(fnCheck)) filenameOrgs.add("KAFI");
+    if (/كافي\s*للتنمية|مؤسسة\s*كافي|\bKAFI\b/.test(fileName)) filenameOrgs.add("KAFI");
+    if (/مؤسسة\s*تيو|تيو\s*للتنمية|\bTAYO\b/.test(fileName)) filenameOrgs.add("TAYO");
+    if (/مؤسسة\s*زاد|زاد\s*للتنمية|\bZAD\b/.test(fileName)) filenameOrgs.add("ZAD");
+    if (/مؤسسة\s*حمد[يى]|حمد[يى]\s*للتنمية|\bHAMDI\b/i.test(fileName)) filenameOrgs.add("HAMDI");
+    if (/جامعة\s*زمزم|\bZUST\b/.test(fileName)) filenameOrgs.add("ZUST");
+    if ((/مؤسسة\s*زمزم|زمزم\s*للتنمية|\bZamzam\b|(^|[^A-Za-z])ZF([^A-Za-z]|$)/.test(fileName)) && !filenameOrgs.has("ZUST")) filenameOrgs.add("ZF");
+    // NOTE: financial reports are no longer auto-attributed to كافي. Attribution
+    // now requires the file name or content to explicitly reference the org.
 
     await supabaseAdmin.from("document_extractions").insert({
       upload_id: uploadId,
