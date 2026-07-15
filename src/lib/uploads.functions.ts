@@ -831,9 +831,12 @@ export const processUpload = createServerFn({ method: "POST" })
     if (ext === "xlsx" || ext === "xls" || ext === "csv") {
       return parseUpload({ data });
     }
-    // Word, PowerPoint, PDF → document extractor
-    const { extractDocument } = await import("./documents.functions");
-    return extractDocument({ data });
+    // Word, PowerPoint, PDF → document extractor (call the server-only helper
+    // directly; routing through another server fn's RPC stub breaks the
+    // TanStack worker manifest and yields "Server function info not found").
+    const { runDocumentExtraction } = await import("./documents-core.server");
+    return runDocumentExtraction(data.uploadId, data.filePath);
+
   });
 
 // Re-run parsing for an existing upload (manual refresh)
