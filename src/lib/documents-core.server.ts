@@ -195,18 +195,19 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
 
     const analysis = analyzeDocument(rawText);
 
-    // Filename-derived org hints (نتائج المؤسسة تظهر في بطاقتها حتى لو
-    // لم يُذكر اسمها صراحة داخل النص).
+    // Filename-derived org hints — only when the filename explicitly names the
+    // institution ("كافي للتنمية" / "مؤسسة كافي" / uppercase code KAFI). A bare
+    // word like "كافي" is NOT enough; it means "enough" in Arabic and would
+    // wrongly attribute unrelated reports to كافي للتنمية.
     const filenameOrgs = new Set<string>();
-    const fnCheck = fileName.toLowerCase();
-    if (/كافي|kafi/i.test(fileName)) filenameOrgs.add("KAFI");
-    if (/تيو|tayo/i.test(fileName)) filenameOrgs.add("TAYO");
-    if (/زاد|zad/i.test(fileName)) filenameOrgs.add("ZAD");
-    if (/حمد[يى]|hamdi/i.test(fileName)) filenameOrgs.add("HAMDI");
-    if (/جامعة\s*زمزم|zust/i.test(fileName)) filenameOrgs.add("ZUST");
-    if (/زمزم|zamzam|^zf$/i.test(fileName) && !filenameOrgs.has("ZUST")) filenameOrgs.add("ZF");
-    // التقارير المالية الشهرية تُنسب افتراضياً إلى كافي (جهة الرقابة المالية)
-    if (/التقرير\s*المالي|القوائم\s*المالية|financial/i.test(fnCheck)) filenameOrgs.add("KAFI");
+    if (/كافي\s*للتنمية|مؤسسة\s*كافي|\bKAFI\b/.test(fileName)) filenameOrgs.add("KAFI");
+    if (/مؤسسة\s*تيو|تيو\s*للتنمية|\bTAYO\b/.test(fileName)) filenameOrgs.add("TAYO");
+    if (/مؤسسة\s*زاد|زاد\s*للتنمية|\bZAD\b/.test(fileName)) filenameOrgs.add("ZAD");
+    if (/مؤسسة\s*حمد[يى]|حمد[يى]\s*للتنمية|\bHAMDI\b/i.test(fileName)) filenameOrgs.add("HAMDI");
+    if (/جامعة\s*زمزم|\bZUST\b/.test(fileName)) filenameOrgs.add("ZUST");
+    if ((/مؤسسة\s*زمزم|زمزم\s*للتنمية|\bZamzam\b|(^|[^A-Za-z])ZF([^A-Za-z]|$)/.test(fileName)) && !filenameOrgs.has("ZUST")) filenameOrgs.add("ZF");
+    // NOTE: financial reports are no longer auto-attributed to كافي. Attribution
+    // now requires the file name or content to explicitly reference the org.
 
     await supabaseAdmin.from("document_extractions").insert({
       upload_id: uploadId,
