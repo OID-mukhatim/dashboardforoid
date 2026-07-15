@@ -1173,7 +1173,7 @@ function FinancialSection() {
       )}
 
       {tab === "program" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {(Object.entries(financialProgram) as ["ZUST"|"ZAD"|"TAYO"|"KAFI", any[]][]).map(([id, rows]) => {
             const o = ORGS.find(x => x.id === id)!;
             const doneCount = rows.filter(r => r.status === "done").length;
