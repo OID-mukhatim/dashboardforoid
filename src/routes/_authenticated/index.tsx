@@ -1119,7 +1119,7 @@ function FinancialSection() {
       {tab === "assess" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(Object.entries(financialAssessment) as ["ZUST"|"ZAD"|"TAYO", any][]).map(([id, a]) => {
+            {(Object.entries(financialAssessment) as ["ZUST"|"ZAD"|"TAYO"|"KAFI", any][]).map(([id, a]) => {
               const o = ORGS.find(x => x.id === id)!;
               return (
                 <Card key={id} className="p-5">
@@ -1141,7 +1141,7 @@ function FinancialSection() {
           <Card>
             <CardHeader title="التقييم التفصيلي والتوصيات" />
             <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
-              {(Object.entries(financialAssessment) as ["ZUST"|"ZAD"|"TAYO", any][]).map(([id, a]) => {
+              {(Object.entries(financialAssessment) as ["ZUST"|"ZAD"|"TAYO"|"KAFI", any][]).map(([id, a]) => {
                 const o = ORGS.find(x => x.id === id)!;
                 return (
                   <div key={id} className="space-y-3">
@@ -1174,7 +1174,7 @@ function FinancialSection() {
 
       {tab === "program" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {(Object.entries(financialProgram) as ["ZUST"|"ZAD"|"TAYO", any[]][]).map(([id, rows]) => {
+          {(Object.entries(financialProgram) as ["ZUST"|"ZAD"|"TAYO"|"KAFI", any[]][]).map(([id, rows]) => {
             const o = ORGS.find(x => x.id === id)!;
             const doneCount = rows.filter(r => r.status === "done").length;
             const pct = Math.round((doneCount / rows.length) * 100);
