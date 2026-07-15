@@ -7,15 +7,19 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+/** Strict entity matching — avoid false positives from generic Arabic words.
+ *  "كافي" alone means "enough"; "زاد" means "increased"; "تيو" can appear in
+ *  unrelated contexts. Require a qualifier ("للتنمية" / "مؤسسة" / "شركة") or
+ *  an explicit section header pattern (e.g. "رابعا: كافي للتنمية"). */
 function isValidEntity(name: string): { id: string; name: string } | null {
   const s = (name ?? "").trim();
   const aliases: Array<{ id: string; patterns: RegExp[] }> = [
-    { id: "TAYO", patterns: [/تيو/, /tayo/i] },
-    { id: "KAFI", patterns: [/كافي/, /kafi/i] },
-    { id: "ZF", patterns: [/زمزم/, /zamzam/i, /^\s*zf\s*$/i] },
-    { id: "ZUST", patterns: [/جامعة\s*زمزم/, /zust/i] },
-    { id: "ZAD", patterns: [/زاد/, /zad/i] },
-    { id: "HAMDI", patterns: [/حمد[يى]/, /hamdi/i] },
+    { id: "TAYO", patterns: [/مؤسسة\s*تيو/, /شركة\s*تيو/, /تيو\s*للتنمية/, /\bTAYO\b/] },
+    { id: "KAFI", patterns: [/كافي\s*للتنمية/, /مؤسسة\s*كافي/, /شركة\s*كافي/, /\bKAFI\b/] },
+    { id: "ZF", patterns: [/مؤسسة\s*زمزم/, /شركة\s*زمزم/, /زمزم\s*للتنمية/, /\bZamzam\b/, /^\s*ZF\s*$/] },
+    { id: "ZUST", patterns: [/جامعة\s*زمزم/, /\bZUST\b/] },
+    { id: "ZAD", patterns: [/مؤسسة\s*زاد/, /شركة\s*زاد/, /زاد\s*للتنمية/, /\bZAD\b/] },
+    { id: "HAMDI", patterns: [/مؤسسة\s*حمد[يى]/, /شركة\s*حمد[يى]/, /حمد[يى]\s*للتنمية/, /\bHAMDI\b/i] },
   ];
   for (const a of aliases) {
     if (a.patterns.some((re) => re.test(s))) return { id: a.id, name: s };
