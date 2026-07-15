@@ -20,6 +20,8 @@ import {
   partnerships, institutions, initiatives, alerts,
 } from "@/lib/oid-data";
 import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
+import { OverdueBadge } from "@/components/oid/OverdueBadge";
+import { detectDeadline } from "@/lib/oid-overdue";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DataStateLegend } from "@/components/oid/DataStateCell";
 import { AnomaliesPanel } from "@/components/oid/AnomaliesPanel";
