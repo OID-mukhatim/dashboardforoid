@@ -209,7 +209,18 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
     // NOTE: financial reports are no longer auto-attributed to كافي. Attribution
     // now requires the file name or content to explicitly reference the org.
 
-    const extractionRows = [{
+    const extractionRows: Array<{
+      upload_id: string;
+      file_path: string;
+      file_name: string;
+      text_preview: string;
+      entities: never;
+      org_mentions: never;
+      numbers_found: never;
+      summary: string;
+      kind: string;
+      entity_code: string | null;
+    }> = [{
       upload_id: uploadId,
       file_path: filePath,
       file_name: fileName,
@@ -248,14 +259,13 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
       .select("id");
     if (insertErr) throw insertErr;
 
-    const insertedIds = (insertedRows ?? []).map((row) => row.id);
-    const { data: staleRows, error: staleReadErr } = await supabaseAdmin
+    const insertedIds = new Set((insertedRows ?? []).map((row) => row.id));
+    const { data: allRows, error: staleReadErr } = await supabaseAdmin
       .from("document_extractions")
       .select("id")
-      .eq("upload_id", uploadId)
-      .not("id", "in", `(${insertedIds.join(",")})`);
+      .eq("upload_id", uploadId);
     if (staleReadErr) throw staleReadErr;
-    const staleIds = (staleRows ?? []).map((row) => row.id);
+    const staleIds = (allRows ?? []).map((row) => row.id).filter((id) => !insertedIds.has(id));
     if (staleIds.length) {
       const { error: staleDeleteErr } = await supabaseAdmin
         .from("document_extractions")
