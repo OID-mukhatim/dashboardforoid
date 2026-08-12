@@ -179,3 +179,40 @@ export const loadInstitutionalProfiles = createServerFn({ method: "GET" })
     return out;
   });
 
+
+export type QuarterlyReportRecord = {
+  id: string;
+  orgCode: string | null;
+  fileName: string;
+  quarter: string | null;
+  year: number | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any;
+  createdAt: string;
+};
+
+/** التقارير الربعية المستخرجة من ملفات Excel المرفوعة. */
+export const loadQuarterlyReports = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("document_extractions")
+      .select("id, entity_code, file_name, payload, created_at")
+      .eq("kind", "quarterly_report")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+
+    const out: QuarterlyReportRecord[] = [];
+    const seen = new Set<string>();
+    for (const r of data ?? []) {
+      const p = (r.payload ?? {}) as Record<string, unknown>;
+      const orgCode = (r.entity_code as string | null) ?? ((p.org_code as string | null) ?? null);
+      const quarter = (p.quarter as string | null) ?? null;
+      const year = typeof p.year === "number" ? p.year : null;
+      const key = `${orgCode ?? "?"}|${quarter ?? "?"}|${year ?? "?"}`;
+      if (seen.has(key)) continue; // الأحدث يفوز
+      seen.add(key);
+      out.push({ id: r.id, orgCode, fileName: r.file_name, quarter, year, payload: p, createdAt: r.created_at });
+    }
+    return out;
+  });

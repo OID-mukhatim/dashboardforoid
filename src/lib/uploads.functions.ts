@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseQuarterlySheet } from "./quarterly-parse";
 
 // Column index mapping from the KPI template (row 3 is header):
 // 0: م (row number)  — sheet header is "مكتب الإشراف..."
@@ -284,6 +285,7 @@ export const parseUpload = createServerFn({ method: "POST" })
       const sheetsSummary: Array<{ name: string; rows: number; kpis: number; matrix?: number; skipped?: boolean; reason?: string }> = [];
       const matrixRows: Array<Record<string, unknown>> = [];
       const spreadsheetExtracts: Array<Record<string, unknown>> = [];
+      const quarterlyRows: Array<Record<string, unknown>> = [];
 
       // Per-org accumulator for Gaps/Governance template files.
       // Merged into matrixRows after the per-sheet loop.
@@ -619,6 +621,45 @@ export const parseUpload = createServerFn({ method: "POST" })
           continue;
         }
 
+        // ── قالب التقرير الربعي ──────────────────────────────────────────────
+        {
+          const qr = parseQuarterlySheet(aoa);
+          if (qr) {
+            const orgHit = detectKnownOrg(qr.orgName ?? "") ?? detectKnownOrg(originalFileName);
+            const yearMatch = (originalFileName + " " + data.filePath).match(/20\d{2}/);
+            const quarterMatch = qr.quarter ?? ((originalFileName + " " + data.filePath).match(/Q[1-4]/i)?.[0]?.toUpperCase() ?? null);
+            quarterlyRows.push({
+              upload_id: data.uploadId,
+              kind: "quarterly_report",
+              entity_code: orgHit?.code ?? null,
+              file_path: data.filePath,
+              file_name: originalFileName,
+              text_preview: spreadsheetTextPreview(aoa),
+              payload: {
+                ...qr,
+                quarter: quarterMatch,
+                year: yearMatch ? Number(yearMatch[0]) : null,
+                org_code: orgHit?.code ?? null,
+                sheet_name: sheetName,
+              } as unknown as never,
+              summary: `تقرير ربعي — ${orgHit?.name ?? qr.orgName ?? originalFileName} (${quarterMatch ?? "?"})`,
+              org_mentions: (orgHit ? [orgHit.code] : []) as unknown as never,
+              entities: (orgHit ? [{ code: orgHit.code, name: orgHit.name }] : []) as unknown as never,
+              numbers_found: [] as unknown as never,
+            });
+            sheetsSummary.push({
+              name: sheetName,
+              rows: aoa.length,
+              kpis: 0,
+              reason: `تقرير ربعي: ${qr.achievements.length} إنجاز، ${qr.events.length} فعالية، ${qr.challenges.length} تحدٍ، ${qr.recommendations.length} توصية`,
+            });
+            const sheetPct = 20 + Math.round(((si + 1) / totalSheets) * 30);
+            await setProgress("reading_sheets", sheetPct, `ورقة ${si + 1}/${totalSheets}: ${sheetName} (تقرير ربعي)`);
+            continue;
+          }
+        }
+
+
         if (!sheetLooksKpi) {
           const preview = spreadsheetTextPreview(aoa);
           if (preview) {
@@ -728,6 +769,13 @@ export const parseUpload = createServerFn({ method: "POST" })
         if (mErr) throw mErr;
       }
 
+      if (quarterlyRows.length) {
+        const { error: qErr } = await supabaseAdmin
+          .from("document_extractions")
+          .insert(quarterlyRows as never);
+        if (qErr) throw qErr;
+      }
+
       if (spreadsheetExtracts.length) {
         const { error: sErr } = await supabaseAdmin
           .from("document_extractions")
@@ -766,10 +814,11 @@ export const parseUpload = createServerFn({ method: "POST" })
         .from("uploads")
         .update({
           status: "processed",
-          rows_extracted: upserted || matrixRows.length || spreadsheetExtracts.length,
+          rows_extracted: upserted || matrixRows.length || quarterlyRows.length || spreadsheetExtracts.length,
           extracted_summary: {
             sheets: sheetsSummary,
-            classification: matrixRows.length ? "institutional_matrix" : kpiRows.length ? "kpi" : fileIsInstitutional ? "institutional_spreadsheet" : "spreadsheet_data",
+            quarterly_reports: quarterlyRows.length,
+            classification: quarterlyRows.length ? "quarterly_report" : matrixRows.length ? "institutional_matrix" : kpiRows.length ? "kpi" : fileIsInstitutional ? "institutional_spreadsheet" : "spreadsheet_data",
             selected_data_type: selectedDataType,
             matrix_rows: matrixRows.length,
             spreadsheet_extractions: spreadsheetExtracts.length,
