@@ -32,7 +32,7 @@ import { openOrgProfile } from "@/lib/oid-drill";
 import { formatScore, formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
 import { MATURITY_SCALE } from "@/lib/oid-maturity";
 import { BSC_PERSPECTIVES, BSC_LABELS, matchPerspective, perspectiveLabelOf } from "@/lib/oid-bsc";
-import { loadDashboardSnapshot, loadInstitutionalProfiles, loadQuarterlyReports } from "@/lib/dashboard.functions";
+import { loadDashboardSnapshot, loadInstitutionalProfiles, loadQuarterlyReports, type QuarterlyReportRecord } from "@/lib/dashboard.functions";
 import { computeProfileFromLive } from "@/lib/oid-composite";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Page });
@@ -795,12 +795,14 @@ function QuarterlySection() {
     refetchInterval: 15000,
   });
 
-  const live = useMemo(() => (reports ?? []).filter((r) => {
+  const rows = (reports ?? []) as QuarterlyReportRecord[];
+
+  const live = useMemo(() => rows.filter((r) => {
     const okOrg = filters.org === "all" || r.orgCode === filters.org;
     const okQ = filters.quarter === "all" || (r.quarter ?? "") === filters.quarter;
     const okY = filters.year === "all" || String(r.year ?? "") === filters.year;
     return okOrg && okQ && okY;
-  }), [reports, filters]);
+  }), [rows, filters]);
 
   const achievements = useMemo(() => live.flatMap((r) =>
     (((r.payload as any)?.achievements ?? []) as QAch[]).map((a, i) => ({ ...a, _k: `${r.id}-${i}`, org: r.orgCode, quarter: r.quarter, year: r.year }))
@@ -815,7 +817,7 @@ function QuarterlySection() {
     (((r.payload as any)?.recommendations ?? []) as string[]).map((t, i) => ({ text: t, _k: `${r.id}-r${i}`, org: r.orgCode, quarter: r.quarter }))
   ), [live]);
 
-  const totalAch = (reports ?? []).reduce((s, r) => s + (((r.payload as any)?.achievements ?? []) as unknown[]).length, 0);
+  const totalAch = rows.reduce((s, r) => s + (((r.payload as any)?.achievements ?? []) as unknown[]).length, 0);
   const hasActive = filters.org !== "all" || filters.quarter !== "all" || filters.year !== "all";
   const orgOpts = [{ value: "all", label: "جميع المؤسسات" }, ...ORGS.map((o) => ({ value: o.id, label: o.nameAr }))];
   const qOpts = [
@@ -823,10 +825,10 @@ function QuarterlySection() {
     { value: "Q1", label: "الربع الأول" }, { value: "Q2", label: "الربع الثاني" },
     { value: "Q3", label: "الربع الثالث" }, { value: "Q4", label: "الربع الرابع" },
   ];
-  const years = Array.from(new Set((reports ?? []).map((r) => r.year).filter(Boolean))).sort() as number[];
+  const years = Array.from(new Set(rows.map((r) => r.year).filter(Boolean))).sort() as number[];
   const yOpts = [{ value: "all", label: "جميع السنوات" }, ...years.map((y) => ({ value: String(y), label: String(y) }))];
-  const subtitle = (reports ?? []).length
-    ? `${(reports ?? []).length} تقرير مرفوع — ${Array.from(new Set((reports ?? []).map((r) => `${r.quarter ?? "?"} ${r.year ?? ""}`.trim()))).join("، ")}`
+  const subtitle = rows.length
+    ? `${rows.length} تقرير مرفوع — ${Array.from(new Set(rows.map((r) => `${r.quarter ?? "?"} ${r.year ?? ""}`.trim()))).join("، ")}`
     : "لا توجد تقارير مرفوعة بعد";
 
   return (
