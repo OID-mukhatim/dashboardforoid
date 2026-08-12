@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseQuarterlySheet } from "./quarterly-parse";
 
 // Column index mapping from the KPI template (row 3 is header):
 // 0: م (row number)  — sheet header is "مكتب الإشراف..."
@@ -284,6 +285,7 @@ export const parseUpload = createServerFn({ method: "POST" })
       const sheetsSummary: Array<{ name: string; rows: number; kpis: number; matrix?: number; skipped?: boolean; reason?: string }> = [];
       const matrixRows: Array<Record<string, unknown>> = [];
       const spreadsheetExtracts: Array<Record<string, unknown>> = [];
+      const quarterlyRows: Array<Record<string, unknown>> = [];
 
       // Per-org accumulator for Gaps/Governance template files.
       // Merged into matrixRows after the per-sheet loop.
@@ -767,6 +769,13 @@ export const parseUpload = createServerFn({ method: "POST" })
         if (mErr) throw mErr;
       }
 
+      if (quarterlyRows.length) {
+        const { error: qErr } = await supabaseAdmin
+          .from("document_extractions")
+          .insert(quarterlyRows as never);
+        if (qErr) throw qErr;
+      }
+
       if (spreadsheetExtracts.length) {
         const { error: sErr } = await supabaseAdmin
           .from("document_extractions")
@@ -805,10 +814,11 @@ export const parseUpload = createServerFn({ method: "POST" })
         .from("uploads")
         .update({
           status: "processed",
-          rows_extracted: upserted || matrixRows.length || spreadsheetExtracts.length,
+          rows_extracted: upserted || matrixRows.length || quarterlyRows.length || spreadsheetExtracts.length,
           extracted_summary: {
             sheets: sheetsSummary,
-            classification: matrixRows.length ? "institutional_matrix" : kpiRows.length ? "kpi" : fileIsInstitutional ? "institutional_spreadsheet" : "spreadsheet_data",
+            quarterly_reports: quarterlyRows.length,
+            classification: quarterlyRows.length ? "quarterly_report" : matrixRows.length ? "institutional_matrix" : kpiRows.length ? "kpi" : fileIsInstitutional ? "institutional_spreadsheet" : "spreadsheet_data",
             selected_data_type: selectedDataType,
             matrix_rows: matrixRows.length,
             spreadsheet_extractions: spreadsheetExtracts.length,
