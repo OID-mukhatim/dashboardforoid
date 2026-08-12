@@ -619,6 +619,45 @@ export const parseUpload = createServerFn({ method: "POST" })
           continue;
         }
 
+        // ── قالب التقرير الربعي ──────────────────────────────────────────────
+        {
+          const qr = parseQuarterlySheet(aoa);
+          if (qr) {
+            const orgHit = detectKnownOrg(qr.orgName ?? "") ?? detectKnownOrg(originalFileName);
+            const yearMatch = (originalFileName + " " + data.filePath).match(/20\d{2}/);
+            const quarterMatch = qr.quarter ?? ((originalFileName + " " + data.filePath).match(/Q[1-4]/i)?.[0]?.toUpperCase() ?? null);
+            quarterlyRows.push({
+              upload_id: data.uploadId,
+              kind: "quarterly_report",
+              entity_code: orgHit?.code ?? null,
+              file_path: data.filePath,
+              file_name: originalFileName,
+              text_preview: spreadsheetTextPreview(aoa),
+              payload: {
+                ...qr,
+                quarter: quarterMatch,
+                year: yearMatch ? Number(yearMatch[0]) : null,
+                org_code: orgHit?.code ?? null,
+                sheet_name: sheetName,
+              } as unknown as never,
+              summary: `تقرير ربعي — ${orgHit?.name ?? qr.orgName ?? originalFileName} (${quarterMatch ?? "?"})`,
+              org_mentions: (orgHit ? [orgHit.code] : []) as unknown as never,
+              entities: (orgHit ? [{ code: orgHit.code, name: orgHit.name }] : []) as unknown as never,
+              numbers_found: [] as unknown as never,
+            });
+            sheetsSummary.push({
+              name: sheetName,
+              rows: aoa.length,
+              kpis: 0,
+              reason: `تقرير ربعي: ${qr.achievements.length} إنجاز، ${qr.events.length} فعالية، ${qr.challenges.length} تحدٍ، ${qr.recommendations.length} توصية`,
+            });
+            const sheetPct = 20 + Math.round(((si + 1) / totalSheets) * 30);
+            await setProgress("reading_sheets", sheetPct, `ورقة ${si + 1}/${totalSheets}: ${sheetName} (تقرير ربعي)`);
+            continue;
+          }
+        }
+
+
         if (!sheetLooksKpi) {
           const preview = spreadsheetTextPreview(aoa);
           if (preview) {
