@@ -100,7 +100,10 @@ function GlobalHScrollbar() {
     const moveTable = () => {
       if (syncingFromTable.current) return;
       const table = activeRef.current;
-      if (table) table.scrollLeft = bar.scrollLeft;
+      if (!table) return;
+      const tMax = table.scrollWidth - table.clientWidth;
+      const bMax = bar.scrollWidth - bar.clientWidth;
+      table.scrollLeft = bMax > 0 ? (bar.scrollLeft / bMax) * tMax : 0;
     };
     const startDragging = () => {
       draggingBar.current = true;
