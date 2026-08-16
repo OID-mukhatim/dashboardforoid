@@ -780,6 +780,15 @@ function CircularProgress({ value, color }: { value: number; color: string }) {
 /* ============================ QUARTERLY ============================ */
 type QAch = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; beneficiaries: number|null; location: string|null; budget: number|null; cost: number|null; variance: number|null; outcomes: string|null };
 type QEv = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; participants: number|null; location: string|null; evaluation: string|null };
+
+/** نسبة الإنجاز المعتمدة: تُحتسب من (المنفذ ÷ المستهدف) لأن بعض الملفات تخزّن نسبة الانحراف بدل نسبة الإنجاز */
+function effPct(a: { target: number|null; achieved: number|null; pct: number|null }): number | null {
+  const t = a.target, ac = a.achieved;
+  if (typeof t === "number" && t !== 0 && typeof ac === "number") {
+    return Math.round((ac / t) * 1000) / 10;
+  }
+  return a.pct;
+}
 type QCh = { n: number|null; title: string; impact: string|null; reasons: string|null; actions: string|null; status: string|null; requiredSupport: string|null };
 
 function QuarterlySection() {
@@ -805,10 +814,10 @@ function QuarterlySection() {
   }), [rows, filters]);
 
   const achievements = useMemo(() => live.flatMap((r) =>
-    (((r.payload as any)?.achievements ?? []) as QAch[]).map((a, i) => ({ ...a, _k: `${r.id}-${i}`, org: r.orgCode, quarter: r.quarter, year: r.year }))
+    (((r.payload as any)?.achievements ?? []) as QAch[]).map((a, i) => ({ ...a, pct: effPct(a), _k: `${r.id}-${i}`, org: r.orgCode, quarter: r.quarter, year: r.year }))
   ), [live]);
   const events = useMemo(() => live.flatMap((r) =>
-    (((r.payload as any)?.events ?? []) as QEv[]).map((a, i) => ({ ...a, _k: `${r.id}-e${i}`, org: r.orgCode, quarter: r.quarter }))
+    (((r.payload as any)?.events ?? []) as QEv[]).map((a, i) => ({ ...a, pct: effPct(a), _k: `${r.id}-e${i}`, org: r.orgCode, quarter: r.quarter }))
   ), [live]);
   const challenges = useMemo(() => live.flatMap((r) =>
     (((r.payload as any)?.challenges ?? []) as QCh[]).map((a, i) => ({ ...a, _k: `${r.id}-c${i}`, org: r.orgCode, quarter: r.quarter }))
@@ -892,7 +901,7 @@ function QuarterlySection() {
                     <td className="px-3 py-2 text-xs tabular-nums">{r.achieved ?? "—"}</td>
                     <td className="px-3 py-2 min-w-[120px]">
                       {r.pct === null ? <span className="text-xs text-muted-foreground">—</span> : (
-                        <div className="flex items-center gap-2"><Progress value={Math.min(100, r.pct)} /><span className="text-xs tabular-nums">{Math.round(r.pct)}%</span></div>
+                        <div className="flex items-center gap-2"><Progress value={Math.min(100, Math.max(0, r.pct))} /><span className="text-xs tabular-nums">{Math.round(r.pct)}%</span></div>
                       )}
                     </td>
                     <td className="px-3 py-2 text-xs tabular-nums">{r.beneficiaries ?? "—"}</td>
@@ -927,7 +936,11 @@ function QuarterlySection() {
                       <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
                       <td className="px-3 py-2 text-xs tabular-nums">{r.target ?? "—"}</td>
                       <td className="px-3 py-2 text-xs tabular-nums">{r.achieved ?? "—"}</td>
-                      <td className="px-3 py-2 text-xs tabular-nums">{r.pct === null ? "—" : `${Math.round(r.pct)}%`}</td>
+                      <td className="px-3 py-2 min-w-[120px]">
+                        {r.pct === null ? <span className="text-xs text-muted-foreground">—</span> : (
+                          <div className="flex items-center gap-2"><Progress value={Math.min(100, Math.max(0, r.pct))} /><span className="text-xs tabular-nums">{Math.round(r.pct)}%</span></div>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-xs tabular-nums">{r.participants ?? "—"}</td>
                       <td className="px-3 py-2 text-xs">{r.evaluation ?? "—"}</td>
                     </tr>
