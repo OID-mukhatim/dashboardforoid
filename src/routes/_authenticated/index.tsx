@@ -780,6 +780,15 @@ function CircularProgress({ value, color }: { value: number; color: string }) {
 /* ============================ QUARTERLY ============================ */
 type QAch = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; beneficiaries: number|null; location: string|null; budget: number|null; cost: number|null; variance: number|null; outcomes: string|null };
 type QEv = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; participants: number|null; location: string|null; evaluation: string|null };
+
+/** نسبة الإنجاز المعتمدة: تُحتسب من (المنفذ ÷ المستهدف) لأن بعض الملفات تخزّن نسبة الانحراف بدل نسبة الإنجاز */
+function effPct(a: { target: number|null; achieved: number|null; pct: number|null }): number | null {
+  const t = a.target, ac = a.achieved;
+  if (typeof t === "number" && t !== 0 && typeof ac === "number") {
+    return Math.round((ac / t) * 1000) / 10;
+  }
+  return a.pct;
+}
 type QCh = { n: number|null; title: string; impact: string|null; reasons: string|null; actions: string|null; status: string|null; requiredSupport: string|null };
 
 function QuarterlySection() {
