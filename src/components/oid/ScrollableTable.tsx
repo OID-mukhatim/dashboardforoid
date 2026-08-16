@@ -117,12 +117,19 @@ export function ScrollableTable({ children, maxHeight, className = "" }: Props) 
 
   return (
     <div className={`relative ${className}`} dir="ltr">
-      {/* شريط تمرير علوي ثابت ومزامن */}
+      {/* شريط تمرير علوي ثابت ومزامن — يظهر فقط عند وجود محتوى مخفي */}
       <div
         ref={topRef}
         onScroll={onTopScroll}
         className="st-topbar"
-        style={{ overflowX: "auto", overflowY: "hidden", height: 12 }}
+        style={{
+          overflowX: "auto",
+          overflowY: "hidden",
+          height: overflowing ? 14 : 0,
+          position: "sticky",
+          top: 0,
+          zIndex: 6,
+        }}
       >
         <div style={{ width: scrollWidth, height: 1 }} />
       </div>
