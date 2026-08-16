@@ -69,8 +69,11 @@ function GlobalHScrollbar() {
         setBox({ left: Math.max(0, r.left), width: Math.min(r.width, window.innerWidth) });
         setWidth(el.scrollWidth);
         if (barRef.current && !draggingBar.current) {
+          const bar = barRef.current;
+          const tMax = el.scrollWidth - el.clientWidth;
+          const bMax = bar.scrollWidth - bar.clientWidth;
           syncingFromTable.current = true;
-          barRef.current.scrollLeft = el.scrollLeft;
+          bar.scrollLeft = tMax > 0 ? (el.scrollLeft / tMax) * bMax : 0;
           requestAnimationFrame(() => (syncingFromTable.current = false));
         }
       } else {
@@ -97,7 +100,10 @@ function GlobalHScrollbar() {
     const moveTable = () => {
       if (syncingFromTable.current) return;
       const table = activeRef.current;
-      if (table) table.scrollLeft = bar.scrollLeft;
+      if (!table) return;
+      const tMax = table.scrollWidth - table.clientWidth;
+      const bMax = bar.scrollWidth - bar.clientWidth;
+      table.scrollLeft = bMax > 0 ? (bar.scrollLeft / bMax) * tMax : 0;
     };
     const startDragging = () => {
       draggingBar.current = true;
