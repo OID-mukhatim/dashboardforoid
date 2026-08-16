@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { listUsers, createUser, setUserRoles, deleteUser, resetUserPassword } from "@/lib/users.functions";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { ArrowRight, Plus, Trash2, Shield, Loader2, X, KeyRound, Eye, EyeOff } from "lucide-react";
+import { ScrollableTable } from "@/components/oid/ScrollableTable";
 
 export const Route = createFileRoute("/_authenticated/users")({
   ssr: false,
