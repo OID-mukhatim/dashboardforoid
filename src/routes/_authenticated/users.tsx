@@ -90,7 +90,8 @@ function UsersPage() {
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">جاري التحميل…</div>
           ) : (
-            <table className="w-full text-sm">
+            <ScrollableTable>
+            <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-muted/50 text-xs">
                 <tr>
                   <th className="text-right p-3">البريد</th>
@@ -156,6 +157,7 @@ function UsersPage() {
                 )}
               </tbody>
             </table>
+            </ScrollableTable>
           )}
         </div>
       </div>
