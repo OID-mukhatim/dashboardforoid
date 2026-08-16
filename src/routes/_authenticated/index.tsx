@@ -2672,8 +2672,9 @@ function UploadSection() {
                   {preview.result.updated.length > 0 && (
                     <div>
                       <div className="font-semibold text-sm mb-2">تفاصيل المؤشرات المُحدَّثة ({preview.result.updated.length}):</div>
-                      <div className="max-h-[300px] overflow-y-auto border border-border rounded-lg">
-                        <table className="w-full text-xs">
+                      <div className="border border-border rounded-lg">
+                        <ScrollableTable maxHeight={300}>
+                        <table className="w-full text-xs min-w-[520px]">
                           <thead className="bg-muted/50 sticky top-0">
                             <tr className="text-right">
                               <th className="p-2">الكود</th><th className="p-2">الحقل</th>
