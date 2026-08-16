@@ -52,25 +52,26 @@ let barMounted = false;
 
 function GlobalHScrollbar() {
   const barRef = useRef<HTMLDivElement | null>(null);
+  const activeRef = useRef<HTMLElement | null>(null);
   const [active, setActive] = useState<HTMLElement | null>(null);
   const [width, setWidth] = useState(0);
   const [box, setBox] = useState<{ left: number; width: number } | null>(null);
-  const syncing = useRef(false);
-  const userScrolling = useRef(false);
-  const scrollEndTimer = useRef<number | null>(null);
+  const syncingFromTable = useRef(false);
+  const draggingBar = useRef(false);
 
   useEffect(() => {
     const update = () => {
       const el = pickActive();
+      activeRef.current = el;
       setActive(el);
       if (el) {
         const r = el.getBoundingClientRect();
         setBox({ left: Math.max(0, r.left), width: Math.min(r.width, window.innerWidth) });
         setWidth(el.scrollWidth);
-        if (barRef.current && !syncing.current && !userScrolling.current) {
-          syncing.current = true;
+        if (barRef.current && !draggingBar.current) {
+          syncingFromTable.current = true;
           barRef.current.scrollLeft = el.scrollLeft;
-          requestAnimationFrame(() => (syncing.current = false));
+          requestAnimationFrame(() => (syncingFromTable.current = false));
         }
       } else {
         setBox(null);
@@ -86,9 +87,36 @@ function GlobalHScrollbar() {
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
       window.clearInterval(id);
-      if (scrollEndTimer.current !== null) window.clearTimeout(scrollEndTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+
+    const moveTable = () => {
+      if (syncingFromTable.current) return;
+      const table = activeRef.current;
+      if (table) table.scrollLeft = bar.scrollLeft;
+    };
+    const startDragging = () => {
+      draggingBar.current = true;
+    };
+    const stopDragging = () => {
+      moveTable();
+      draggingBar.current = false;
+    };
+
+    // مستمع DOM مباشر لضمان التقاط حركة شريط المتصفح داخل الـ portal.
+    bar.addEventListener("scroll", moveTable, { passive: true });
+    bar.addEventListener("pointerdown", startDragging);
+    window.addEventListener("pointerup", stopDragging);
+    return () => {
+      bar.removeEventListener("scroll", moveTable);
+      bar.removeEventListener("pointerdown", startDragging);
+      window.removeEventListener("pointerup", stopDragging);
+    };
+  }, [active]);
 
   if (!active || !box) return null;
 
@@ -97,19 +125,6 @@ function GlobalHScrollbar() {
       ref={barRef}
       dir="ltr"
       className="oid-hbar"
-      onScroll={() => {
-        if (syncing.current) return;
-        userScrolling.current = true;
-        if (scrollEndTimer.current !== null) window.clearTimeout(scrollEndTimer.current);
-        syncing.current = true;
-        if (active && barRef.current) active.scrollLeft = barRef.current.scrollLeft;
-        requestAnimationFrame(() => {
-          syncing.current = false;
-          scrollEndTimer.current = window.setTimeout(() => {
-            userScrolling.current = false;
-          }, 180);
-        });
-      }}
       style={{
         position: "fixed",
         bottom: 0,
@@ -150,6 +165,11 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
     ro.observe(el);
     const onScroll = () => notify();
     el.addEventListener("scroll", onScroll);
+    // يبدأ العرض من الطرف الأيمن لأن المحتوى عربي.
+    requestAnimationFrame(() => {
+      el.scrollLeft = el.scrollWidth - el.clientWidth;
+      notify();
+    });
     return () => {
       un();
       ro.disconnect();
