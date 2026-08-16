@@ -2694,6 +2694,7 @@ function UploadSection() {
                             )}
                           </tbody>
                         </table>
+                        </ScrollableTable>
                       </div>
                     </div>
                   )}
