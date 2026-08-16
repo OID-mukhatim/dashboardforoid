@@ -805,10 +805,10 @@ function QuarterlySection() {
   }), [rows, filters]);
 
   const achievements = useMemo(() => live.flatMap((r) =>
-    (((r.payload as any)?.achievements ?? []) as QAch[]).map((a, i) => ({ ...a, _k: `${r.id}-${i}`, org: r.orgCode, quarter: r.quarter, year: r.year }))
+    (((r.payload as any)?.achievements ?? []) as QAch[]).map((a, i) => ({ ...a, pct: effPct(a), _k: `${r.id}-${i}`, org: r.orgCode, quarter: r.quarter, year: r.year }))
   ), [live]);
   const events = useMemo(() => live.flatMap((r) =>
-    (((r.payload as any)?.events ?? []) as QEv[]).map((a, i) => ({ ...a, _k: `${r.id}-e${i}`, org: r.orgCode, quarter: r.quarter }))
+    (((r.payload as any)?.events ?? []) as QEv[]).map((a, i) => ({ ...a, pct: effPct(a), _k: `${r.id}-e${i}`, org: r.orgCode, quarter: r.quarter }))
   ), [live]);
   const challenges = useMemo(() => live.flatMap((r) =>
     (((r.payload as any)?.challenges ?? []) as QCh[]).map((a, i) => ({ ...a, _k: `${r.id}-c${i}`, org: r.orgCode, quarter: r.quarter }))
