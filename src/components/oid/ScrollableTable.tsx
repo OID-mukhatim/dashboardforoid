@@ -21,6 +21,7 @@ export function ScrollableTable({ children, maxHeight, className = "" }: Props) 
   const topRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [scrollWidth, setScrollWidth] = useState(0);
+  const [overflowing, setOverflowing] = useState(false);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
 
@@ -30,6 +31,7 @@ export function ScrollableTable({ children, maxHeight, className = "" }: Props) 
       const el = wrapRef.current;
       if (!el) return;
       setScrollWidth(el.scrollWidth);
+      setOverflowing(el.scrollWidth - el.clientWidth > 4);
       updateArrows(el);
     };
     measure();
@@ -115,12 +117,19 @@ export function ScrollableTable({ children, maxHeight, className = "" }: Props) 
 
   return (
     <div className={`relative ${className}`} dir="ltr">
-      {/* شريط تمرير علوي ثابت ومزامن */}
+      {/* شريط تمرير علوي ثابت ومزامن — يظهر فقط عند وجود محتوى مخفي */}
       <div
         ref={topRef}
         onScroll={onTopScroll}
         className="st-topbar"
-        style={{ overflowX: "auto", overflowY: "hidden", height: 12 }}
+        style={{
+          overflowX: "auto",
+          overflowY: "hidden",
+          height: overflowing ? 14 : 0,
+          position: "sticky",
+          top: 0,
+          zIndex: 6,
+        }}
       >
         <div style={{ width: scrollWidth, height: 1 }} />
       </div>
@@ -154,6 +163,7 @@ export function ScrollableTable({ children, maxHeight, className = "" }: Props) 
       )}
 
       <style>{`
+        .st-topbar, .st-wrap { scrollbar-width: auto; scrollbar-color: var(--primary-mid, #1a7a4a) #eef2f7; }
         .st-topbar::-webkit-scrollbar { height: 10px; }
         .st-topbar::-webkit-scrollbar-thumb,
         .st-wrap::-webkit-scrollbar-thumb { background: var(--primary-mid, #1a7a4a); border-radius: 10px; }

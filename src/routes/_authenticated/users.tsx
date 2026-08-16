@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { listUsers, createUser, setUserRoles, deleteUser, resetUserPassword } from "@/lib/users.functions";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { ArrowRight, Plus, Trash2, Shield, Loader2, X, KeyRound, Eye, EyeOff } from "lucide-react";
+import { ScrollableTable } from "@/components/oid/ScrollableTable";
 
 export const Route = createFileRoute("/_authenticated/users")({
   ssr: false,
@@ -90,7 +91,8 @@ function UsersPage() {
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">جاري التحميل…</div>
           ) : (
-            <table className="w-full text-sm">
+            <ScrollableTable>
+            <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-muted/50 text-xs">
                 <tr>
                   <th className="text-right p-3">البريد</th>
@@ -156,6 +158,7 @@ function UsersPage() {
                 )}
               </tbody>
             </table>
+            </ScrollableTable>
           )}
         </div>
       </div>
