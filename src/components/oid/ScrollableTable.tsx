@@ -56,6 +56,8 @@ function GlobalHScrollbar() {
   const [width, setWidth] = useState(0);
   const [box, setBox] = useState<{ left: number; width: number } | null>(null);
   const syncing = useRef(false);
+  const userScrolling = useRef(false);
+  const scrollEndTimer = useRef<number | null>(null);
 
   useEffect(() => {
     const update = () => {
@@ -65,7 +67,7 @@ function GlobalHScrollbar() {
         const r = el.getBoundingClientRect();
         setBox({ left: Math.max(0, r.left), width: Math.min(r.width, window.innerWidth) });
         setWidth(el.scrollWidth);
-        if (barRef.current && !syncing.current) {
+        if (barRef.current && !syncing.current && !userScrolling.current) {
           syncing.current = true;
           barRef.current.scrollLeft = el.scrollLeft;
           requestAnimationFrame(() => (syncing.current = false));
@@ -84,6 +86,7 @@ function GlobalHScrollbar() {
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
       window.clearInterval(id);
+      if (scrollEndTimer.current !== null) window.clearTimeout(scrollEndTimer.current);
     };
   }, []);
 
@@ -92,12 +95,20 @@ function GlobalHScrollbar() {
   return createPortal(
     <div
       ref={barRef}
+      dir="ltr"
       className="oid-hbar"
       onScroll={() => {
         if (syncing.current) return;
+        userScrolling.current = true;
+        if (scrollEndTimer.current !== null) window.clearTimeout(scrollEndTimer.current);
         syncing.current = true;
         if (active && barRef.current) active.scrollLeft = barRef.current.scrollLeft;
-        requestAnimationFrame(() => (syncing.current = false));
+        requestAnimationFrame(() => {
+          syncing.current = false;
+          scrollEndTimer.current = window.setTimeout(() => {
+            userScrolling.current = false;
+          }, 180);
+        });
       }}
       style={{
         position: "fixed",
