@@ -882,7 +882,7 @@ function QuarterlySection() {
               <tbody>
                 {achievements.map((r, i) => (
                   <tr key={r._k} className="border-t border-border hover:bg-muted/20 align-top">
-                    <td className="px-3 py-2 tabular-nums">{r.n ?? i + 1}</td>
+                    <td className="px-3 py-2 tabular-nums">{i + 1}</td>
                     <td className="px-3 py-2 min-w-[240px]">
                       <div>{r.title}</div>
                       {r.outcomes && (
@@ -930,7 +930,7 @@ function QuarterlySection() {
                 <tbody>
                   {events.map((r, i) => (
                     <tr key={r._k} className="border-t border-border hover:bg-muted/20">
-                      <td className="px-3 py-2 tabular-nums">{r.n ?? i + 1}</td>
+                      <td className="px-3 py-2 tabular-nums">{i + 1}</td>
                       <td className="px-3 py-2">{r.title}</td>
                       <td className="px-3 py-2 font-mono text-xs text-primary">{r.code ?? "—"}</td>
                       <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
@@ -967,7 +967,7 @@ function QuarterlySection() {
                 <tbody>
                   {challenges.map((r, i) => (
                     <tr key={r._k} className="border-t border-border hover:bg-muted/20 align-top">
-                      <td className="px-3 py-2 tabular-nums">{r.n ?? i + 1}</td>
+                      <td className="px-3 py-2 tabular-nums">{i + 1}</td>
                       <td className="px-3 py-2 min-w-[200px]">{r.title}</td>
                       <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
                       <td className="px-3 py-2 text-xs whitespace-nowrap">{r.quarter ?? "—"}</td>
