@@ -163,6 +163,7 @@ export function ScrollableTable({ children, maxHeight, className = "" }: Props) 
       )}
 
       <style>{`
+        .st-topbar, .st-wrap { scrollbar-width: auto; scrollbar-color: var(--primary-mid, #1a7a4a) #eef2f7; }
         .st-topbar::-webkit-scrollbar { height: 10px; }
         .st-topbar::-webkit-scrollbar-thumb,
         .st-wrap::-webkit-scrollbar-thumb { background: var(--primary-mid, #1a7a4a); border-radius: 10px; }
