@@ -936,7 +936,11 @@ function QuarterlySection() {
                       <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
                       <td className="px-3 py-2 text-xs tabular-nums">{r.target ?? "—"}</td>
                       <td className="px-3 py-2 text-xs tabular-nums">{r.achieved ?? "—"}</td>
-                      <td className="px-3 py-2 text-xs tabular-nums">{r.pct === null ? "—" : `${Math.round(r.pct)}%`}</td>
+                      <td className="px-3 py-2 min-w-[120px]">
+                        {r.pct === null ? <span className="text-xs text-muted-foreground">—</span> : (
+                          <div className="flex items-center gap-2"><Progress value={Math.min(100, Math.max(0, r.pct))} /><span className="text-xs tabular-nums">{Math.round(r.pct)}%</span></div>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-xs tabular-nums">{r.participants ?? "—"}</td>
                       <td className="px-3 py-2 text-xs">{r.evaluation ?? "—"}</td>
                     </tr>
