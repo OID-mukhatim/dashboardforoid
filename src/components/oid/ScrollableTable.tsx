@@ -143,7 +143,7 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
         className="st-wrap"
         style={{ overflowX: "auto", overflowY: maxHeight ? "auto" : "visible", cursor: "grab", ...style }}
       >
-        <div dir="rtl">{children}</div>
+        <div dir="rtl" style={{ minWidth }}>{children}</div>
       </div>
 
       {/* أسهم تمرير بصرية */}
