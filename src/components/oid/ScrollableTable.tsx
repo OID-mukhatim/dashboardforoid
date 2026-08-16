@@ -66,14 +66,13 @@ function GlobalHScrollbar() {
       setActive(el);
       if (el) {
         const r = el.getBoundingClientRect();
-        setBox({ left: Math.max(0, r.left), width: Math.min(r.width, window.innerWidth) });
+        // نفس عرض منطقة العرض الفعلية للجدول حتى تتطابق مسافة التمرير 1:1
+        setBox({ left: Math.max(0, r.left), width: el.clientWidth });
         setWidth(el.scrollWidth);
         if (barRef.current && !draggingBar.current) {
           const bar = barRef.current;
-          const tMax = el.scrollWidth - el.clientWidth;
-          const bMax = bar.scrollWidth - bar.clientWidth;
           syncingFromTable.current = true;
-          bar.scrollLeft = tMax > 0 ? (el.scrollLeft / tMax) * bMax : 0;
+          bar.scrollLeft = el.scrollLeft;
           requestAnimationFrame(() => (syncingFromTable.current = false));
         }
       } else {
@@ -102,8 +101,7 @@ function GlobalHScrollbar() {
       const table = activeRef.current;
       if (!table) return;
       const tMax = table.scrollWidth - table.clientWidth;
-      const bMax = bar.scrollWidth - bar.clientWidth;
-      table.scrollLeft = bMax > 0 ? (bar.scrollLeft / bMax) * tMax : 0;
+      table.scrollLeft = Math.min(bar.scrollLeft, tMax);
     };
     const startDragging = () => {
       draggingBar.current = true;
