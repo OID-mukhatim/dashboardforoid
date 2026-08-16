@@ -15,9 +15,11 @@ type Props = {
   children: ReactNode;
   maxHeight?: string | number;
   className?: string;
+  /** أدنى عرض للمحتوى بالبكسل — يضمن ظهور شريط السحب الأفقي بدل ضغط الأعمدة */
+  minWidth?: number;
 };
 
-export function ScrollableTable({ children, maxHeight, className = "" }: Props) {
+export function ScrollableTable({ children, maxHeight, className = "", minWidth = 880 }: Props) {
   const topRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [scrollWidth, setScrollWidth] = useState(0);
