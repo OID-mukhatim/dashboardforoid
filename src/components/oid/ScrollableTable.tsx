@@ -125,9 +125,9 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
         onScroll={onTopScroll}
         className="st-topbar"
         style={{
-          overflowX: "auto",
+          overflowX: "scroll",
           overflowY: "hidden",
-          height: overflowing ? 14 : 0,
+          height: 16,
           position: "sticky",
           top: 0,
           zIndex: 6,
