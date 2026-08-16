@@ -165,15 +165,16 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
       )}
 
       <style>{`
-        .st-topbar, .st-wrap { scrollbar-width: auto; scrollbar-color: var(--primary-mid, #1a7a4a) #eef2f7; }
-        .st-topbar::-webkit-scrollbar { height: 10px; }
+        /* شريط تمرير دائم الظهور (مثل شريط المتصفح العمودي) */
+        .st-topbar, .st-wrap { scrollbar-width: auto; scrollbar-color: #9aa3af #eef2f7; scrollbar-gutter: stable; }
+        .st-topbar::-webkit-scrollbar,
+        .st-wrap::-webkit-scrollbar { height: 12px; width: 12px; -webkit-appearance: none; }
         .st-topbar::-webkit-scrollbar-thumb,
-        .st-wrap::-webkit-scrollbar-thumb { background: var(--primary-mid, #1a7a4a); border-radius: 10px; }
+        .st-wrap::-webkit-scrollbar-thumb { background: #9aa3af; border-radius: 999px; border: 2px solid #eef2f7; min-width: 40px; }
         .st-topbar::-webkit-scrollbar-thumb:hover,
-        .st-wrap::-webkit-scrollbar-thumb:hover { background: var(--primary, #0e4d2e); }
+        .st-wrap::-webkit-scrollbar-thumb:hover { background: var(--primary-mid, #1a7a4a); }
         .st-topbar::-webkit-scrollbar-track,
-        .st-wrap::-webkit-scrollbar-track { background: #eef2f7; border-radius: 10px; }
-        .st-wrap::-webkit-scrollbar { height: 10px; }
+        .st-wrap::-webkit-scrollbar-track { background: #eef2f7; border-radius: 999px; }
         .st-wrap.st-dragging { cursor: grabbing; user-select: none; }
         .st-arrow {
           position: absolute; top: 50%; transform: translateY(-50%);
