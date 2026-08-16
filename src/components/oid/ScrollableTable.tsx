@@ -21,6 +21,7 @@ export function ScrollableTable({ children, maxHeight, className = "" }: Props) 
   const topRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [scrollWidth, setScrollWidth] = useState(0);
+  const [overflowing, setOverflowing] = useState(false);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
 
@@ -30,6 +31,7 @@ export function ScrollableTable({ children, maxHeight, className = "" }: Props) 
       const el = wrapRef.current;
       if (!el) return;
       setScrollWidth(el.scrollWidth);
+      setOverflowing(el.scrollWidth - el.clientWidth > 4);
       updateArrows(el);
     };
     measure();
