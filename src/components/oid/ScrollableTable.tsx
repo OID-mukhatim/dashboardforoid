@@ -1,192 +1,180 @@
 /**
- * جدول قابل للتمرير أفقياً مع:
- *  - شريط تمرير علوي ثابت (Sticky Top Scrollbar) مزامن مع الجدول.
- *  - السحب بالماوس (Drag-to-Scroll).
- *  - أسهم تمرير بصرية تظهر عند وجود محتوى مخفي يميناً/يساراً.
+ * جدول قابل للتمرير أفقياً.
  *
- * الاستخدام:
- *   <ScrollableTable>
- *     <table className="w-full text-sm">…</table>
- *   </ScrollableTable>
+ * لا يوجد شريط علوي/سفلي لكل جدول — بل شريط أفقي واحد ثابت في أسفل الشاشة
+ * (بنفس مواصفات شريط التمرير العمودي الجانبي) يرتبط تلقائياً بالجدول الظاهر حالياً.
  */
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 type Props = {
   children: ReactNode;
   maxHeight?: string | number;
   className?: string;
-  /** أدنى عرض للمحتوى بالبكسل — يضمن ظهور شريط السحب الأفقي بدل ضغط الأعمدة */
+  /** أدنى عرض للمحتوى بالبكسل */
   minWidth?: number;
 };
 
-export function ScrollableTable({ children, maxHeight, className = "", minWidth = 880 }: Props) {
-  const topRef = useRef<HTMLDivElement | null>(null);
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-  const [scrollWidth, setScrollWidth] = useState(0);
-  const [overflowing, setOverflowing] = useState(false);
-  const [canLeft, setCanLeft] = useState(false);
-  const [canRight, setCanRight] = useState(false);
+/* ---------- سجل عام لكل الحاويات القابلة للتمرير ---------- */
+const registry = new Set<HTMLElement>();
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach((l) => l());
 
-  // قياس عرض المحتوى لإنشاء شريط تمرير علوي مطابق
-  useLayoutEffect(() => {
-    const measure = () => {
-      const el = wrapRef.current;
-      if (!el) return;
-      setScrollWidth(el.scrollWidth);
-      setOverflowing(el.scrollWidth - el.clientWidth > 4);
-      updateArrows(el);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    if (wrapRef.current) ro.observe(wrapRef.current);
-    window.addEventListener("resize", measure);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, [children]);
-
-  const updateArrows = (el: HTMLElement) => {
-    setCanLeft(el.scrollLeft > 5);
-    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 5);
+function register(el: HTMLElement) {
+  registry.add(el);
+  notify();
+  return () => {
+    registry.delete(el);
+    notify();
   };
+}
 
-  // مزامنة التمرير بين الشريط العلوي والجدول
+/** يختار الجدول الظاهر في الشاشة والذي يحتوي فائضاً أفقياً */
+function pickActive(): HTMLElement | null {
+  let best: HTMLElement | null = null;
+  let bestScore = -Infinity;
+  const vh = window.innerHeight;
+  registry.forEach((el) => {
+    if (el.scrollWidth - el.clientWidth < 4) return;
+    const r = el.getBoundingClientRect();
+    const visible = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+    if (visible <= 40) return;
+    if (visible > bestScore) {
+      bestScore = visible;
+      best = el;
+    }
+  });
+  return best;
+}
+
+/* ---------- الشريط الأفقي الثابت (نسخة واحدة فقط) ---------- */
+let barMounted = false;
+
+function GlobalHScrollbar() {
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const [active, setActive] = useState<HTMLElement | null>(null);
+  const [width, setWidth] = useState(0);
+  const [box, setBox] = useState<{ left: number; width: number } | null>(null);
   const syncing = useRef(false);
-  const onTopScroll = () => {
-    if (syncing.current) { syncing.current = false; return; }
-    if (topRef.current && wrapRef.current) {
-      syncing.current = true;
-      wrapRef.current.scrollLeft = topRef.current.scrollLeft;
-      updateArrows(wrapRef.current);
-    }
-  };
-  const onWrapScroll = () => {
-    if (syncing.current) { syncing.current = false; return; }
-    if (topRef.current && wrapRef.current) {
-      syncing.current = true;
-      topRef.current.scrollLeft = wrapRef.current.scrollLeft;
-      updateArrows(wrapRef.current);
-    }
-  };
 
-  // السحب بالماوس
   useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    let down = false, startX = 0, startLeft = 0, moved = false;
-    const onDown = (e: MouseEvent) => {
-      // لا نلتقط السحب فوق عناصر تفاعلية (أزرار/روابط)
-      const t = e.target as HTMLElement;
-      if (t.closest("button,a,input,select,textarea,[role=button]")) return;
-      down = true; moved = false;
-      startX = e.pageX; startLeft = el.scrollLeft;
-      el.classList.add("st-dragging");
-    };
-    const onMove = (e: MouseEvent) => {
-      if (!down) return;
-      const dx = e.pageX - startX;
-      if (Math.abs(dx) > 3) moved = true;
-      el.scrollLeft = startLeft - dx;
-    };
-    const stop = () => {
-      down = false;
-      el.classList.remove("st-dragging");
-      if (moved) {
-        // امنع نقرة عرضية بعد السحب
-        const block = (ev: Event) => { ev.stopPropagation(); ev.preventDefault(); el.removeEventListener("click", block, true); };
-        el.addEventListener("click", block, true);
-        setTimeout(() => el.removeEventListener("click", block, true), 50);
+    const update = () => {
+      const el = pickActive();
+      setActive(el);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        setBox({ left: Math.max(0, r.left), width: Math.min(r.width, window.innerWidth) });
+        setWidth(el.scrollWidth);
+        if (barRef.current && !syncing.current) {
+          syncing.current = true;
+          barRef.current.scrollLeft = el.scrollLeft;
+          requestAnimationFrame(() => (syncing.current = false));
+        }
+      } else {
+        setBox(null);
       }
     };
-    el.addEventListener("mousedown", onDown);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", stop);
-    el.addEventListener("mouseleave", stop);
+    update();
+    listeners.add(update);
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    const id = window.setInterval(update, 500);
     return () => {
-      el.removeEventListener("mousedown", onDown);
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", stop);
-      el.removeEventListener("mouseleave", stop);
+      listeners.delete(update);
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+      window.clearInterval(id);
     };
   }, []);
 
-  const scrollBy = (dir: number) => {
-    wrapRef.current?.scrollBy({ left: dir * 240, behavior: "smooth" });
-  };
+  if (!active || !box) return null;
 
-  const style = maxHeight ? { maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight } : undefined;
+  return createPortal(
+    <div
+      ref={barRef}
+      className="oid-hbar"
+      onScroll={() => {
+        if (syncing.current) return;
+        syncing.current = true;
+        if (active && barRef.current) active.scrollLeft = barRef.current.scrollLeft;
+        requestAnimationFrame(() => (syncing.current = false));
+      }}
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: box.left,
+        width: box.width,
+        height: 15,
+        overflowX: "scroll",
+        overflowY: "hidden",
+        zIndex: 60,
+        background: "hsl(var(--background, 0 0% 100%))",
+      }}
+    >
+      <div style={{ width, height: 1 }} />
+    </div>,
+    document.body,
+  );
+}
+
+export function ScrollableTable({ children, maxHeight, className = "", minWidth = 880 }: Props) {
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [owner, setOwner] = useState(false);
+
+  useEffect(() => {
+    if (!barMounted) {
+      barMounted = true;
+      setOwner(true);
+      return () => {
+        barMounted = false;
+      };
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const un = register(el);
+    const ro = new ResizeObserver(() => notify());
+    ro.observe(el);
+    const onScroll = () => notify();
+    el.addEventListener("scroll", onScroll);
+    return () => {
+      un();
+      ro.disconnect();
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, [children]);
+
+  const style = maxHeight
+    ? { maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight }
+    : undefined;
 
   return (
     <div className={`relative ${className}`} dir="ltr">
-      {/* شريط تمرير علوي ثابت ومزامن — يظهر فقط عند وجود محتوى مخفي */}
-      <div
-        ref={topRef}
-        onScroll={onTopScroll}
-        className="st-topbar"
-        style={{
-          overflowX: "scroll",
-          overflowY: "hidden",
-          height: 16,
-          position: "sticky",
-          top: 0,
-          zIndex: 6,
-        }}
-      >
-        <div style={{ width: scrollWidth, height: 1 }} />
-      </div>
-
-      {/* الحاوية الفعلية للجدول */}
       <div
         ref={wrapRef}
-        onScroll={onWrapScroll}
         className="st-wrap"
-        style={{ overflowX: "scroll", overflowY: maxHeight ? "scroll" : "visible", cursor: "grab", ...style }}
+        style={{ overflowX: "auto", overflowY: maxHeight ? "auto" : "visible", ...style }}
       >
-        <div dir="rtl" style={{ minWidth }}>{children}</div>
+        <div dir="rtl" style={{ minWidth }}>
+          {children}
+        </div>
       </div>
 
-      {/* أسهم تمرير بصرية */}
-      {canRight && (
-        <button
-          type="button"
-          onClick={() => scrollBy(-1)}
-          aria-label="تمرير لليمين"
-          className="st-arrow st-arrow-right"
-        >‹</button>
-      )}
-      {canLeft && (
-        <button
-          type="button"
-          onClick={() => scrollBy(1)}
-          aria-label="تمرير لليسار"
-          className="st-arrow st-arrow-left"
-        >›</button>
-      )}
+      {owner && <GlobalHScrollbar />}
 
       <style>{`
-        /* شريط تمرير دائم الظهور (مثل شريط المتصفح العمودي) */
-        .st-topbar, .st-wrap { scrollbar-width: auto; scrollbar-color: #9aa3af #eef2f7; scrollbar-gutter: stable; }
-        .st-topbar::-webkit-scrollbar,
-        .st-wrap::-webkit-scrollbar { height: 12px; width: 12px; -webkit-appearance: none; }
-        .st-topbar::-webkit-scrollbar-thumb,
-        .st-wrap::-webkit-scrollbar-thumb { background: #9aa3af; border-radius: 999px; border: 2px solid #eef2f7; min-width: 40px; }
-        .st-topbar::-webkit-scrollbar-thumb:hover,
-        .st-wrap::-webkit-scrollbar-thumb:hover { background: var(--primary-mid, #1a7a4a); }
-        .st-topbar::-webkit-scrollbar-track,
-        .st-wrap::-webkit-scrollbar-track { background: #eef2f7; border-radius: 999px; }
-        .st-wrap.st-dragging { cursor: grabbing; user-select: none; }
-        .st-arrow {
-          position: absolute; top: 50%; transform: translateY(-50%);
-          width: 30px; height: 30px; border-radius: 9999px;
-          background: var(--primary, #0e4d2e); color: #fff; border: none;
-          font-size: 18px; line-height: 1; cursor: pointer; z-index: 5;
-          display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 2px 8px rgba(0,0,0,.18); transition: background .2s; opacity: .9;
-        }
-        .st-arrow:hover { opacity: 1; }
-        .st-arrow-right { right: 4px; }
-        .st-arrow-left  { left:  4px; }
+        /* إخفاء شريط الجدول نفسه — الشريط الوحيد هو الثابت أسفل الشاشة */
+        .st-wrap { scrollbar-width: none; -ms-overflow-style: none; }
+        .st-wrap::-webkit-scrollbar { height: 0; width: 0; }
+
+        /* الشريط الأفقي الثابت — بنفس مواصفات الشريط العمودي الجانبي */
+        .oid-hbar { scrollbar-width: auto; scrollbar-color: #9aa3af transparent; }
+        .oid-hbar::-webkit-scrollbar { height: 14px; -webkit-appearance: none; }
+        .oid-hbar::-webkit-scrollbar-thumb { background: #9aa3af; border-radius: 999px; border: 3px solid transparent; background-clip: content-box; min-width: 40px; }
+        .oid-hbar::-webkit-scrollbar-thumb:hover { background: #6b7280; background-clip: content-box; }
+        .oid-hbar::-webkit-scrollbar-track { background: transparent; }
       `}</style>
     </div>
   );
