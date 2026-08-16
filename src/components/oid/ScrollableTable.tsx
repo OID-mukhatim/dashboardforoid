@@ -141,7 +141,7 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
         ref={wrapRef}
         onScroll={onWrapScroll}
         className="st-wrap"
-        style={{ overflowX: "auto", overflowY: maxHeight ? "auto" : "visible", cursor: "grab", ...style }}
+        style={{ overflowX: "scroll", overflowY: maxHeight ? "scroll" : "visible", cursor: "grab", ...style }}
       >
         <div dir="rtl" style={{ minWidth }}>{children}</div>
       </div>
