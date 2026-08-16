@@ -876,7 +876,14 @@ function QuarterlySection() {
                     <td className="px-3 py-2 tabular-nums">{r.n ?? i + 1}</td>
                     <td className="px-3 py-2 min-w-[240px]">
                       <div>{r.title}</div>
-                      {r.outcomes && <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{r.outcomes}</div>}
+                      {r.outcomes && (
+                        <details className="mt-1 group">
+                          <summary className="text-[11px] text-primary cursor-pointer select-none inline-flex items-center gap-1 hover:underline list-none">
+                            <span className="inline-block transition-transform group-open:rotate-90">▸</span> النتائج/المخرجات
+                          </summary>
+                          <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed pr-4">{r.outcomes}</div>
+                        </details>
+                      )}
                     </td>
                     <td className="px-3 py-2"><span className="font-mono text-xs text-primary">{r.code ?? "—"}</span></td>
                     <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
