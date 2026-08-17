@@ -86,8 +86,8 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
               <img src={ORG_LOGOS[orgId]} alt={org.nameAr} className="max-w-full max-h-full object-contain" />
             </div>
             <div className="min-w-0">
-              <div className="text-lg font-bold truncate">{org.nameAr}</div>
-              <div className="text-xs text-muted-foreground truncate" dir="ltr">{org.nameEn}</div>
+              <div className="text-lg font-bold whitespace-normal break-words">{org.nameAr}</div>
+              <div className="text-xs text-muted-foreground whitespace-normal break-words" dir="ltr">{org.nameEn}</div>
               {inst?.sector && <div className="text-[11px] mt-0.5 text-muted-foreground">{inst.sector}</div>}
             </div>
           </div>
@@ -186,7 +186,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                 const color = v === null ? "#94a3b8" : v < 2 ? "#dc2626" : v < 3 ? "#ea580c" : v < 4 ? "#d97706" : "#15803d";
                 return (
                   <div key={ax} className="border border-border rounded-lg p-3 text-center">
-                    <div className="text-[11px] text-muted-foreground mb-1 truncate">{ax}</div>
+                    <div className="text-[11px] text-muted-foreground mb-1 whitespace-normal break-words">{ax}</div>
                     <div className="text-xl font-bold tabular-nums" style={{ color }} dir="ltr">
                       {v !== null ? formatScore(v) : "—"}
                     </div>
@@ -205,7 +205,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                 {orgKPIs.map((k) => (
                   <li key={k.code} className="flex items-center gap-3 text-sm border border-border rounded-lg p-2.5">
                     <span className="font-mono text-[10px] text-muted-foreground w-20 shrink-0">{k.code}</span>
-                    <span className="flex-1 truncate">{k.kpi}</span>
+                    <span className="flex-1 whitespace-normal break-words">{k.kpi}</span>
                     <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${k.progress}%`, background: org.color }} />
                     </div>
@@ -227,7 +227,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                   return (
                     <div key={i} className={`flex items-center gap-2 p-2 rounded ${meta.bg}`}>
                       <span>{meta.icon}</span>
-                      <span className="flex-1 truncate">{p.name}</span>
+                      <span className="flex-1 whitespace-normal break-words">{p.name}</span>
                       <span className={`text-[10px] ${meta.fg} font-medium`}>{meta.label}</span>
                     </div>
                   );
@@ -266,7 +266,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                   {finProg.map((p, i) => (
                     <li key={i} className="flex items-center gap-2 border border-border rounded p-2">
                       <span className="flex-1">{p.domain}</span>
-                      <span className="text-muted-foreground truncate max-w-[260px]">{p.note}</span>
+                      <span className="text-muted-foreground whitespace-normal break-words max-w-[260px]">{p.note}</span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">{p.status}</span>
                     </li>
                   ))}
@@ -284,7 +284,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                 {orgPartnerships.map((p) => (
                   <li key={p.id} className="border border-border rounded p-2 flex items-center gap-2">
                     <span className="font-mono text-[10px] text-muted-foreground">{p.id}</span>
-                    <span className="flex-1 truncate">{p.name}</span>
+                    <span className="flex-1 whitespace-normal break-words">{p.name}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">{p.type}</span>
                   </li>
                 ))}

@@ -283,7 +283,7 @@ function UploadProgressBar({
       <div className="flex items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-semibold text-amber-800">{label}</span>
-          {message && <span className="text-muted-foreground truncate">— {message}</span>}
+          {message && <span className="text-muted-foreground whitespace-normal break-words">— {message}</span>}
         </div>
         <div className="flex items-center gap-3 whitespace-nowrap tabular-nums">
           <span className="font-bold text-amber-800">{safePercent}%</span>
@@ -571,7 +571,7 @@ function DashboardSection() {
               const pct = typeof liveGov === "number" ? liveGov : fallback;
               return (
                 <div key={o.id} className="border border-border rounded-lg p-3 text-center">
-                  <div className="text-xs text-muted-foreground mb-1 truncate">{o.nameAr}</div>
+                  <div className="text-xs text-muted-foreground mb-1 whitespace-normal break-words">{o.nameAr}</div>
                   <div className="text-xl font-bold tabular-nums" style={{ color: o.color }}>
                     {pct !== null ? `${pct}%` : "—"}
                   </div>
@@ -1155,7 +1155,7 @@ function GovernanceSection() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {governanceScores.map(o => (
           <Card key={o.id} className="p-4 text-center">
-            <div className="text-xs text-muted-foreground mb-2 truncate">{o.nameAr}</div>
+            <div className="text-xs text-muted-foreground mb-2 whitespace-normal break-words">{o.nameAr}</div>
             <div className="text-3xl font-bold tabular-nums mb-1" style={{ color: o.color }}>{o.govPct !== null ? `${o.govPct}%` : "—"}</div>
             <div className="text-[11px] text-muted-foreground">
               {o.govPct === null ? "بيانات ناقصة" :
@@ -2094,7 +2094,7 @@ function BSCPerformanceMap() {
                 const c = colorFor(code);
                 return (
                   <div key={code} className="border border-border rounded-lg p-3 text-center" style={{ borderTopColor: c, borderTopWidth: 3 }}>
-                    <div className="text-xs text-muted-foreground mb-1 truncate">{allOrgs.find(o => o.code === code)?.name ?? code}</div>
+                    <div className="text-xs text-muted-foreground mb-1 whitespace-normal break-words">{allOrgs.find(o => o.code === code)?.name ?? code}</div>
                     <div className="text-2xl font-bold tabular-nums" style={{ color: c }}>{overall}%</div>
                   </div>
                 );
@@ -2416,7 +2416,7 @@ function UploadSection() {
                     >
                       <span className="text-xl">{fileIcon(r.file_name)}</span>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">{r.file_name}</div>
+                        <div className="text-sm font-medium whitespace-normal break-words">{r.file_name}</div>
                         <div className="text-xs text-muted-foreground">
                           {isProcessed
                             ? summary?.orgs_found?.length > 0
@@ -2468,7 +2468,7 @@ function UploadSection() {
                                   <div className="font-bold tabular-nums" dir="ltr">
                                     {n.value.toLocaleString()} {n.unit || ""}
                                   </div>
-                                  <div className="text-muted-foreground truncate mt-0.5" title={n.context}>
+                                  <div className="text-muted-foreground whitespace-normal break-words mt-0.5" title={n.context}>
                                     {n.context?.substring(0, 40)}...
                                   </div>
                                 </div>
@@ -2553,7 +2553,7 @@ function UploadSection() {
                           onChange={() => toggleOne(r.id)}
                         />
                       </td>
-                      <td className="p-2 font-medium truncate max-w-[200px]">
+                      <td className="p-2 font-medium whitespace-normal break-words max-w-[200px]">
                         <span className="mr-1">{fileIcon(r.file_name)}</span>
                         {r.file_name}
                       </td>
