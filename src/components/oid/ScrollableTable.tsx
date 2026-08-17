@@ -192,7 +192,11 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
         className="st-wrap"
         style={{ overflowX: "auto", overflowY: maxHeight ? "auto" : "visible", ...style }}
       >
-        <div dir="rtl" style={{ minWidth, paddingLeft: 192, boxSizing: "content-box" }}>
+        <div
+          dir="rtl"
+          className="st-content"
+          style={{ minWidth: `max(100%, ${minWidth}px)` }}
+        >
           {children}
         </div>
       </div>
@@ -205,12 +209,20 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
         .st-wrap::-webkit-scrollbar { height: 0; width: 0; }
 
         /*
+         * لا نضغط الجدول داخل الحد الأدنى للحاوية. عرضه يُحسب من مجموع عروض
+         * أعمدته، وبذلك تدخل كل الأعمدة فعلياً في نطاق التمرير حتى آخر عمود.
+         */
+        .st-content { width: max-content; box-sizing: border-box; }
+        .st-wrap table { width: max-content; min-width: 100%; table-layout: auto; }
+
+        /*
          * أعمدة النص تتسع لقراءة نحو ثلاث كلمات في السطر، ولا تُقسّم الكلمة نفسها.
          * الأعمدة الرقمية/الرموز المعلّمة بـ nowrap تبقى بعرضها الطبيعي.
          */
         .st-wrap td:not(.whitespace-nowrap):not(.tabular-nums):not([colspan]),
         .st-wrap th:not(.whitespace-nowrap):not(.tabular-nums):not([colspan]) {
           min-width: 10.5rem;
+          max-width: 20rem;
           white-space: normal;
           overflow-wrap: normal;
           word-break: normal;
