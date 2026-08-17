@@ -204,6 +204,10 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
         .st-wrap { scrollbar-width: none; -ms-overflow-style: none; }
         .st-wrap::-webkit-scrollbar { height: 0; width: 0; }
 
+        /* التفاف النص في خلايا الجدول — باستثناء الخلايا المحددة كـ nowrap */
+        .st-wrap td { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
+        .st-wrap td.whitespace-nowrap, .st-wrap th.whitespace-nowrap { white-space: nowrap; }
+
         /* الشريط الأفقي الثابت — بنفس مواصفات الشريط العمودي الجانبي */
         .oid-hbar { scrollbar-width: auto; scrollbar-color: #9aa3af transparent; }
         .oid-hbar::-webkit-scrollbar { height: 14px; -webkit-appearance: none; }
