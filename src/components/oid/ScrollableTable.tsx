@@ -192,7 +192,7 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
         className="st-wrap"
         style={{ overflowX: "auto", overflowY: maxHeight ? "auto" : "visible", ...style }}
       >
-        <div dir="rtl" style={{ minWidth }}>
+        <div dir="rtl" style={{ minWidth, paddingLeft: 48, boxSizing: "content-box" }}>
           {children}
         </div>
       </div>
