@@ -192,7 +192,7 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
         className="st-wrap"
         style={{ overflowX: "auto", overflowY: maxHeight ? "auto" : "visible", ...style }}
       >
-        <div dir="rtl" style={{ minWidth, paddingLeft: 96, boxSizing: "content-box" }}>
+        <div dir="rtl" style={{ minWidth, paddingLeft: 192, boxSizing: "content-box" }}>
           {children}
         </div>
       </div>
@@ -204,9 +204,24 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
         .st-wrap { scrollbar-width: none; -ms-overflow-style: none; }
         .st-wrap::-webkit-scrollbar { height: 0; width: 0; }
 
-        /* التفاف النص في خلايا الجدول — باستثناء الخلايا المحددة كـ nowrap */
-        .st-wrap td { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
-        .st-wrap td.whitespace-nowrap, .st-wrap th.whitespace-nowrap { white-space: nowrap; }
+        /*
+         * أعمدة النص تتسع لقراءة نحو ثلاث كلمات في السطر، ولا تُقسّم الكلمة نفسها.
+         * الأعمدة الرقمية/الرموز المعلّمة بـ nowrap تبقى بعرضها الطبيعي.
+         */
+        .st-wrap td:not(.whitespace-nowrap):not(.tabular-nums):not([colspan]),
+        .st-wrap th:not(.whitespace-nowrap):not(.tabular-nums):not([colspan]) {
+          min-width: 10.5rem;
+          white-space: normal;
+          overflow-wrap: normal;
+          word-break: normal;
+          hyphens: none;
+        }
+        .st-wrap td.whitespace-nowrap,
+        .st-wrap th.whitespace-nowrap,
+        .st-wrap td.tabular-nums,
+        .st-wrap th.tabular-nums {
+          white-space: nowrap;
+        }
 
         /* الشريط الأفقي الثابت — بنفس مواصفات الشريط العمودي الجانبي */
         .oid-hbar { scrollbar-width: auto; scrollbar-color: #9aa3af transparent; }
