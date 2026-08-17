@@ -33,8 +33,8 @@ export function CompositeScoreCard({ orgId, profile }: { orgId: OrgId; profile?:
             <img src={logo} alt={org.nameAr} className="max-w-full max-h-full object-contain" />
           </div>
           <div className="min-w-0">
-            <div className="font-bold text-sm truncate">{org.nameAr}</div>
-            <div className="text-[11px] text-muted-foreground truncate" dir="ltr">{org.nameEn}</div>
+            <div className="font-bold text-sm whitespace-normal break-words">{org.nameAr}</div>
+            <div className="text-[11px] text-muted-foreground whitespace-normal break-words" dir="ltr">{org.nameEn}</div>
           </div>
         </div>
         <div className="text-right shrink-0">
@@ -58,7 +58,7 @@ export function CompositeScoreCard({ orgId, profile }: { orgId: OrgId; profile?:
                   style={{ width: `${filled}%`, background: org.color }}
                 />
               </div>
-              <span className="w-32 truncate text-muted-foreground">{c.label}</span>
+              <span className="w-32 whitespace-normal break-words text-muted-foreground">{c.label}</span>
               <span className="w-14 text-left tabular-nums font-medium" dir="ltr">
                 {c.score !== null ? formatScore(c.score) : (
                   <span style={{ color: meta?.color }} title={meta?.tooltip}>
