@@ -663,13 +663,45 @@ function KPIsSection() {
 
 
 
-  const fmtPct = (v: number | null | undefined) => {
+  const num = (v: unknown): number | null => {
+    if (v === null || v === undefined || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  /** جمع الأرباع: يعيد null فقط إذا كانت كل القيم فارغة. */
+  const sumQ = (...vals: (number | null)[]) => {
+    const present = vals.filter((v): v is number => v !== null);
+    return present.length ? present.reduce((a, b) => a + b, 0) : null;
+  };
+  /** المعادلات كما في نموذج الأكسل، مع تفضيل القيمة المخزّنة إن وُجدت. */
+  const derive = (k: any) => {
+    const baseline = num(k.baseline);
+    const target = num(k.annual_target);
+    const weight = num(k.weight);
+    const qp = [num(k.q1_planned), num(k.q2_planned), num(k.q3_planned), num(k.q4_planned)];
+    const qa = [num(k.q1_actual), num(k.q2_actual), num(k.q3_actual), num(k.q4_actual)];
+    const totalPlanned = num(k.total_planned) ?? sumQ(...qp);
+    const totalActual = num(k.total_actual) ?? sumQ(...qa);
+    // الإجمالي التراكمي = خط الأساس + المنجز
+    const cumulative = baseline !== null || totalActual !== null ? (baseline ?? 0) + (totalActual ?? 0) : null;
+    // نسبة الإنجاز = المنجز ÷ المستهدف السنوي
+    const achievement =
+      num(k.achievement_pct) ?? (target && target !== 0 && totalActual !== null ? totalActual / target : null);
+    // النسبة العامة = نسبة الإنجاز × الوزن النسبي
+    const overall = num(k.overall_pct) ?? (achievement !== null && weight !== null ? achievement * weight : null);
+    return { baseline, target, weight, qp, qa, totalPlanned, totalActual, cumulative, achievement, overall };
+  };
+
+  const fmtPct = (v: number | null | undefined, decimals = 0) => {
     if (v === null || v === undefined) return "—";
     const n = Number(v);
     if (!Number.isFinite(n)) return "—";
-    return `${Math.round(n <= 1 ? n * 100 : n)}%`;
+    const pct = n <= 1 && n >= -1 ? n * 100 : n;
+    return `${pct.toFixed(decimals)}%`;
   };
-  const fmtNum = (v: number | null | undefined) => (v === null || v === undefined ? "—" : String(v));
+  const fmtNum = (v: number | null | undefined) =>
+    v === null || v === undefined ? "—" : String(Math.round(Number(v) * 100) / 100);
+
 
   return (
     <div className="space-y-6">
@@ -703,19 +735,30 @@ function KPIsSection() {
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
-                {["الكود","المؤسسة","المنظور","الهدف","المؤشر","النوع","الوزن","خط الأساس","المستهدف","Q1","Q2","Q3","Q4","المنجز","% الإنجاز"].map(h => (
+                <th colSpan={9} className="px-3 py-1.5 text-right font-medium border-b border-border">العوامل الأساسية</th>
+                <th colSpan={5} className="px-3 py-1.5 text-center font-medium border-b border-r border-border bg-sky-500/5">المخطط Planned</th>
+                <th colSpan={5} className="px-3 py-1.5 text-center font-medium border-b border-r border-border bg-emerald-500/5">المنجز Achieved</th>
+                <th colSpan={4} className="px-3 py-1.5 text-center font-medium border-b border-r border-border">النتائج</th>
+              </tr>
+              <tr>
+                {["الكود","المؤسسة","المنظور","الهدف","المؤشر","النوع","الوزن","خط الأساس","المستهدف السنوي",
+                  "Q1 مخطط","Q2 مخطط","Q3 مخطط","Q4 مخطط","إجمالي المخطط",
+                  "Q1 منجز","Q2 منجز","Q3 منجز","Q4 منجز","مجموع المنجز",
+                  "الإجمالي التراكمي","% الإنجاز","النسبة العامة","المخرجات"].map(h => (
                   <th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={15} className="px-3 py-6 text-center text-muted-foreground">جاري التحميل…</td></tr>
+                <tr><td colSpan={23} className="px-3 py-6 text-center text-muted-foreground">جاري التحميل…</td></tr>
               )}
               {!isLoading && filtered.length === 0 && (
-                <tr><td colSpan={15} className="px-3 py-6 text-center text-muted-foreground">لا توجد بيانات — ارفع ملف Excel من قسم "رفع البيانات".</td></tr>
+                <tr><td colSpan={23} className="px-3 py-6 text-center text-muted-foreground">لا توجد بيانات — ارفع ملف Excel من قسم "رفع البيانات".</td></tr>
               )}
-              {filtered.map(k => (
+              {filtered.map(k => {
+                const d = derive(k);
+                return (
                 <tr key={k.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{k.kpi_code}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{k.entity_code}</td>
@@ -723,24 +766,32 @@ function KPIsSection() {
                   <td className="px-3 py-2 max-w-[220px]">{k.objective ?? "—"}</td>
                   <td className="px-3 py-2 max-w-[280px]">{k.kpi_name}</td>
                   <td className="px-3 py-2 text-xs whitespace-nowrap">{k.kpi_type ?? "—"}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{fmtPct(k.weight)}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.baseline)}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs font-medium">{fmtNum(k.annual_target)}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.q1_actual)}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.q2_actual)}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.q3_actual)}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.q4_actual)}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(k.total_actual)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{fmtPct(d.weight, 2)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(d.baseline)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs font-medium">{fmtNum(d.target)}</td>
+                  {d.qp.map((v, i) => (
+                    <td key={`p${i}`} className="px-3 py-2 tabular-nums text-xs bg-sky-500/5">{fmtNum(v)}</td>
+                  ))}
+                  <td className="px-3 py-2 tabular-nums text-xs font-medium bg-sky-500/5">{fmtNum(d.totalPlanned)}</td>
+                  {d.qa.map((v, i) => (
+                    <td key={`a${i}`} className="px-3 py-2 tabular-nums text-xs bg-emerald-500/5">{fmtNum(v)}</td>
+                  ))}
+                  <td className="px-3 py-2 tabular-nums text-xs font-medium bg-emerald-500/5">{fmtNum(d.totalActual)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(d.cumulative)}</td>
                   <td className="px-3 py-2 min-w-[120px]">
                     <div className="flex items-center gap-2">
-                      <Progress value={Math.min(100, Math.round((Number(k.achievement_pct ?? 0) <= 1 ? Number(k.achievement_pct ?? 0) * 100 : Number(k.achievement_pct ?? 0))))} />
-                      <span className="text-xs tabular-nums w-10">{fmtPct(k.achievement_pct)}</span>
+                      <Progress value={Math.max(0, Math.min(100, Number(fmtPct(d.achievement, 2).replace("%","")) || 0))} />
+                      <span className="text-xs tabular-nums w-12">{fmtPct(d.achievement)}</span>
                     </div>
                   </td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{fmtPct(d.overall, 2)}</td>
+                  <td className="px-3 py-2 text-xs max-w-[240px]">{k.final_output ?? "—"}</td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
+
         </ScrollableTable>
       </Card>
     </div>
