@@ -996,28 +996,28 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
       const sheetLooksKpi = headerIdx >= 0 && (isKpiDataType(data.dataType ?? "") || looksLikeKpiFile(fileName) || looksLikeKpiFile(sheetName) || hasKpiStructure(aoa));
       if (!sheetLooksKpi) continue;
       const norm = normalizeEntity(sheetName);
-      const off = kpiColumnOffset(aoa, headerIdx);
+      const cols = kpiColumnMap(aoa, headerIdx);
       let lastSector: string | null = null;
       const rowsToParse = headerIdx >= 0 ? aoa.slice(headerIdx + 1) : aoa;
       for (const row of rowsToParse) {
         if (!Array.isArray(row)) continue;
-        if (!isValidKpiRow(row, off)) { if (row[3 + off] || row[4 + off]) rejected++; continue; }
-        const code = toStr(row[4 + off]);
-        const name = toStr(row[3 + off]);
-        const sector = toStr(row[1 + off]);
+        if (!isValidKpiRow(row, cols)) { if (row[cols.name] || row[cols.code]) rejected++; continue; }
+        const code = toStr(row[cols.code]);
+        const name = toStr(row[cols.name]);
+        const sector = toStr(row[cols.sector]);
         if (sector) lastSector = sector;
         const rowOrg = entityFromKpiCode(code);
         parsed.push({
           entity_code: rowOrg ?? norm.code,
           entity_name: rowOrg && rowOrg !== norm.code ? normalizeEntity(rowOrg).name : norm.name,
           sector: lastSector,
-          objective: toStr(row[2 + off]), kpi_code: code, kpi_name: name, kpi_type: toStr(row[5 + off]),
-          weight: toNum(row[6 + off]), baseline: toNum(row[7 + off]), annual_target: toNum(row[8 + off]),
-          q1_planned: toNum(row[9 + off]), q2_planned: toNum(row[10 + off]), q3_planned: toNum(row[11 + off]), q4_planned: toNum(row[12 + off]),
-          total_planned: toNum(row[13 + off]),
-          q1_actual: toNum(row[14 + off]), q2_actual: toNum(row[15 + off]), q3_actual: toNum(row[16 + off]), q4_actual: toNum(row[17 + off]),
-          total_actual: toNum(row[18 + off]),
-          achievement_pct: toNum(row[20 + off]), overall_pct: toNum(row[21 + off]), final_output: toStr(row[22 + off]),
+          objective: toStr(row[cols.objective]), kpi_code: code, kpi_name: name, kpi_type: toStr(row[cols.type]),
+          weight: toNum(row[cols.weight]), baseline: toNum(row[cols.baseline]), annual_target: toNum(row[cols.target]),
+          q1_planned: toNum(row[cols.q1p]), q2_planned: toNum(row[cols.q2p]), q3_planned: toNum(row[cols.q3p]), q4_planned: toNum(row[cols.q4p]),
+          total_planned: toNum(row[cols.totalPlanned]),
+          q1_actual: toNum(row[cols.q1a]), q2_actual: toNum(row[cols.q2a]), q3_actual: toNum(row[cols.q3a]), q4_actual: toNum(row[cols.q4a]),
+          total_actual: toNum(row[cols.totalActual]),
+          achievement_pct: toNum(row[cols.achievement]), overall_pct: toNum(row[cols.overall]), final_output: toStr(row[cols.output]),
           period,
         });
       }
