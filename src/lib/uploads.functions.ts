@@ -166,8 +166,8 @@ function findKpiHeaderRow(aoa: unknown[][]): number {
     const cells = row.map((c) => String(c ?? "").replace(/\u0640/g, "").replace(/\s+/g, " ").trim());
     const joined = cells.join(" ");
     const fixedColumnsMatch =
-      cells.some((c) => /^(مؤشر\s*الأداء|وصف\s*المؤشر|المؤشر)\b/i.test(c)) &&
-      cells.some((c) => /^(الكود|code|id)\b/i.test(c));
+      cells.some((c) => /^(مؤشر\s*الأداء|وصف\s*المؤشر|المؤشر)(\s|$)/i.test(c)) &&
+      cells.some((c) => /^(الكود|code|id)(\s|$)/i.test(c));
     const labels = [
       /المنظور|perspective/i,
       /الهدف|objective/i,
@@ -215,7 +215,9 @@ function findCol(row: unknown[], re: RegExp, exclude?: RegExp): number {
 
 export function kpiColumnMap(aoa: unknown[][], headerIdx: number): KpiCols {
   const row = (headerIdx >= 0 ? (aoa[headerIdx] ?? []) : []) as unknown[];
-  const codeIdx = findCol(row, /^(الكود|code|id)\b|^الكود\b/i);
+  // NB: \b does not work after Arabic letters (they are not \w), so match on
+  // an explicit separator/end instead — "الكود ID" must resolve here.
+  const codeIdx = findCol(row, /^(الكود|code|id)(\s|$)/i);
   const code = codeIdx >= 0 ? codeIdx : 4;
   const off = code - 4; // numeric block keeps its relative layout after الكود
   const at = (base: number) => base + off;
