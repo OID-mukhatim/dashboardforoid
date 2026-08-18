@@ -180,40 +180,65 @@ function findKpiHeaderRow(aoa: unknown[][]): number {
 }
 
 /**
- * Some KPI workbooks omit the leading "م" (row number) column, shifting every
- * field one position left. Derive the offset from the header row so column
- * reads stay correct for both layouts: offset = index(الكود) - 4.
+ * KPI workbooks vary: some omit the leading "م" column, some place الكود after
+ * المنظور/الهدف/المؤشر, some add extra columns first. Resolve each text column
+ * by its header label and anchor the numeric block on the الكود column.
  */
-function kpiColumnOffset(aoa: unknown[][], headerIdx: number): number {
-  if (headerIdx < 0) return 0;
-  const row = (aoa[headerIdx] ?? []) as unknown[];
-  const codeIdx = row.findIndex((c) => /^\s*(الكود|code|id)\b/i.test(String(c ?? "").replace(/\s+/g, " ").trim()));
-  if (codeIdx < 0) return 0;
-  const off = codeIdx - 4;
-  return off >= -2 && off <= 3 ? off : 0;
+export type KpiCols = {
+  sector: number; objective: number; name: number; code: number; type: number;
+  weight: number; baseline: number; target: number;
+  q1p: number; q2p: number; q3p: number; q4p: number; totalPlanned: number;
+  q1a: number; q2a: number; q3a: number; q4a: number; totalActual: number;
+  achievement: number; overall: number; output: number;
+};
+
+function findCol(row: unknown[], re: RegExp, exclude?: RegExp): number {
+  return row.findIndex((c) => {
+    const s = String(c ?? "").replace(/\s+/g, " ").trim();
+    if (!s) return false;
+    if (exclude && exclude.test(s)) return false;
+    return re.test(s);
+  });
 }
 
-/** Derive the org from a KPI code prefix (e.g. "ZAD-S1" → ZAD). */
-const KPI_CODE_ORGS = ["ZF", "ZUST", "ZAD", "TAYO", "KAFI", "HAMDI"];
-function entityFromKpiCode(code: string | null): string | null {
-  if (!code) return null;
-  const prefix = code.split(/[-_ ]/)[0]?.toUpperCase();
-  return prefix && KPI_CODE_ORGS.includes(prefix) ? prefix : null;
+export function kpiColumnMap(aoa: unknown[][], headerIdx: number): KpiCols {
+  const row = (headerIdx >= 0 ? (aoa[headerIdx] ?? []) : []) as unknown[];
+  const codeIdx = findCol(row, /^(الكود|code|id)\b|^الكود\b/i);
+  const code = codeIdx >= 0 ? codeIdx : 4;
+  const off = code - 4; // numeric block keeps its relative layout after الكود
+  const at = (base: number) => base + off;
+  const pick = (re: RegExp, base: number, exclude?: RegExp) => {
+    const i = findCol(row, re, exclude);
+    return i >= 0 ? i : at(base);
+  };
+  return {
+    code,
+    sector: pick(/^(المنظور|perspective)/i, 1),
+    objective: pick(/^(الهدف|objective)/i, 2),
+    name: pick(/(مؤشر\s*الأداء|وصف\s*المؤشر|^المؤشر$|indicator)/i, 3, /الكود|code/i),
+    type: pick(/^(النوع|نوعه|type)/i, 5),
+    weight: pick(/^(الوزن|weight)/i, 6),
+    baseline: pick(/(خط\s*الأساس|baseline)/i, 7),
+    target: pick(/(المستهدف\s*السنوي|annual\s*target)/i, 8),
+    q1p: at(9), q2p: at(10), q3p: at(11), q4p: at(12), totalPlanned: at(13),
+    q1a: at(14), q2a: at(15), q3a: at(16), q4a: at(17), totalActual: at(18),
+    achievement: at(20), overall: at(21), output: at(22),
+  };
 }
 
 function hasKpiStructure(aoa: unknown[][]): boolean {
   const hi = findKpiHeaderRow(aoa);
   if (hi < 0) return false;
-  const off = kpiColumnOffset(aoa, hi);
+  const cols = kpiColumnMap(aoa, hi);
   const rows = aoa.slice(hi + 1, hi + 31);
-  return rows.some((row) => Array.isArray(row) && isValidKpiRow(row, off));
+  return rows.some((row) => Array.isArray(row) && isValidKpiRow(row, cols));
 }
 
 const KPI_ROW_REJECT = /^(data|البيانات|تحليل|التحليل|جامعة|الجامعة|الربعي|ربع[يية]|الهدف|هدف|تعزيز\s*الشفافية|توسيع\s*قاعدة\s*المانحين|النتائج\s*المباشرة|نتائج\s*تقييم\s*السياسات|مؤشر\s*الأداء|الكود|الكود\s*id|المنظور)$/i;
 
-function isValidKpiRow(row: unknown[], off = 0): boolean {
-  const code = toStr(row[4 + off]);
-  const name = toStr(row[3 + off]);
+function isValidKpiRow(row: unknown[], cols: KpiCols): boolean {
+  const code = toStr(row[cols.code]);
+  const name = toStr(row[cols.name]);
   if (!code || !name) return false;
   if (KPI_ROW_REJECT.test(code) || KPI_ROW_REJECT.test(name)) return false;
   if (code.length > 48 || name.length < 4) return false;
@@ -221,6 +246,7 @@ function isValidKpiRow(row: unknown[], off = 0): boolean {
   if (!/[A-Za-z0-9٠-٩۰-۹]/.test(code) && /\s/.test(code)) return false;
   return true;
 }
+
 
 function spreadsheetTextPreview(aoa: unknown[][], maxRows = 20): string {
   return aoa
