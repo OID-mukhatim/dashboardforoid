@@ -179,17 +179,41 @@ function findKpiHeaderRow(aoa: unknown[][]): number {
   return -1;
 }
 
+/**
+ * Some KPI workbooks omit the leading "م" (row number) column, shifting every
+ * field one position left. Derive the offset from the header row so column
+ * reads stay correct for both layouts: offset = index(الكود) - 4.
+ */
+function kpiColumnOffset(aoa: unknown[][], headerIdx: number): number {
+  if (headerIdx < 0) return 0;
+  const row = (aoa[headerIdx] ?? []) as unknown[];
+  const codeIdx = row.findIndex((c) => /^\s*(الكود|code|id)\b/i.test(String(c ?? "").replace(/\s+/g, " ").trim()));
+  if (codeIdx < 0) return 0;
+  const off = codeIdx - 4;
+  return off >= -2 && off <= 3 ? off : 0;
+}
+
+/** Derive the org from a KPI code prefix (e.g. "ZAD-S1" → ZAD). */
+const KPI_CODE_ORGS = ["ZF", "ZUST", "ZAD", "TAYO", "KAFI", "HAMDI"];
+function entityFromKpiCode(code: string | null): string | null {
+  if (!code) return null;
+  const prefix = code.split(/[-_ ]/)[0]?.toUpperCase();
+  return prefix && KPI_CODE_ORGS.includes(prefix) ? prefix : null;
+}
+
 function hasKpiStructure(aoa: unknown[][]): boolean {
-  if (findKpiHeaderRow(aoa) < 0) return false;
-  const rows = aoa.slice(findKpiHeaderRow(aoa) + 1, findKpiHeaderRow(aoa) + 31);
-  return rows.some((row) => Array.isArray(row) && isValidKpiRow(row));
+  const hi = findKpiHeaderRow(aoa);
+  if (hi < 0) return false;
+  const off = kpiColumnOffset(aoa, hi);
+  const rows = aoa.slice(hi + 1, hi + 31);
+  return rows.some((row) => Array.isArray(row) && isValidKpiRow(row, off));
 }
 
 const KPI_ROW_REJECT = /^(data|البيانات|تحليل|التحليل|جامعة|الجامعة|الربعي|ربع[يية]|الهدف|هدف|تعزيز\s*الشفافية|توسيع\s*قاعدة\s*المانحين|النتائج\s*المباشرة|نتائج\s*تقييم\s*السياسات|مؤشر\s*الأداء|الكود|الكود\s*id|المنظور)$/i;
 
-function isValidKpiRow(row: unknown[]): boolean {
-  const code = toStr(row[4]);
-  const name = toStr(row[3]);
+function isValidKpiRow(row: unknown[], off = 0): boolean {
+  const code = toStr(row[4 + off]);
+  const name = toStr(row[3 + off]);
   if (!code || !name) return false;
   if (KPI_ROW_REJECT.test(code) || KPI_ROW_REJECT.test(name)) return false;
   if (code.length > 48 || name.length < 4) return false;
