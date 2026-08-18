@@ -961,24 +961,28 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
       const sheetLooksKpi = headerIdx >= 0 && (isKpiDataType(data.dataType ?? "") || looksLikeKpiFile(fileName) || looksLikeKpiFile(sheetName) || hasKpiStructure(aoa));
       if (!sheetLooksKpi) continue;
       const norm = normalizeEntity(sheetName);
+      const off = kpiColumnOffset(aoa, headerIdx);
       let lastSector: string | null = null;
       const rowsToParse = headerIdx >= 0 ? aoa.slice(headerIdx + 1) : aoa;
       for (const row of rowsToParse) {
         if (!Array.isArray(row)) continue;
-        if (!isValidKpiRow(row)) { if (row[3] || row[4]) rejected++; continue; }
-        const code = toStr(row[4]);
-        const name = toStr(row[3]);
-        const sector = toStr(row[1]);
+        if (!isValidKpiRow(row, off)) { if (row[3 + off] || row[4 + off]) rejected++; continue; }
+        const code = toStr(row[4 + off]);
+        const name = toStr(row[3 + off]);
+        const sector = toStr(row[1 + off]);
         if (sector) lastSector = sector;
+        const rowOrg = entityFromKpiCode(code);
         parsed.push({
-          entity_code: norm.code, entity_name: norm.name, sector: lastSector,
-          objective: toStr(row[2]), kpi_code: code, kpi_name: name, kpi_type: toStr(row[5]),
-          weight: toNum(row[6]), baseline: toNum(row[7]), annual_target: toNum(row[8]),
-          q1_planned: toNum(row[9]), q2_planned: toNum(row[10]), q3_planned: toNum(row[11]), q4_planned: toNum(row[12]),
-          total_planned: toNum(row[13]),
-          q1_actual: toNum(row[14]), q2_actual: toNum(row[15]), q3_actual: toNum(row[16]), q4_actual: toNum(row[17]),
-          total_actual: toNum(row[18]),
-          achievement_pct: toNum(row[20]), overall_pct: toNum(row[21]), final_output: toStr(row[22]),
+          entity_code: rowOrg ?? norm.code,
+          entity_name: rowOrg && rowOrg !== norm.code ? normalizeEntity(rowOrg).name : norm.name,
+          sector: lastSector,
+          objective: toStr(row[2 + off]), kpi_code: code, kpi_name: name, kpi_type: toStr(row[5 + off]),
+          weight: toNum(row[6 + off]), baseline: toNum(row[7 + off]), annual_target: toNum(row[8 + off]),
+          q1_planned: toNum(row[9 + off]), q2_planned: toNum(row[10 + off]), q3_planned: toNum(row[11 + off]), q4_planned: toNum(row[12 + off]),
+          total_planned: toNum(row[13 + off]),
+          q1_actual: toNum(row[14 + off]), q2_actual: toNum(row[15 + off]), q3_actual: toNum(row[16 + off]), q4_actual: toNum(row[17 + off]),
+          total_actual: toNum(row[18 + off]),
+          achievement_pct: toNum(row[20 + off]), overall_pct: toNum(row[21 + off]), final_output: toStr(row[22 + off]),
           period,
         });
       }
