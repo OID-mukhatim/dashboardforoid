@@ -179,6 +179,15 @@ function findKpiHeaderRow(aoa: unknown[][]): number {
   return -1;
 }
 
+/** Derive the org from a KPI code prefix (e.g. "ZAD-S1" → ZAD). */
+const KPI_CODE_ORGS = ["ZF", "ZUST", "ZAD", "TAYO", "KAFI", "HAMDI"];
+function entityFromKpiCode(code: string | null): string | null {
+  if (!code) return null;
+  const prefix = code.split(/[-_ ]/)[0]?.toUpperCase();
+  return prefix && KPI_CODE_ORGS.includes(prefix) ? prefix : null;
+}
+
+
 /**
  * KPI workbooks vary: some omit the leading "م" column, some place الكود after
  * المنظور/الهدف/المؤشر, some add extra columns first. Resolve each text column
