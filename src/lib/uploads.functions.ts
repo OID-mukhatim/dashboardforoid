@@ -37,7 +37,7 @@ const ENTITY_ALIASES: Array<{ id: string; name: string; patterns: RegExp[] }> = 
   { id: "TAYO", name: "تيو للتعليم", patterns: [/تيو/, /tayo/i] },
   { id: "KAFI", name: "كافي للتنمية", patterns: [/كافي/, /kafi/i] },
   { id: "ZF", name: "مؤسسة زمزم", patterns: [/^\s*زمزم\s*$/, /مؤسسة\s*زمزم/, /zamzam\s*foundation/i, /^\s*zf\s*$/i] },
-  { id: "ZUST", name: "جامعة زمزم للعلوم والتكنولوجيا", patterns: [/جامعة\s*زمزم/, /zust/i] },
+  { id: "ZUST", name: "جامعة زمزم للعلوم والتكنولوجيا", patterns: [/جامعة\s*زمزم/, /^\s*(ال)?جامعة\s*$/, /zust/i] },
   { id: "ZAD", name: "زاد للتنمية", patterns: [/^\s*زاد/, /\bzad\b/i] },
   { id: "HAMDI", name: "منظمة حمدي للتنمية", patterns: [/حمد[يى]/, /hamdi/i] },
 ];
@@ -179,17 +179,41 @@ function findKpiHeaderRow(aoa: unknown[][]): number {
   return -1;
 }
 
+/**
+ * Some KPI workbooks omit the leading "م" (row number) column, shifting every
+ * field one position left. Derive the offset from the header row so column
+ * reads stay correct for both layouts: offset = index(الكود) - 4.
+ */
+function kpiColumnOffset(aoa: unknown[][], headerIdx: number): number {
+  if (headerIdx < 0) return 0;
+  const row = (aoa[headerIdx] ?? []) as unknown[];
+  const codeIdx = row.findIndex((c) => /^\s*(الكود|code|id)\b/i.test(String(c ?? "").replace(/\s+/g, " ").trim()));
+  if (codeIdx < 0) return 0;
+  const off = codeIdx - 4;
+  return off >= -2 && off <= 3 ? off : 0;
+}
+
+/** Derive the org from a KPI code prefix (e.g. "ZAD-S1" → ZAD). */
+const KPI_CODE_ORGS = ["ZF", "ZUST", "ZAD", "TAYO", "KAFI", "HAMDI"];
+function entityFromKpiCode(code: string | null): string | null {
+  if (!code) return null;
+  const prefix = code.split(/[-_ ]/)[0]?.toUpperCase();
+  return prefix && KPI_CODE_ORGS.includes(prefix) ? prefix : null;
+}
+
 function hasKpiStructure(aoa: unknown[][]): boolean {
-  if (findKpiHeaderRow(aoa) < 0) return false;
-  const rows = aoa.slice(findKpiHeaderRow(aoa) + 1, findKpiHeaderRow(aoa) + 31);
-  return rows.some((row) => Array.isArray(row) && isValidKpiRow(row));
+  const hi = findKpiHeaderRow(aoa);
+  if (hi < 0) return false;
+  const off = kpiColumnOffset(aoa, hi);
+  const rows = aoa.slice(hi + 1, hi + 31);
+  return rows.some((row) => Array.isArray(row) && isValidKpiRow(row, off));
 }
 
 const KPI_ROW_REJECT = /^(data|البيانات|تحليل|التحليل|جامعة|الجامعة|الربعي|ربع[يية]|الهدف|هدف|تعزيز\s*الشفافية|توسيع\s*قاعدة\s*المانحين|النتائج\s*المباشرة|نتائج\s*تقييم\s*السياسات|مؤشر\s*الأداء|الكود|الكود\s*id|المنظور)$/i;
 
-function isValidKpiRow(row: unknown[]): boolean {
-  const code = toStr(row[4]);
-  const name = toStr(row[3]);
+function isValidKpiRow(row: unknown[], off = 0): boolean {
+  const code = toStr(row[4 + off]);
+  const name = toStr(row[3 + off]);
   if (!code || !name) return false;
   if (KPI_ROW_REJECT.test(code) || KPI_ROW_REJECT.test(name)) return false;
   if (code.length > 48 || name.length < 4) return false;
@@ -683,41 +707,43 @@ export const parseUpload = createServerFn({ method: "POST" })
           continue;
         }
 
+        const off = kpiColumnOffset(aoa, kpiHeaderIdx);
         const rowsToParse = kpiHeaderIdx >= 0 ? aoa.slice(kpiHeaderIdx + 1) : aoa;
         for (const row of rowsToParse) {
           if (!Array.isArray(row)) continue;
-          if (!isValidKpiRow(row)) continue;
-          const code = toStr(row[4]);
-          const name = toStr(row[3]);
+          if (!isValidKpiRow(row, off)) continue;
+          const code = toStr(row[4 + off]);
+          const name = toStr(row[3 + off]);
 
-          const sector = toStr(row[1]);
+          const sector = toStr(row[1 + off]);
           if (sector) lastSector = sector;
 
+          const rowOrg = entityFromKpiCode(code);
           kpiRows.push({
             upload_id: data.uploadId,
-            entity_code: entityCode,
-            entity_name: entityName,
+            entity_code: rowOrg ?? entityCode,
+            entity_name: rowOrg && rowOrg !== entityCode ? normalizeEntity(rowOrg).name : entityName,
             sector: lastSector,
-            objective: toStr(row[2]),
+            objective: toStr(row[2 + off]),
             kpi_code: code,
             kpi_name: name,
-            kpi_type: toStr(row[5]),
-            weight: toNum(row[6]),
-            baseline: toNum(row[7]),
-            annual_target: toNum(row[8]),
-            q1_planned: toNum(row[9]),
-            q2_planned: toNum(row[10]),
-            q3_planned: toNum(row[11]),
-            q4_planned: toNum(row[12]),
-            total_planned: toNum(row[13]),
-            q1_actual: toNum(row[14]),
-            q2_actual: toNum(row[15]),
-            q3_actual: toNum(row[16]),
-            q4_actual: toNum(row[17]),
-            total_actual: toNum(row[18]),
-            achievement_pct: toNum(row[20]),
-            overall_pct: toNum(row[21]),
-            final_output: toStr(row[22]),
+            kpi_type: toStr(row[5 + off]),
+            weight: toNum(row[6 + off]),
+            baseline: toNum(row[7 + off]),
+            annual_target: toNum(row[8 + off]),
+            q1_planned: toNum(row[9 + off]),
+            q2_planned: toNum(row[10 + off]),
+            q3_planned: toNum(row[11 + off]),
+            q4_planned: toNum(row[12 + off]),
+            total_planned: toNum(row[13 + off]),
+            q1_actual: toNum(row[14 + off]),
+            q2_actual: toNum(row[15 + off]),
+            q3_actual: toNum(row[16 + off]),
+            q4_actual: toNum(row[17 + off]),
+            total_actual: toNum(row[18 + off]),
+            achievement_pct: toNum(row[20 + off]),
+            overall_pct: toNum(row[21 + off]),
+            final_output: toStr(row[22 + off]),
             period,
             raw: { row } as unknown as never,
           });
@@ -935,24 +961,28 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
       const sheetLooksKpi = headerIdx >= 0 && (isKpiDataType(data.dataType ?? "") || looksLikeKpiFile(fileName) || looksLikeKpiFile(sheetName) || hasKpiStructure(aoa));
       if (!sheetLooksKpi) continue;
       const norm = normalizeEntity(sheetName);
+      const off = kpiColumnOffset(aoa, headerIdx);
       let lastSector: string | null = null;
       const rowsToParse = headerIdx >= 0 ? aoa.slice(headerIdx + 1) : aoa;
       for (const row of rowsToParse) {
         if (!Array.isArray(row)) continue;
-        if (!isValidKpiRow(row)) { if (row[3] || row[4]) rejected++; continue; }
-        const code = toStr(row[4]);
-        const name = toStr(row[3]);
-        const sector = toStr(row[1]);
+        if (!isValidKpiRow(row, off)) { if (row[3 + off] || row[4 + off]) rejected++; continue; }
+        const code = toStr(row[4 + off]);
+        const name = toStr(row[3 + off]);
+        const sector = toStr(row[1 + off]);
         if (sector) lastSector = sector;
+        const rowOrg = entityFromKpiCode(code);
         parsed.push({
-          entity_code: norm.code, entity_name: norm.name, sector: lastSector,
-          objective: toStr(row[2]), kpi_code: code, kpi_name: name, kpi_type: toStr(row[5]),
-          weight: toNum(row[6]), baseline: toNum(row[7]), annual_target: toNum(row[8]),
-          q1_planned: toNum(row[9]), q2_planned: toNum(row[10]), q3_planned: toNum(row[11]), q4_planned: toNum(row[12]),
-          total_planned: toNum(row[13]),
-          q1_actual: toNum(row[14]), q2_actual: toNum(row[15]), q3_actual: toNum(row[16]), q4_actual: toNum(row[17]),
-          total_actual: toNum(row[18]),
-          achievement_pct: toNum(row[20]), overall_pct: toNum(row[21]), final_output: toStr(row[22]),
+          entity_code: rowOrg ?? norm.code,
+          entity_name: rowOrg && rowOrg !== norm.code ? normalizeEntity(rowOrg).name : norm.name,
+          sector: lastSector,
+          objective: toStr(row[2 + off]), kpi_code: code, kpi_name: name, kpi_type: toStr(row[5 + off]),
+          weight: toNum(row[6 + off]), baseline: toNum(row[7 + off]), annual_target: toNum(row[8 + off]),
+          q1_planned: toNum(row[9 + off]), q2_planned: toNum(row[10 + off]), q3_planned: toNum(row[11 + off]), q4_planned: toNum(row[12 + off]),
+          total_planned: toNum(row[13 + off]),
+          q1_actual: toNum(row[14 + off]), q2_actual: toNum(row[15 + off]), q3_actual: toNum(row[16 + off]), q4_actual: toNum(row[17 + off]),
+          total_actual: toNum(row[18 + off]),
+          achievement_pct: toNum(row[20 + off]), overall_pct: toNum(row[21 + off]), final_output: toStr(row[22 + off]),
           period,
         });
       }
