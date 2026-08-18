@@ -164,7 +164,10 @@ function findKpiHeaderRow(aoa: unknown[][]): number {
   for (let r = 0; r < Math.min(aoa.length, 25); r++) {
     const row = aoa[r] ?? [];
     const joined = row.map((cell) => toStr(cell) ?? "").join(" ");
-    const fixedColumnsMatch = /مؤشر\s*الأداء|وصف\s*المؤشر/i.test(String(row[3] ?? "")) && /الكود|code|id/i.test(String(row[4] ?? ""));
+    const cells = row.map((c) => String(c ?? "").replace(/\s+/g, " ").trim());
+    const fixedColumnsMatch =
+      cells.some((c) => /^(مؤشر\s*الأداء|وصف\s*المؤشر|المؤشر)$/i.test(c)) &&
+      cells.some((c) => /^(الكود|code|id)\b/i.test(c));
     const labels = [
       /المنظور|perspective/i,
       /الهدف|objective/i,
