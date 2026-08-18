@@ -163,10 +163,10 @@ function isKpiDataType(dataType: string): boolean {
 function findKpiHeaderRow(aoa: unknown[][]): number {
   for (let r = 0; r < Math.min(aoa.length, 25); r++) {
     const row = aoa[r] ?? [];
-    const joined = row.map((cell) => toStr(cell) ?? "").join(" ");
-    const cells = row.map((c) => String(c ?? "").replace(/\s+/g, " ").trim());
+    const cells = row.map((c) => String(c ?? "").replace(/\u0640/g, "").replace(/\s+/g, " ").trim());
+    const joined = cells.join(" ");
     const fixedColumnsMatch =
-      cells.some((c) => /^(مؤشر\s*الأداء|وصف\s*المؤشر|المؤشر)$/i.test(c)) &&
+      cells.some((c) => /^(مؤشر\s*الأداء|وصف\s*المؤشر|المؤشر)\b/i.test(c)) &&
       cells.some((c) => /^(الكود|code|id)\b/i.test(c));
     const labels = [
       /المنظور|perspective/i,
