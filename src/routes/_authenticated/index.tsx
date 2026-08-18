@@ -663,13 +663,45 @@ function KPIsSection() {
 
 
 
-  const fmtPct = (v: number | null | undefined) => {
+  const num = (v: unknown): number | null => {
+    if (v === null || v === undefined || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  /** جمع الأرباع: يعيد null فقط إذا كانت كل القيم فارغة. */
+  const sumQ = (...vals: (number | null)[]) => {
+    const present = vals.filter((v): v is number => v !== null);
+    return present.length ? present.reduce((a, b) => a + b, 0) : null;
+  };
+  /** المعادلات كما في نموذج الأكسل، مع تفضيل القيمة المخزّنة إن وُجدت. */
+  const derive = (k: any) => {
+    const baseline = num(k.baseline);
+    const target = num(k.annual_target);
+    const weight = num(k.weight);
+    const qp = [num(k.q1_planned), num(k.q2_planned), num(k.q3_planned), num(k.q4_planned)];
+    const qa = [num(k.q1_actual), num(k.q2_actual), num(k.q3_actual), num(k.q4_actual)];
+    const totalPlanned = num(k.total_planned) ?? sumQ(...qp);
+    const totalActual = num(k.total_actual) ?? sumQ(...qa);
+    // الإجمالي التراكمي = خط الأساس + المنجز
+    const cumulative = baseline !== null || totalActual !== null ? (baseline ?? 0) + (totalActual ?? 0) : null;
+    // نسبة الإنجاز = المنجز ÷ المستهدف السنوي
+    const achievement =
+      num(k.achievement_pct) ?? (target && target !== 0 && totalActual !== null ? totalActual / target : null);
+    // النسبة العامة = نسبة الإنجاز × الوزن النسبي
+    const overall = num(k.overall_pct) ?? (achievement !== null && weight !== null ? achievement * weight : null);
+    return { baseline, target, weight, qp, qa, totalPlanned, totalActual, cumulative, achievement, overall };
+  };
+
+  const fmtPct = (v: number | null | undefined, decimals = 0) => {
     if (v === null || v === undefined) return "—";
     const n = Number(v);
     if (!Number.isFinite(n)) return "—";
-    return `${Math.round(n <= 1 ? n * 100 : n)}%`;
+    const pct = n <= 1 && n >= -1 ? n * 100 : n;
+    return `${pct.toFixed(decimals)}%`;
   };
-  const fmtNum = (v: number | null | undefined) => (v === null || v === undefined ? "—" : String(v));
+  const fmtNum = (v: number | null | undefined) =>
+    v === null || v === undefined ? "—" : String(Math.round(Number(v) * 100) / 100);
+
 
   return (
     <div className="space-y-6">
