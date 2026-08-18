@@ -37,7 +37,7 @@ const ENTITY_ALIASES: Array<{ id: string; name: string; patterns: RegExp[] }> = 
   { id: "TAYO", name: "تيو للتعليم", patterns: [/تيو/, /tayo/i] },
   { id: "KAFI", name: "كافي للتنمية", patterns: [/كافي/, /kafi/i] },
   { id: "ZF", name: "مؤسسة زمزم", patterns: [/^\s*زمزم\s*$/, /مؤسسة\s*زمزم/, /zamzam\s*foundation/i, /^\s*zf\s*$/i] },
-  { id: "ZUST", name: "جامعة زمزم للعلوم والتكنولوجيا", patterns: [/جامعة\s*زمزم/, /zust/i] },
+  { id: "ZUST", name: "جامعة زمزم للعلوم والتكنولوجيا", patterns: [/جامعة\s*زمزم/, /^\s*(ال)?جامعة\s*$/, /zust/i] },
   { id: "ZAD", name: "زاد للتنمية", patterns: [/^\s*زاد/, /\bzad\b/i] },
   { id: "HAMDI", name: "منظمة حمدي للتنمية", patterns: [/حمد[يى]/, /hamdi/i] },
 ];
