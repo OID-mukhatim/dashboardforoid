@@ -206,7 +206,7 @@ export type KpiCols = {
 
 function findCol(row: unknown[], re: RegExp, exclude?: RegExp): number {
   return row.findIndex((c) => {
-    const s = String(c ?? "").replace(/\s+/g, " ").trim();
+    const s = String(c ?? "").replace(/\u0640/g, "").replace(/\s+/g, " ").trim();
     if (!s) return false;
     if (exclude && exclude.test(s)) return false;
     return re.test(s);
