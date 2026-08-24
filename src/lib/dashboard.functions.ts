@@ -124,6 +124,16 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
     }
 
 
+    // 3) totals: initiatives count + last upload timestamp (never throws)
+    const { count: initiativesCount } = await sb
+      .from("initiatives")
+      .select("id", { count: "exact", head: true });
+    const { data: lastUpload } = await sb
+      .from("uploads")
+      .select("created_at")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
     const snap: DashboardSnapshot = {
       matrix,
       kpi: kpiAgg,
@@ -131,6 +141,8 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
         kpisCount: (kpis ?? []).length,
         orgsWithKpis: byOrg.size,
         extractionsCount: (extractions ?? []).length,
+        initiativesCount: initiativesCount ?? 0,
+        lastUploadAt: lastUpload?.[0]?.created_at ?? null,
       },
       generatedAt: new Date().toISOString(),
     };
