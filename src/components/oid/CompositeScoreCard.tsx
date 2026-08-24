@@ -11,7 +11,11 @@ import { computeTrend } from "@/lib/oid-timeline";
 import { TrendBadge } from "./TrendBadge";
 import { AlertTriangle } from "lucide-react";
 
-export function CompositeScoreCard({ orgId, profile }: { orgId: OrgId; profile?: InstitutionProfile }) {
+export function CompositeScoreCard({
+  orgId,
+  profile,
+  usingFallback,
+}: { orgId: OrgId; profile?: InstitutionProfile; usingFallback?: boolean }) {
   const org = ORGS.find((o) => o.id === orgId)!;
   const p = profile ?? computeProfile(orgId);
   const trend = computeTrend(orgId, "composite");
