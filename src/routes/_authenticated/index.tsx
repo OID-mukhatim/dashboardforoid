@@ -439,6 +439,14 @@ function DashboardSection() {
         </select>
       </div>
 
+      {globalFallback && (
+        <div className="flex justify-end">
+          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
+            بيانات تجريبية — ارفع ملفاً لتحديثها
+          </span>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="مؤسسات الشبكة" value={String(stats.orgsCount)} sub={stats.orgsSub} icon={Building2} accent="#1d4ed8" />
         <StatCard label="إجمالي الموظفين" value={stats.staff ? `${fmtNum(stats.staff)}+` : "—"} sub={orgFilter === "all" ? "عبر الشبكة" : "في المؤسسة"} icon={Users} accent="#15803d" />
