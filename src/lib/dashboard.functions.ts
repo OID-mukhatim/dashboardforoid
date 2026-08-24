@@ -32,6 +32,8 @@ export type DashboardSnapshot = {
     kpisCount: number;
     orgsWithKpis: number;
     extractionsCount: number;
+    initiativesCount: number;
+    lastUploadAt: string | null;
   };
   generatedAt: string;
 };
