@@ -463,7 +463,7 @@ function DashboardSection() {
             {ORGS
               .filter((o) => orgFilter === "all" || o.id === orgFilter)
               .map((o) => (
-                <CompositeScoreCard key={o.id} orgId={o.id} profile={liveProfiles[o.id]} />
+                <CompositeScoreCard key={o.id} orgId={o.id} profile={liveProfiles[o.id]} usingFallback={orgUsesFallback(o.id)} />
               ))}
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-border flex-wrap gap-3">
