@@ -375,6 +375,17 @@ function DashboardSection() {
     return out;
   }, [snap]);
 
+  // هل هذه المؤسسة تعتمد على البيانات الثابتة (لا يوجد مصدر حي بعد)؟
+  const orgUsesFallback = (id: OrgId) => {
+    const m = snap?.matrix?.[id];
+    const k = snap?.kpi?.[id];
+    const hasLive =
+      (m && (m.gapAvg != null || m.govScore != null || m.finScore != null)) ||
+      (k && k.weightedAvgPct != null);
+    return !hasLive;
+  };
+  const globalFallback = !snap || ORGS.every((o) => orgUsesFallback(o.id));
+
   const radarData = GAP_AXES.map((axis, i) => {
     const row: any = { axis };
     ORGS.forEach((o) => {
@@ -428,6 +439,14 @@ function DashboardSection() {
         </select>
       </div>
 
+      {globalFallback && (
+        <div className="flex justify-end">
+          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
+            بيانات تجريبية — ارفع ملفاً لتحديثها
+          </span>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="مؤسسات الشبكة" value={String(stats.orgsCount)} sub={stats.orgsSub} icon={Building2} accent="#1d4ed8" />
         <StatCard label="إجمالي الموظفين" value={stats.staff ? `${fmtNum(stats.staff)}+` : "—"} sub={orgFilter === "all" ? "عبر الشبكة" : "في المؤسسة"} icon={Users} accent="#15803d" />
@@ -452,7 +471,7 @@ function DashboardSection() {
             {ORGS
               .filter((o) => orgFilter === "all" || o.id === orgFilter)
               .map((o) => (
-                <CompositeScoreCard key={o.id} orgId={o.id} profile={liveProfiles[o.id]} />
+                <CompositeScoreCard key={o.id} orgId={o.id} profile={liveProfiles[o.id]} usingFallback={orgUsesFallback(o.id)} />
               ))}
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-border flex-wrap gap-3">

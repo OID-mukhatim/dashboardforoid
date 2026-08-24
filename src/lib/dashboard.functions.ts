@@ -32,6 +32,8 @@ export type DashboardSnapshot = {
     kpisCount: number;
     orgsWithKpis: number;
     extractionsCount: number;
+    initiativesCount: number;
+    lastUploadAt: string | null;
   };
   generatedAt: string;
 };
@@ -122,6 +124,16 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
     }
 
 
+    // 3) totals: initiatives count + last upload timestamp (never throws)
+    const { count: initiativesCount } = await sb
+      .from("initiatives")
+      .select("id", { count: "exact", head: true });
+    const { data: lastUpload } = await sb
+      .from("uploads")
+      .select("created_at")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
     const snap: DashboardSnapshot = {
       matrix,
       kpi: kpiAgg,
@@ -129,6 +141,8 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
         kpisCount: (kpis ?? []).length,
         orgsWithKpis: byOrg.size,
         extractionsCount: (extractions ?? []).length,
+        initiativesCount: initiativesCount ?? 0,
+        lastUploadAt: lastUpload?.[0]?.created_at ?? null,
       },
       generatedAt: new Date().toISOString(),
     };
@@ -213,6 +227,45 @@ export const loadQuarterlyReports = createServerFn({ method: "GET" })
       if (seen.has(key)) continue; // الأحدث يفوز
       seen.add(key);
       out.push({ id: r.id, orgCode, fileName: r.file_name, quarter, year, payload: p, createdAt: r.created_at });
+    }
+    return out;
+  });
+
+export type KpiAggregate = { weightedPct: number | null; count: number };
+
+/** متوسط إنجاز مؤشرات الأداء الموزون لكل مؤسسة (0..100). */
+export const loadKpiAggregates = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const out: Record<string, KpiAggregate> = {};
+    for (const code of VALID_ORGS) out[code] = { weightedPct: null, count: 0 };
+
+    const { data, error } = await context.supabase
+      .from("kpis")
+      .select("entity_code, achievement_pct, overall_pct, weight");
+    if (error || !data) return out;
+
+    const acc = new Map<string, { wSum: number; wxSum: number; count: number }>();
+    for (const r of data) {
+      const code = String(r.entity_code ?? "");
+      if (!VALID_ORGS.includes(code as OrgCode)) continue;
+      const raw = r.achievement_pct ?? r.overall_pct;
+      if (raw == null) continue;
+      const pct = Number(raw);
+      if (!Number.isFinite(pct)) continue;
+      const pct100 = pct <= 1 ? pct * 100 : pct;
+      const w = Number(r.weight ?? 1) || 1;
+      const cur = acc.get(code) ?? { wSum: 0, wxSum: 0, count: 0 };
+      cur.wSum += w;
+      cur.wxSum += pct100 * w;
+      cur.count += 1;
+      acc.set(code, cur);
+    }
+    for (const [code, v] of acc) {
+      out[code] = {
+        weightedPct: v.wSum > 0 ? Math.round((v.wxSum / v.wSum) * 10) / 10 : null,
+        count: v.count,
+      };
     }
     return out;
   });
