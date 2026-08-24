@@ -375,6 +375,17 @@ function DashboardSection() {
     return out;
   }, [snap]);
 
+  // هل هذه المؤسسة تعتمد على البيانات الثابتة (لا يوجد مصدر حي بعد)؟
+  const orgUsesFallback = (id: OrgId) => {
+    const m = snap?.matrix?.[id];
+    const k = snap?.kpi?.[id];
+    const hasLive =
+      (m && (m.gapAvg != null || m.govScore != null || m.finScore != null)) ||
+      (k && k.weightedAvgPct != null);
+    return !hasLive;
+  };
+  const globalFallback = !snap || ORGS.every((o) => orgUsesFallback(o.id));
+
   const radarData = GAP_AXES.map((axis, i) => {
     const row: any = { axis };
     ORGS.forEach((o) => {
