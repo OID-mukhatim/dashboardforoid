@@ -39,6 +39,11 @@ export function CompositeScoreCard({
           <div className="min-w-0">
             <div className="font-bold text-sm whitespace-normal break-words">{org.nameAr}</div>
             <div className="text-[11px] text-muted-foreground whitespace-normal break-words" dir="ltr">{org.nameEn}</div>
+            {usingFallback && (
+              <span className="mt-1 inline-block text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
+                بيانات تجريبية — ارفع ملفاً لتحديثها
+              </span>
+            )}
           </div>
         </div>
         <div className="text-right shrink-0">
