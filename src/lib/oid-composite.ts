@@ -60,10 +60,10 @@ function kpiScoreOf(orgId: OrgId): number | null {
   return totalWeight > 0 ? weightedSum / totalWeight : null;
 }
 
-// المالي حالياً: لا تتوفر درجة شاملة موثوقة — يُعاد null للمؤسسات
-// حتى يتم رفع بيانات المستشار المالي.
-function finScoreOf(_orgId: OrgId): number | null {
-  return null;
+// المالي: fallback مؤقت من البيانات الثابتة حتى تصل بيانات المستشار المالي.
+function finScoreOf(orgId: OrgId): number | null {
+  const o = orgOverallScores.find((s) => s.id === orgId) as { finScore?: number | null } | undefined;
+  return o?.finScore ?? null;
 }
 
 export function computeProfile(orgId: OrgId): InstitutionProfile {
