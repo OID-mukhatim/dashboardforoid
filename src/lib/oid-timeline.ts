@@ -95,7 +95,7 @@ const EMPTY: TrendResult = {
 export function getSeries(
   orgId: OrgId,
   domain: TimelineDomain,
-  source: TimelineEntry[] = TIMELINE_SEED,
+  source: TimelineEntry[] = activeTimeline(),
 ): TimelineEntry[] {
   return source
     .filter((e) => e.orgId === orgId && e.domain === domain)
@@ -105,7 +105,7 @@ export function getSeries(
 export function computeTrend(
   orgId: OrgId,
   domain: TimelineDomain,
-  source: TimelineEntry[] = TIMELINE_SEED,
+  source: TimelineEntry[] = activeTimeline(),
 ): TrendResult {
   const series = getSeries(orgId, domain, source);
   if (series.length === 0) return EMPTY;
