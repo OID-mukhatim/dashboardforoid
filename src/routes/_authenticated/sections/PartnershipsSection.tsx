@@ -72,7 +72,7 @@ function NewPartnershipModal({ open, onClose }: { open: boolean; onClose: () => 
       setLinkedOrgs([]);
       setErrMsg(null);
     },
-    onError: (e: any) => setErrMsg(e?.message ?? "فشل الحفظ في قاعدة البيانات")),
+    onError: (e: any) => setErrMsg(e?.message ?? "فشل الحفظ في قاعدة البيانات"),
   });
 
   if (!open) return null;
