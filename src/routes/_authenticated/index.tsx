@@ -6,6 +6,7 @@ import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet
 import { alerts } from "@/lib/oid-data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InstitutionProfileDrawer } from "@/components/oid/InstitutionProfileDrawer";
+import { useLiveTimeline } from "@/lib/timeline-live";
 import { DashboardSection } from "./sections/DashboardSection";
 import { KPIsSection } from "./sections/KPIsSection";
 import { QuarterlySection } from "./sections/QuarterlySection";
@@ -46,6 +47,7 @@ const NAV: { group: string; items: { id: SectionId; label: string; icon: any }[]
 
 function Page() {
   const [section, setSection] = useState<SectionId>("dashboard");
+  useLiveTimeline();
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />

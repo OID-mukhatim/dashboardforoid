@@ -269,3 +269,38 @@ export const loadKpiAggregates = createServerFn({ method: "GET" })
     }
     return out;
   });
+
+/* ------------------------------------------------------------------ */
+/* حفظ نقطة زمنية (البعد الزمني) — تُستدعى عند كل رفع ناجح لبيانات      */
+/* الفجوات أو الحوكمة أو المؤشرات.                                     */
+/* ------------------------------------------------------------------ */
+export const saveTimelineEntry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: {
+    orgId: string;
+    domain: "composite" | "gap" | "governance" | "kpi" | "financial";
+    period: string;
+    periodOrder: number;
+    value: number;
+    note?: string | null;
+  }) => data)
+  .handler(async ({ data, context }) => {
+    if (!VALID_ORGS.includes(data.orgId as OrgCode)) {
+      return { ok: false as const, error: "invalid org" };
+    }
+    const { error } = await context.supabase
+      .from("timeline_entries")
+      .upsert(
+        {
+          org_id: data.orgId,
+          domain: data.domain,
+          period: data.period,
+          period_order: data.periodOrder,
+          value: data.value,
+          note: data.note ?? null,
+        },
+        { onConflict: "org_id,domain,period" },
+      );
+    if (error) return { ok: false as const, error: error.message };
+    return { ok: true as const };
+  });
