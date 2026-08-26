@@ -12,11 +12,13 @@ type Props = {
   shape?: "rounded" | "circle";
   className?: string;
   title?: string;
+  /** مصدر شعار بديل (مثلاً شعار مرفوع من قاعدة البيانات) */
+  src?: string | null;
 };
 
-export function OrgLogo({ orgId, size = 48, shape = "rounded", className = "", title }: Props) {
+export function OrgLogo({ orgId, size = 48, shape = "rounded", className = "", title, src }: Props) {
   const org = ORGS.find((o) => o.id === orgId);
-  const logo = ORG_LOGOS[orgId];
+  const logo = src || ORG_LOGOS[orgId];
   const radius = shape === "circle" ? "9999px" : "10px";
 
   if (!org) {
