@@ -9,6 +9,9 @@ import { Card, EmptyData, Progress, SectionTitle, OrgChip, FilterSelect } from "
 /* ============================ QUARTERLY ============================ */
 type QAch = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; beneficiaries: number|null; location: string|null; budget: number|null; cost: number|null; variance: number|null; outcomes: string|null };
 type QEv = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; participants: number|null; location: string|null; evaluation: string|null };
+type QCh = { n: number|null; title: string; impact: string|null; reasons: string|null; actions: string|null; status: string|null; requiredSupport: string|null };
+
+type FilterType = "ach" | "ev" | "ch" | "rec";
 
 /** نسبة الإنجاز المعتمدة: تُحتسب من (المنفذ ÷ المستهدف) لأن بعض الملفات تخزّن نسبة الانحراف بدل نسبة الإنجاز */
 function effPct(a: { target: number|null; achieved: number|null; pct: number|null }): number | null {
@@ -18,13 +21,11 @@ function effPct(a: { target: number|null; achieved: number|null; pct: number|nul
   }
   return a.pct;
 }
-type QCh = { n: number|null; title: string; impact: string|null; reasons: string|null; actions: string|null; status: string|null; requiredSupport: string|null };
 
 export function QuarterlySection() {
-  const [tab, setTab] = useState<"ach"|"ch"|"rec">("ach");
-  const [filters, setFilters] = useState({ org: "all", quarter: "all", year: "all" });
+  const [filters, setFilters] = useState({ org: "all", quarter: "all", year: "2026", type: "ach" as FilterType });
   const update = (k: keyof typeof filters, v: string) => setFilters((p) => ({ ...p, [k]: v }));
-  const reset = () => setFilters({ org: "all", quarter: "all", year: "all" });
+  const reset = () => setFilters({ org: "all", quarter: "all", year: "all", type: "ach" });
 
   const reportsFn = useServerFn(loadQuarterlyReports);
   const { data: reports, isLoading } = useQuery({
@@ -40,7 +41,7 @@ export function QuarterlySection() {
     const okQ = filters.quarter === "all" || (r.quarter ?? "") === filters.quarter;
     const okY = filters.year === "all" || String(r.year ?? "") === filters.year;
     return okOrg && okQ && okY;
-  }), [rows, filters]);
+  }), [rows, filters.org, filters.quarter, filters.year]);
 
   const achievements = useMemo(() => live.flatMap((r) =>
     (((r.payload as any)?.achievements ?? []) as QAch[]).map((a, i) => ({ ...a, pct: effPct(a), _k: `${r.id}-${i}`, org: r.orgCode, quarter: r.quarter, year: r.year }))
@@ -56,15 +57,29 @@ export function QuarterlySection() {
   ), [live]);
 
   const totalAch = rows.reduce((s, r) => s + (((r.payload as any)?.achievements ?? []) as unknown[]).length, 0);
-  const hasActive = filters.org !== "all" || filters.quarter !== "all" || filters.year !== "all";
+  const hasActive = filters.org !== "all" || filters.quarter !== "all" || filters.year !== "all" || filters.type !== "ach";
+
   const orgOpts = [{ value: "all", label: "جميع المؤسسات" }, ...ORGS.map((o) => ({ value: o.id, label: o.nameAr }))];
   const qOpts = [
     { value: "all", label: "جميع الأرباع" },
     { value: "Q1", label: "الربع الأول" }, { value: "Q2", label: "الربع الثاني" },
     { value: "Q3", label: "الربع الثالث" }, { value: "Q4", label: "الربع الرابع" },
   ];
-  const years = Array.from(new Set(rows.map((r) => r.year).filter(Boolean))).sort() as number[];
+  const years = Array.from(new Set(rows.map((r) => r.year).filter(Boolean) as number[])).sort();
   const yOpts = [{ value: "all", label: "جميع السنوات" }, ...years.map((y) => ({ value: String(y), label: String(y) }))];
+  const typeOpts: { value: FilterType; label: string }[] = [
+    { value: "ach", label: "الإنجازات والمشاريع" },
+    { value: "ev", label: "الفعاليات والبرامج التدريبية" },
+    { value: "ch", label: "التحديات والعوائق" },
+    { value: "rec", label: "التوصيات" },
+  ];
+
+  // عدّ النتائج حسب النوع المختار
+  const currentCount = filters.type === "ach" ? achievements.length
+    : filters.type === "ev" ? events.length
+    : filters.type === "ch" ? challenges.length
+    : recommendations.length;
+
   const subtitle = rows.length
     ? `${rows.length} تقرير مرفوع — ${Array.from(new Set(rows.map((r) => `${r.quarter ?? "?"} ${r.year ?? ""}`.trim()))).join("، ")}`
     : "لا توجد تقارير مرفوعة بعد";
@@ -72,36 +87,34 @@ export function QuarterlySection() {
   return (
     <div className="space-y-6">
       <SectionTitle title="التقارير الربعية" subtitle={subtitle} />
+
+      {/* ===== شريط الفلاتر ===== */}
       <Card className="p-3 flex flex-wrap items-center gap-3">
-        <FilterSelect label="المؤسسة" value={filters.org} onChange={(v)=>update("org", v)} options={orgOpts} />
-        <FilterSelect label="الربع" value={filters.quarter} onChange={(v)=>update("quarter", v)} options={qOpts} />
-        <FilterSelect label="السنة" value={filters.year} onChange={(v)=>update("year", v)} options={yOpts} />
+        <FilterSelect label="المؤسسة" value={filters.org} onChange={(v) => update("org", v)} options={orgOpts} />
+        <FilterSelect label="الربع" value={filters.quarter} onChange={(v) => update("quarter", v)} options={qOpts} />
+        <FilterSelect label="السنة" value={filters.year} onChange={(v) => update("year", v)} options={yOpts} />
+        <FilterSelect label="نوع النشاط" value={filters.type} onChange={(v) => update("type", v)} options={typeOpts} />
         {hasActive && (
           <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط</button>
         )}
       </Card>
 
+      {/* ===== مؤشر النتائج ===== */}
       <div className="text-xs text-muted-foreground">
-        عرض <span className="font-bold tabular-nums" dir="ltr">{achievements.length}</span> من{" "}
-        <span className="tabular-nums" dir="ltr">{totalAch}</span> إنجاز مستخرج من الملفات المرفوعة
-      </div>
-
-      <div className="flex gap-2 border-b border-border">
-        {[["ach","الإنجازات والمشاريع"],["ch","التحديات والعوائق"],["rec","التوصيات"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setTab(k as any)} className={`px-4 py-2 text-sm border-b-2 transition ${tab===k?"border-primary text-primary font-medium":"border-transparent text-muted-foreground hover:text-foreground"}`}>{l}</button>
-        ))}
+        عرض <span className="font-bold tabular-nums" dir="ltr">{currentCount}</span> سجل
+        {filters.type === "ach" && <> من <span className="tabular-nums" dir="ltr">{totalAch}</span> إنجاز مستخرج من الملفات المرفوعة</>}
       </div>
 
       {isLoading && <Card className="p-8 text-center text-sm text-muted-foreground">جارٍ تحميل التقارير…</Card>}
 
-      {!isLoading && tab === "ach" && (
+      {/* ===== الإنجازات والمشاريع ===== */}
+      {!isLoading && filters.type === "ach" && (
         achievements.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد إنجازات مطابقة — ارفع تقرير الأداء الربعي أو عدّل الفلاتر" />
             {hasActive && <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط الفلاتر</button>}
           </Card>
         ) : (
-        <div className="space-y-6">
         <Card>
           <ScrollableTable>
             <table className="w-full text-sm">
@@ -147,22 +160,32 @@ export function QuarterlySection() {
             </table>
           </ScrollableTable>
         </Card>
+        )
+      )}
 
-        {events.length > 0 && (
+      {/* ===== الفعاليات والبرامج التدريبية ===== */}
+      {!isLoading && filters.type === "ev" && (
+        events.length === 0 ? (
+          <Card className="p-8 text-center space-y-3">
+            <EmptyData msg="لا توجد فعاليات مطابقة — عدّل الفلاتر أو ارفع تقريراً يحتوي على قسم المشاركات" />
+            {hasActive && <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط الفلاتر</button>}
+          </Card>
+        ) : (
           <Card>
             <div className="px-4 py-3 text-sm font-medium border-b border-border">المشاركات والفعاليات والبرامج التدريبية</div>
             <ScrollableTable>
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs text-muted-foreground">
-                  <tr>{["م","الفعالية","الكود","المؤسسة","المستهدف","المنفذ","% الإنجاز","المشاركون","التقييم"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
+                  <tr>{["م","الفعالية","الكود","المؤسسة","الربع","المستهدف","المنفذ","% الإنجاز","المشاركون","الموقع","التقييم"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {events.map((r, i) => (
-                    <tr key={r._k} className="border-t border-border hover:bg-muted/20">
+                    <tr key={r._k} className="border-t border-border hover:bg-muted/20 align-top">
                       <td className="px-3 py-2 tabular-nums">{i + 1}</td>
-                      <td className="px-3 py-2">{r.title}</td>
+                      <td className="px-3 py-2 min-w-[200px]">{r.title}</td>
                       <td className="px-3 py-2 font-mono text-xs text-primary">{r.code ?? "—"}</td>
                       <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
+                      <td className="px-3 py-2 text-xs whitespace-nowrap">{r.quarter ?? "—"}</td>
                       <td className="px-3 py-2 text-xs tabular-nums">{r.target ?? "—"}</td>
                       <td className="px-3 py-2 text-xs tabular-nums">{r.achieved ?? "—"}</td>
                       <td className="px-3 py-2 min-w-[120px]">
@@ -171,6 +194,7 @@ export function QuarterlySection() {
                         )}
                       </td>
                       <td className="px-3 py-2 text-xs tabular-nums">{r.participants ?? "—"}</td>
+                      <td className="px-3 py-2 text-xs">{r.location ?? "—"}</td>
                       <td className="px-3 py-2 text-xs">{r.evaluation ?? "—"}</td>
                     </tr>
                   ))}
@@ -178,14 +202,16 @@ export function QuarterlySection() {
               </table>
             </ScrollableTable>
           </Card>
-        )}
-        </div>
         )
       )}
 
-      {!isLoading && tab === "ch" && (
+      {/* ===== التحديات والعوائق ===== */}
+      {!isLoading && filters.type === "ch" && (
         challenges.length === 0 ? (
-          <Card className="p-8"><EmptyData msg="لا توجد تحديات مستخرجة من التقارير المرفوعة" /></Card>
+          <Card className="p-8 text-center space-y-3">
+            <EmptyData msg="لا توجد تحديات مستخرجة من التقارير المرفوعة" />
+            {hasActive && <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط الفلاتر</button>}
+          </Card>
         ) : (
           <Card>
             <ScrollableTable>
@@ -213,9 +239,13 @@ export function QuarterlySection() {
         )
       )}
 
-      {!isLoading && tab === "rec" && (
+      {/* ===== التوصيات ===== */}
+      {!isLoading && filters.type === "rec" && (
         recommendations.length === 0 ? (
-          <Card className="p-8"><EmptyData msg="لا توجد توصيات مستخرجة من التقارير المرفوعة" /></Card>
+          <Card className="p-8 text-center space-y-3">
+            <EmptyData msg="لا توجد توصيات مستخرجة من التقارير المرفوعة" />
+            {hasActive && <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط الفلاتر</button>}
+          </Card>
         ) : (
           <Card className="p-4 space-y-3">
             {recommendations.map((r) => (
