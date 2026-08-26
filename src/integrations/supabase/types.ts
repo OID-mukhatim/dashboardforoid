@@ -127,6 +127,84 @@ export type Database = {
         }
         Relationships: []
       }
+      institutions: {
+        Row: {
+          address: string | null
+          branches: string | null
+          budget: number | null
+          deputy_email: string | null
+          deputy_name_ar: string | null
+          deputy_phone: string | null
+          excellence: string | null
+          exec_email: string | null
+          exec_name_ar: string | null
+          exec_phone: string | null
+          founded: string | null
+          id: string
+          license_expiry: string | null
+          license_number: string | null
+          logo_url: string | null
+          name_ar: string
+          name_en: string | null
+          sector: string | null
+          staff_female: number | null
+          staff_male: number | null
+          staff_total: number | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          branches?: string | null
+          budget?: number | null
+          deputy_email?: string | null
+          deputy_name_ar?: string | null
+          deputy_phone?: string | null
+          excellence?: string | null
+          exec_email?: string | null
+          exec_name_ar?: string | null
+          exec_phone?: string | null
+          founded?: string | null
+          id: string
+          license_expiry?: string | null
+          license_number?: string | null
+          logo_url?: string | null
+          name_ar: string
+          name_en?: string | null
+          sector?: string | null
+          staff_female?: number | null
+          staff_male?: number | null
+          staff_total?: number | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          branches?: string | null
+          budget?: number | null
+          deputy_email?: string | null
+          deputy_name_ar?: string | null
+          deputy_phone?: string | null
+          excellence?: string | null
+          exec_email?: string | null
+          exec_name_ar?: string | null
+          exec_phone?: string | null
+          founded?: string | null
+          id?: string
+          license_expiry?: string | null
+          license_number?: string | null
+          logo_url?: string | null
+          name_ar?: string
+          name_en?: string | null
+          sector?: string | null
+          staff_female?: number | null
+          staff_male?: number | null
+          staff_total?: number | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       kpis: {
         Row: {
           achievement_pct: number | null
@@ -230,6 +308,167 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      partnerships: {
+        Row: {
+          contact: string | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          geography: string | null
+          id: string
+          linked_orgs: string[]
+          name: string
+          name_en: string | null
+          notes: string | null
+          outcomes: string[] | null
+          start_date: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          contact?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          geography?: string | null
+          id?: string
+          linked_orgs?: string[]
+          name: string
+          name_en?: string | null
+          notes?: string | null
+          outcomes?: string[] | null
+          start_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          contact?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          geography?: string | null
+          id?: string
+          linked_orgs?: string[]
+          name?: string
+          name_en?: string | null
+          notes?: string | null
+          outcomes?: string[] | null
+          start_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      quarterly_reports: {
+        Row: {
+          achieved: string | null
+          beneficiaries: string | null
+          budget: number | null
+          cost: number | null
+          created_at: string
+          deviation: number | null
+          id: string
+          kpi_code: string | null
+          org_id: string
+          pct: number | null
+          quarter: string
+          raw: Json | null
+          report_type: string | null
+          status: string | null
+          target: string | null
+          title: string
+          updated_at: string
+          upload_id: string | null
+          year: number
+        }
+        Insert: {
+          achieved?: string | null
+          beneficiaries?: string | null
+          budget?: number | null
+          cost?: number | null
+          created_at?: string
+          deviation?: number | null
+          id?: string
+          kpi_code?: string | null
+          org_id: string
+          pct?: number | null
+          quarter?: string
+          raw?: Json | null
+          report_type?: string | null
+          status?: string | null
+          target?: string | null
+          title: string
+          updated_at?: string
+          upload_id?: string | null
+          year?: number
+        }
+        Update: {
+          achieved?: string | null
+          beneficiaries?: string | null
+          budget?: number | null
+          cost?: number | null
+          created_at?: string
+          deviation?: number | null
+          id?: string
+          kpi_code?: string | null
+          org_id?: string
+          pct?: number | null
+          quarter?: string
+          raw?: Json | null
+          report_type?: string | null
+          status?: string | null
+          target?: string | null
+          title?: string
+          updated_at?: string
+          upload_id?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quarterly_reports_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timeline_entries: {
+        Row: {
+          domain: string
+          id: string
+          note: string | null
+          org_id: string
+          period: string
+          period_order: number
+          recorded_at: string | null
+          value: number
+        }
+        Insert: {
+          domain: string
+          id?: string
+          note?: string | null
+          org_id: string
+          period: string
+          period_order: number
+          recorded_at?: string | null
+          value: number
+        }
+        Update: {
+          domain?: string
+          id?: string
+          note?: string | null
+          org_id?: string
+          period?: string
+          period_order?: number
+          recorded_at?: string | null
+          value?: number
+        }
+        Relationships: []
       }
       uploads: {
         Row: {
