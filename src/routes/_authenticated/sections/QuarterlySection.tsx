@@ -11,7 +11,7 @@ type QAch = { n: number|null; title: string; code: string|null; target: number|n
 type QEv = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; participants: number|null; location: string|null; evaluation: string|null };
 type QCh = { n: number|null; title: string; impact: string|null; reasons: string|null; actions: string|null; status: string|null; requiredSupport: string|null };
 
-type FilterType = "ach" | "ev" | "ch" | "rec";
+type FilterType = "all" | "ach" | "ev" | "ch" | "rec";
 
 /** نسبة الإنجاز المعتمدة: تُحتسب من (المنفذ ÷ المستهدف) لأن بعض الملفات تخزّن نسبة الانحراف بدل نسبة الإنجاز */
 function effPct(a: { target: number|null; achieved: number|null; pct: number|null }): number | null {
@@ -23,9 +23,9 @@ function effPct(a: { target: number|null; achieved: number|null; pct: number|nul
 }
 
 export function QuarterlySection() {
-  const [filters, setFilters] = useState({ org: "all", quarter: "all", year: "2026", type: "ach" as FilterType });
+  const [filters, setFilters] = useState({ org: "all", quarter: "all", year: "2026", type: "all" as FilterType });
   const update = (k: keyof typeof filters, v: string) => setFilters((p) => ({ ...p, [k]: v }));
-  const reset = () => setFilters({ org: "all", quarter: "all", year: "all", type: "ach" });
+  const reset = () => setFilters({ org: "all", quarter: "all", year: "2026", type: "all" });
 
   const reportsFn = useServerFn(loadQuarterlyReports);
   const { data: reports, isLoading } = useQuery({
@@ -56,8 +56,14 @@ export function QuarterlySection() {
     (((r.payload as any)?.recommendations ?? []) as string[]).map((t, i) => ({ text: t, _k: `${r.id}-r${i}`, org: r.orgCode, quarter: r.quarter }))
   ), [live]);
 
-  const totalAch = rows.reduce((s, r) => s + (((r.payload as any)?.achievements ?? []) as unknown[]).length, 0);
-  const hasActive = filters.org !== "all" || filters.quarter !== "all" || filters.year !== "all" || filters.type !== "ach";
+  const totals = useMemo(() => rows.reduce((acc, r) => {
+    acc.ach += (((r.payload as any)?.achievements ?? []) as unknown[]).length;
+    acc.ev += (((r.payload as any)?.events ?? []) as unknown[]).length;
+    acc.ch += (((r.payload as any)?.challenges ?? []) as unknown[]).length;
+    acc.rec += (((r.payload as any)?.recommendations ?? []) as unknown[]).length;
+    return acc;
+  }, { ach: 0, ev: 0, ch: 0, rec: 0 }), [rows]);
+  const hasActive = filters.org !== "all" || filters.quarter !== "all" || filters.year !== "2026" || filters.type !== "all";
 
   const orgOpts = [{ value: "all", label: "جميع المؤسسات" }, ...ORGS.map((o) => ({ value: o.id, label: o.nameAr }))];
   const qOpts = [
@@ -68,6 +74,7 @@ export function QuarterlySection() {
   const years = Array.from(new Set(rows.map((r) => r.year).filter(Boolean) as number[])).sort();
   const yOpts = [{ value: "all", label: "جميع السنوات" }, ...years.map((y) => ({ value: String(y), label: String(y) }))];
   const typeOpts: { value: FilterType; label: string }[] = [
+    { value: "all", label: "جميع أنواع النشاط" },
     { value: "ach", label: "الإنجازات والمشاريع" },
     { value: "ev", label: "الفعاليات والبرامج التدريبية" },
     { value: "ch", label: "التحديات والعوائق" },
@@ -75,10 +82,13 @@ export function QuarterlySection() {
   ];
 
   // عدّ النتائج حسب النوع المختار
-  const currentCount = filters.type === "ach" ? achievements.length
+  const currentCount = filters.type === "all" ? achievements.length + events.length + challenges.length + recommendations.length
+    : filters.type === "ach" ? achievements.length
     : filters.type === "ev" ? events.length
     : filters.type === "ch" ? challenges.length
     : recommendations.length;
+  const totalCount = filters.type === "all" ? totals.ach + totals.ev + totals.ch + totals.rec
+    : totals[filters.type];
 
   const subtitle = rows.length
     ? `${rows.length} تقرير مرفوع — ${Array.from(new Set(rows.map((r) => `${r.quarter ?? "?"} ${r.year ?? ""}`.trim()))).join("، ")}`
@@ -101,14 +111,13 @@ export function QuarterlySection() {
 
       {/* ===== مؤشر النتائج ===== */}
       <div className="text-xs text-muted-foreground">
-        عرض <span className="font-bold tabular-nums" dir="ltr">{currentCount}</span> سجل
-        {filters.type === "ach" && <> من <span className="tabular-nums" dir="ltr">{totalAch}</span> إنجاز مستخرج من الملفات المرفوعة</>}
+        عرض <span className="font-bold tabular-nums" dir="ltr">{currentCount}</span> من <span className="tabular-nums" dir="ltr">{totalCount}</span> سجل
       </div>
 
       {isLoading && <Card className="p-8 text-center text-sm text-muted-foreground">جارٍ تحميل التقارير…</Card>}
 
       {/* ===== الإنجازات والمشاريع ===== */}
-      {!isLoading && filters.type === "ach" && (
+      {!isLoading && (filters.type === "all" || filters.type === "ach") && (
         achievements.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد إنجازات مطابقة — ارفع تقرير الأداء الربعي أو عدّل الفلاتر" />
@@ -164,7 +173,7 @@ export function QuarterlySection() {
       )}
 
       {/* ===== الفعاليات والبرامج التدريبية ===== */}
-      {!isLoading && filters.type === "ev" && (
+      {!isLoading && (filters.type === "all" || filters.type === "ev") && (
         events.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد فعاليات مطابقة — عدّل الفلاتر أو ارفع تقريراً يحتوي على قسم المشاركات" />
@@ -206,7 +215,7 @@ export function QuarterlySection() {
       )}
 
       {/* ===== التحديات والعوائق ===== */}
-      {!isLoading && filters.type === "ch" && (
+      {!isLoading && (filters.type === "all" || filters.type === "ch") && (
         challenges.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد تحديات مستخرجة من التقارير المرفوعة" />
@@ -240,7 +249,7 @@ export function QuarterlySection() {
       )}
 
       {/* ===== التوصيات ===== */}
-      {!isLoading && filters.type === "rec" && (
+      {!isLoading && (filters.type === "all" || filters.type === "rec") && (
         recommendations.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد توصيات مستخرجة من التقارير المرفوعة" />
