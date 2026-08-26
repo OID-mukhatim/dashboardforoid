@@ -3,8 +3,8 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, Building, Rocket, Upload, Bell, Download, AlertTriangle, CheckCircle2, XCircle, LogOut, Shield } from "lucide-react";
-import { alerts } from "@/lib/oid-data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { NotificationsPanel } from "@/components/oid/NotificationsPanel";
 import { InstitutionProfileDrawer } from "@/components/oid/InstitutionProfileDrawer";
 import { useLiveTimeline } from "@/lib/timeline-live";
 import { DashboardSection } from "./sections/DashboardSection";
@@ -50,7 +50,7 @@ function Page() {
   useLiveTimeline();
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
+      <Header onNavigate={setSection} />
       <div className="flex flex-1">
         <Sidebar current={section} onChange={setSection} />
         <main className="flex-1 p-6 overflow-x-hidden">
@@ -72,7 +72,7 @@ function Page() {
 }
 
 /* ============================== Header ============================== */
-function Header() {
+function Header({ onNavigate }: { onNavigate: (s: SectionId) => void }) {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
   async function signOut() {
@@ -96,7 +96,7 @@ function Header() {
           )}
           <span className="text-xs px-2 py-1 rounded-md bg-white/15 border border-white/20">v1.0 — 2026</span>
           <IconBtn icon={Download} label="تصدير PDF" onClick={() => window.print()} />
-          <NotificationsBell alerts={alerts} />
+          <NotificationsPanel onNavigate={onNavigate} />
           <button onClick={signOut} className="p-2 rounded-lg hover:bg-white/15 transition" title="خروج">
             <LogOut size={18} />
           </button>
@@ -113,58 +113,6 @@ function IconBtn({ icon: Icon, label, badge, onClick }: any) {
     </button>
   );
 }
-
-function NotificationsBell({ alerts }: { alerts: Array<{ level: string; title: string; action: string }> }) {
-  const dangerCount = alerts.filter(a => a.level === "danger").length;
-  const styleFor = (level: string) => ({
-    danger: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", Ic: XCircle },
-    warning: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700", Ic: AlertTriangle },
-    success: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", Ic: CheckCircle2 },
-  }[level] as { bg: string; border: string; text: string; Ic: any });
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="relative p-2 rounded-lg hover:bg-white/15 transition"
-          title="تنبيهات"
-          aria-label="تنبيهات"
-        >
-          <Bell size={18} />
-          {dangerCount ? (
-            <span className="absolute -top-0.5 -left-0.5 text-[10px] bg-danger text-white rounded-full w-4 h-4 flex items-center justify-center font-bold">
-              {dangerCount}
-            </span>
-          ) : null}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-96 p-0 max-h-[70vh] overflow-auto" dir="rtl">
-        <div className="p-3 border-b bg-muted/40">
-          <div className="text-sm font-semibold">التنبيهات</div>
-          <div className="text-xs text-muted-foreground mt-0.5">{alerts.length} تنبيه — {dangerCount} حرج</div>
-        </div>
-        <div className="p-2 space-y-2">
-          {alerts.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">لا توجد تنبيهات حالياً</div>
-          ) : alerts.map((a, i) => {
-            const s = styleFor(a.level);
-            const Ic = s.Ic;
-            return (
-              <div key={i} className={`flex items-start gap-2 p-2 rounded-md border ${s.bg} ${s.border}`}>
-                <Ic size={16} className={s.text} />
-                <div className="flex-1 min-w-0">
-                  <div className={`text-sm font-medium ${s.text}`}>{a.title}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{a.action}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 
 /* ============================== Sidebar ============================== */
 function Sidebar({ current, onChange }: { current: SectionId; onChange: (s: SectionId)=>void }) {
