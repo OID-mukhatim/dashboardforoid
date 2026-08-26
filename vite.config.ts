@@ -11,5 +11,7 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
+    // مكوّنات الأقسام تعيش داخل src/routes/_authenticated/sections وليست مسارات.
+    router: { routeFileIgnorePattern: "sections/.*" },
   },
 });
