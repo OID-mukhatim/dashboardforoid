@@ -3,7 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, Building, Rocket, Upload, Bell, Download, AlertTriangle, CheckCircle2, XCircle, LogOut, Shield } from "lucide-react";
-import { partnerships, initiatives, alerts } from "@/lib/oid-data";
+import { alerts } from "@/lib/oid-data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InstitutionProfileDrawer } from "@/components/oid/InstitutionProfileDrawer";
 import { DashboardSection } from "./sections/DashboardSection";
