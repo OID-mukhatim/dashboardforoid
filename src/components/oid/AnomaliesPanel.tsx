@@ -2,7 +2,7 @@
  * لوحة الشذوذات والتناقضات (المحور 4).
  */
 import { useMemo, useState } from "react";
-import { AlertTriangle, AlertCircle, Info, ShieldAlert, Filter } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info, ShieldAlert, Filter, ClipboardList } from "lucide-react";
 import { ORGS, orgName, type OrgId } from "@/lib/oid-data";
 import {
   detectAllAnomalies,
@@ -11,6 +11,7 @@ import {
   type AnomalySeverity,
 } from "@/lib/oid-anomalies";
 import { openOrgProfile } from "@/lib/oid-drill";
+import { requestTaskCreate } from "@/lib/tasks-store";
 
 const SEVERITY_ICON: Record<AnomalySeverity, React.ComponentType<{ size?: number }>> = {
   high: ShieldAlert,
@@ -126,6 +127,22 @@ export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilt
                   <p className="text-xs mt-1.5 text-slate-700">
                     <span className="font-medium">↳ مقترح:</span> {a.suggestion}
                   </p>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      requestTaskCreate({
+                        title: a.title,
+                        description: `${a.message}\n\nالمقترح: ${a.suggestion}`,
+                        org_id: a.orgId,
+                        section_ref: getCategoryLabel(a.category),
+                        priority: a.severity === "high" ? "high" : a.severity === "medium" ? "medium" : "low",
+                      });
+                    }}
+                    className="mt-2 inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border bg-white hover:bg-slate-50 font-medium"
+                  >
+                    <ClipboardList size={12} /> إنشاء مهمة
+                  </button>
                 </div>
               </li>
             );
