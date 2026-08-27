@@ -62,7 +62,7 @@ function kpiScoreOf(orgId: OrgId): number | null {
 
 // المالي: fallback مؤقت من البيانات الثابتة حتى تصل بيانات المستشار المالي.
 function finScoreOf(orgId: OrgId): number | null {
-  const assessments: Partial<Record<OrgId, number>> = {
+  const assessments: Partial<Record<OrgId, number | null>> = {
     ZUST: 3.2,
     ZAD: 3.8,
     TAYO: 2.9,
