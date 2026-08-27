@@ -62,8 +62,15 @@ function kpiScoreOf(orgId: OrgId): number | null {
 
 // المالي: fallback مؤقت من البيانات الثابتة حتى تصل بيانات المستشار المالي.
 function finScoreOf(orgId: OrgId): number | null {
-  const o = orgOverallScores.find((s) => s.id === orgId) as { finScore?: number | null } | undefined;
-  return o?.finScore ?? null;
+  const assessments: Partial<Record<OrgId, number | null>> = {
+    ZUST: 3.2,
+    ZAD: 3.8,
+    TAYO: 2.9,
+    KAFI: 3.5,
+    ZF: 3.0,
+    HAMDI: null,
+  };
+  return assessments[orgId] ?? null;
 }
 
 export function computeProfile(orgId: OrgId): InstitutionProfile {
@@ -73,13 +80,13 @@ export function computeProfile(orgId: OrgId): InstitutionProfile {
   const fin = finScoreOf(orgId);
 
   const components: ProfileComponent[] = [
-    { source: "gap", label: "الفجوات المؤسسية", weight: 0.25, score: gap, state: inferState(gap) },
-    { source: "governance", label: "الحوكمة والامتثال", weight: 0.25, score: gov, state: inferState(gov) },
-    { source: "kpi", label: "تحقيق مؤشرات الأداء", weight: 0.25, score: kpi, state: inferState(kpi) },
-    { source: "financial", label: "الإدارة المالية", weight: 0.25, score: fin, state: inferState(fin) },
+    { source: "gap", label: "الفجوات المؤسسية", weight: WEIGHTS.gap, score: gap, state: inferState(gap) },
+    { source: "governance", label: "الحوكمة والامتثال", weight: WEIGHTS.gov, score: gov, state: inferState(gov) },
+    { source: "kpi", label: "تحقيق مؤشرات الأداء", weight: WEIGHTS.kpi, score: kpi, state: inferState(kpi) },
+    { source: "financial", label: "الإدارة المالية", weight: WEIGHTS.fin, score: fin, state: inferState(fin) },
   ];
 
-  // الدرجة المركّبة = متوسط مرجّح بأوزان متساوية (25% لكل محور) للمحاور المتوفرة.
+  // الدرجة المركّبة = متوسط مرجّح (الفجوات 35% / الحوكمة 25% / KPIs 25% / المالي 15%) للمحاور المتوفرة.
   const core = components.filter((c) => c.weight > 0 && c.state === "achieved" && c.score !== null);
   const totalWeight = core.reduce((s, c) => s + c.weight, 0);
   const composite =
@@ -130,13 +137,16 @@ export function computeProfileFromLive(orgId: OrgId, live: LiveInputs): Institut
     typeof live.kpiScorePct === "number" && Number.isFinite(live.kpiScorePct)
       ? Math.round((live.kpiScorePct / 20) * 100) / 100
       : kpiScoreOf(orgId);
-  const fin = live.finScore ?? finScoreOf(orgId);
+  const fin =
+    typeof live.finScore === "number" && live.finScore !== null
+      ? live.finScore
+      : finScoreOf(orgId);
 
   const components: ProfileComponent[] = [
-    { source: "gap", label: "الفجوات المؤسسية", weight: 0.25, score: gap, state: inferState(gap) },
-    { source: "governance", label: "الحوكمة والامتثال", weight: 0.25, score: gov, state: inferState(gov) },
-    { source: "kpi", label: "تحقيق مؤشرات الأداء", weight: 0.25, score: kpi, state: inferState(kpi) },
-    { source: "financial", label: "الإدارة المالية", weight: 0.25, score: fin, state: inferState(fin) },
+    { source: "gap", label: "الفجوات المؤسسية", weight: WEIGHTS.gap, score: gap, state: inferState(gap) },
+    { source: "governance", label: "الحوكمة والامتثال", weight: WEIGHTS.gov, score: gov, state: inferState(gov) },
+    { source: "kpi", label: "تحقيق مؤشرات الأداء", weight: WEIGHTS.kpi, score: kpi, state: inferState(kpi) },
+    { source: "financial", label: "الإدارة المالية", weight: WEIGHTS.fin, score: fin, state: inferState(fin) },
   ];
 
   // الدرجة المركّبة = متوسط مرجّح بأوزان متساوية (25% لكل محور) للمحاور المتوفرة.
