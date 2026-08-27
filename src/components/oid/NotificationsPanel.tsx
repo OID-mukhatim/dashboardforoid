@@ -183,11 +183,6 @@ export function NotificationsPanel({ onNavigate }: { onNavigate?: (s: SectionId)
               {items.length} تنبيه — {unread.length} غير مقروء — {criticalUnread} حرج
             </div>
           </div>
-          {unread.length > 0 && (
-            <button onClick={markAllRead} className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition">
-              <CheckCheck size={14} /> تعليم الكل كمقروء
-            </button>
-          )}
         </div>
         <div className="p-2 space-y-2">
           {items.length === 0 ? (
