@@ -39,6 +39,9 @@ const PRIORITIES = [
   { id: "low", label: "منخفضة", color: "#64748b" },
 ] as const;
 
+const SELECT_CLS =
+  "text-xs px-3 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30";
+
 function metaOf<T extends { id: string; label: string; color: string }>(list: readonly T[], id: string) {
   return list.find((x) => x.id === id) ?? { id, label: id, color: "#64748b" };
 }
@@ -124,7 +127,7 @@ export function TasksSection() {
       {/* الفلاتر */}
       <Card className="p-4 flex flex-wrap gap-3 items-end">
         <Field label="المؤسسة">
-          <select className="filter-select" value={fOrg} onChange={(e) => setFOrg(e.target.value as any)}>
+          <select className={SELECT_CLS} value={fOrg} onChange={(e) => setFOrg(e.target.value as any)}>
             <option value="all">كل المؤسسات</option>
             {ORGS.map((o) => (
               <option key={o.id} value={o.id}>{o.nameAr ?? o.id}</option>
@@ -132,13 +135,13 @@ export function TasksSection() {
           </select>
         </Field>
         <Field label="الأولوية">
-          <select className="filter-select" value={fPriority} onChange={(e) => setFPriority(e.target.value)}>
+          <select className={SELECT_CLS} value={fPriority} onChange={(e) => setFPriority(e.target.value)}>
             <option value="all">الكل</option>
             {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
           </select>
         </Field>
         <Field label="الحالة">
-          <select className="filter-select" value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
+          <select className={SELECT_CLS} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
             <option value="all">الكل</option>
             {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
@@ -217,7 +220,7 @@ export function TasksSection() {
                         </div>
                         <div className="mt-2">
                           <select
-                            className="filter-select text-[11px] w-full"
+                            className={SELECT_CLS + " text-[11px] w-full"}
                             value={t.status}
                             onChange={(e) => changeStatus(t.id, e.target.value)}
                           >
@@ -291,20 +294,20 @@ function TaskDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>المؤسسة</Label>
-              <select className="filter-select w-full" value={orgId} onChange={(e) => setOrgId(e.target.value)}>
+              <select className={SELECT_CLS + " w-full"} value={orgId} onChange={(e) => setOrgId(e.target.value)}>
                 <option value="">— غير محدد —</option>
                 {ORGS.map((o) => <option key={o.id} value={o.id}>{o.nameAr ?? o.id}</option>)}
               </select>
             </div>
             <div className="space-y-1">
               <Label>الأولوية</Label>
-              <select className="filter-select w-full" value={priority} onChange={(e) => setPriority(e.target.value)}>
+              <select className={SELECT_CLS + " w-full"} value={priority} onChange={(e) => setPriority(e.target.value)}>
                 {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
               </select>
             </div>
             <div className="space-y-1">
               <Label>الحالة</Label>
-              <select className="filter-select w-full" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <select className={SELECT_CLS + " w-full"} value={status} onChange={(e) => setStatus(e.target.value)}>
                 {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
               </select>
             </div>
