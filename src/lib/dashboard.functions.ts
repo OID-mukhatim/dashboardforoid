@@ -228,6 +228,27 @@ export const loadQuarterlyReports = createServerFn({ method: "GET" })
       seen.add(key);
       out.push({ id: r.id, orgCode, fileName: r.file_name, quarter, year, payload: p, createdAt: r.created_at });
     }
+
+    // مزامنة تلقائية مع جدول quarterly_reports (fire-and-forget)
+    void Promise.allSettled(
+      out.map((r) => {
+        if (!r.orgCode || !r.quarter) return Promise.resolve();
+        return context.supabase
+          .from("quarterly_reports")
+          .upsert(
+            {
+              org_id: r.orgCode,
+              year: r.year ?? 2026,
+              quarter: r.quarter,
+              title: String((r.payload as any)?.title ?? r.fileName ?? ""),
+              raw: r.payload,
+              upload_id: null,
+            },
+            { onConflict: "org_id,year,quarter,title" },
+          );
+      }),
+    );
+
     return out;
   });
 
