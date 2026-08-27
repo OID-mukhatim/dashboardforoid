@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, Building, Rocket, Upload, Download, FileBarChart, LogOut, Shield } from "lucide-react";
+import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, Building, Rocket, Upload, Download, FileBarChart, LogOut, Shield, ClipboardList } from "lucide-react";
 import { generateExecutiveReport } from "@/lib/oid-report-generator";
 import { NotificationsPanel } from "@/components/oid/NotificationsPanel";
 import { InstitutionProfileDrawer } from "@/components/oid/InstitutionProfileDrawer";
@@ -17,12 +17,15 @@ import { PartnershipsSection } from "./sections/PartnershipsSection";
 import { ProfilesSection } from "./sections/ProfilesSection";
 import { InitiativesSection } from "./sections/InitiativesSection";
 import { UploadSection } from "./sections/UploadSection";
+import { TasksSection } from "./sections/TasksSection";
+import { useTaskRequest } from "@/lib/tasks-store";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Page });
 
 type SectionId =
   | "dashboard" | "kpis" | "quarterly" | "gaps" | "governance"
-  | "financial" | "partnerships" | "profiles" | "initiatives" | "upload";
+  | "financial" | "partnerships" | "profiles" | "initiatives" | "tasks" | "upload";
 
 const NAV: { group: string; items: { id: SectionId; label: string; icon: any }[] }[] = [
   { group: "القيادة", items: [
@@ -39,6 +42,7 @@ const NAV: { group: string; items: { id: SectionId; label: string; icon: any }[]
   { group: "المؤسسات", items: [
     { id: "profiles", label: "البيانات المؤسسية", icon: Building },
     { id: "initiatives", label: "المبادرات التطويرية", icon: Rocket },
+    { id: "tasks", label: "متابعة المكتب", icon: ClipboardList },
   ]},
   { group: "الأدوات", items: [
     { id: "upload", label: "رفع البيانات وتحديثها", icon: Upload },
@@ -48,6 +52,8 @@ const NAV: { group: string; items: { id: SectionId; label: string; icon: any }[]
 function Page() {
   const [section, setSection] = useState<SectionId>("dashboard");
   useLiveTimeline();
+  const { pending } = useTaskRequest();
+  useEffect(() => { if (pending) setSection("tasks"); }, [pending]);
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header onNavigate={setSection} />
@@ -63,6 +69,7 @@ function Page() {
           {section === "partnerships" && <PartnershipsSection />}
           {section === "profiles" && <ProfilesSection />}
           {section === "initiatives" && <InitiativesSection />}
+          {section === "tasks" && <TasksSection />}
           {section === "upload" && <UploadSection />}
         </main>
       </div>
