@@ -113,3 +113,22 @@
 @utility header-grad {
   background: linear-gradient(135deg, #0e4d2e 0%, #0d3a6e 100%);
 }
+
+/* طباعة محتوى Drawer فقط — يُخفي باقي الصفحة */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  .profile-drawer-print,
+  .profile-drawer-print * {
+    visibility: visible !important;
+  }
+  .profile-drawer-print {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+}
