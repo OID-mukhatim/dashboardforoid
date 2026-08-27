@@ -96,6 +96,14 @@ function Header({ onNavigate }: { onNavigate: (s: SectionId) => void }) {
           )}
           <span className="text-xs px-2 py-1 rounded-md bg-white/15 border border-white/20">v1.0 — 2026</span>
           <IconBtn icon={Download} label="تصدير PDF" onClick={() => window.print()} />
+          <button
+            onClick={() => generateExecutiveReport("Q2", 2026)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition"
+            title="تقرير تنفيذي"
+          >
+            <FileBarChart size={16} />
+            <span>تقرير تنفيذي</span>
+          </button>
           <NotificationsPanel onNavigate={onNavigate} />
           <button onClick={signOut} className="p-2 rounded-lg hover:bg-white/15 transition" title="خروج">
             <LogOut size={18} />
