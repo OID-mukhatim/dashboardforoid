@@ -183,11 +183,6 @@ export function NotificationsPanel({ onNavigate }: { onNavigate?: (s: SectionId)
               {items.length} تنبيه — {unread.length} غير مقروء — {criticalUnread} حرج
             </div>
           </div>
-          {unread.length > 0 && (
-            <button onClick={markAllRead} className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition">
-              <CheckCheck size={14} /> تعليم الكل كمقروء
-            </button>
-          )}
         </div>
         <div className="p-2 space-y-2">
           {items.length === 0 ? (
@@ -224,6 +219,16 @@ export function NotificationsPanel({ onNavigate }: { onNavigate?: (s: SectionId)
             );
           })}
         </div>
+        {unread.length > 0 && (
+          <div className="p-3 border-t bg-muted/40 sticky bottom-0">
+            <button
+              onClick={markAllRead}
+              className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-primary hover:underline transition"
+            >
+              <CheckCheck size={14} /> تعليم الكل كمقروء
+            </button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
