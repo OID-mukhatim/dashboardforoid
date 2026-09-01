@@ -66,6 +66,7 @@ export function TasksSection() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [prefill, setPrefill] = useState<TaskPrefill | null>(null);
+  const [editing, setEditing] = useState<Task | null>(null);
 
   const [fOrg, setFOrg] = useState<"all" | OrgId>("all");
   const [fPriority, setFPriority] = useState<string>("all");
@@ -88,6 +89,7 @@ export function TasksSection() {
   useEffect(() => {
     if (!pending) return;
     const { _n, ...rest } = pending;
+    setEditing(null);
     setPrefill(rest);
     setOpen(true);
     consumeTaskRequest();
@@ -105,11 +107,18 @@ export function TasksSection() {
   );
 
   async function handleSave(payload: any) {
-    const { error } = await supabase.from("office_tasks").insert(payload);
-    if (error) return toast.error(error.message);
-    toast.success("تمت إضافة المهمة");
+    if (editing) {
+      const { error } = await supabase.from("office_tasks").update(payload).eq("id", editing.id);
+      if (error) return toast.error(error.message);
+      toast.success("تم تحديث المهمة");
+    } else {
+      const { error } = await supabase.from("office_tasks").insert(payload);
+      if (error) return toast.error(error.message);
+      toast.success("تمت إضافة المهمة");
+    }
     setOpen(false);
     setPrefill(null);
+    setEditing(null);
     qc.invalidateQueries({ queryKey: ["office_tasks"] });
   }
 
