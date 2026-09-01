@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { ORGS, type OrgId } from "@/lib/oid-data";
+import { ORGS, q1Data, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
-import { loadQuarterlyReports, type QuarterlyReportRecord } from "@/lib/dashboard.functions";
+import { loadQuarterlyActivities } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { Card, EmptyData, Progress, SectionTitle, OrgChip, FilterSelect } from "./_shared";
@@ -27,14 +27,17 @@ export function QuarterlySection() {
   const update = (k: keyof typeof filters, v: string) => setFilters((p) => ({ ...p, [k]: v }));
   const reset = () => setFilters({ org: "all", quarter: "all", year: "2026", type: "all" });
 
-  const reportsFn = useServerFn(loadQuarterlyReports);
-  const { data: reports, isLoading } = useQuery({
-    queryKey: ["quarterly-reports"],
-    queryFn: () => reportsFn(),
+  const activitiesFn = useServerFn(loadQuarterlyActivities);
+  const { data: result, isLoading } = useQuery({
+    queryKey: ["quarterly-activities"],
+    queryFn: () => activitiesFn(),
     refetchInterval: 15000,
+    staleTime: 2 * 60 * 1000,
   });
 
-  const rows = (reports ?? []) as QuarterlyReportRecord[];
+  const rows = useMemo(() => result?.rows ?? [], [result]);
+  // عرض البيانات الثابتة التجريبية فقط عند فراغ قاعدة البيانات والاستخراجات
+  const showStaticFallback = !isLoading && rows.length === 0;
 
   const live = useMemo(() => rows.filter((r) => {
     const okOrg = filters.org === "all" || r.orgCode === filters.org;
