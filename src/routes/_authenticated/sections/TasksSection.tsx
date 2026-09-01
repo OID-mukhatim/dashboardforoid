@@ -208,7 +208,10 @@ export function TasksSection() {
         <Card className="p-6 text-sm text-muted-foreground">جارٍ التحميل…</Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {STATUSES.map((s) => {
+          {(fStatus === "cancelled"
+            ? STATUSES.filter((s) => s.id === "cancelled")
+            : STATUSES.filter((s) => s.id !== "cancelled")
+          ).map((s) => {
             const list = filtered.filter((t) => t.status === s.id);
             return (
               <Card key={s.id}>
