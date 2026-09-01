@@ -150,7 +150,7 @@ export function computeProfileFromLive(orgId: OrgId, live: LiveInputs): Institut
     { source: "financial", label: "الإدارة المالية", weight: WEIGHTS.fin, score: fin, state: inferState(fin) },
   ];
 
-  // الدرجة المركّبة = متوسط مرجّح بأوزان متساوية (25% لكل محور) للمحاور المتوفرة.
+  // الدرجة المركّبة = متوسط مرجّح (الفجوات 35% / الحوكمة 25% / KPIs 25% / المالي 15%) للمحاور المتوفرة.
   const core = components.filter((c) => c.weight > 0 && c.state === "achieved" && c.score !== null);
   const totalWeight = core.reduce((s, c) => s + c.weight, 0);
   const composite =
