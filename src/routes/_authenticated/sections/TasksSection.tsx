@@ -136,6 +136,15 @@ export function TasksSection() {
     qc.invalidateQueries({ queryKey: ["office_tasks"] });
   }
 
+  const today = new Date().toISOString().slice(0, 10);
+  const isOverdue = (t: Task) => !!t.due_date && t.due_date < today && t.status !== "done" && t.status !== "cancelled";
+  const stats = {
+    open: filtered.filter((t) => t.status === "open").length,
+    inProgress: filtered.filter((t) => t.status === "in_progress").length,
+    done: filtered.filter((t) => t.status === "done").length,
+    overdue: filtered.filter(isOverdue).length,
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -144,9 +153,24 @@ export function TasksSection() {
           <h2 className="text-lg font-bold">متابعة المكتب</h2>
           <span className="text-xs text-muted-foreground">({filtered.length} مهمة)</span>
         </div>
-        <Button size="sm" onClick={() => { setPrefill(null); setOpen(true); }}>
+        <Button size="sm" onClick={() => { setEditing(null); setPrefill(null); setOpen(true); }}>
           <Plus size={15} className="ms-1" /> إضافة مهمة
         </Button>
+      </div>
+
+      {/* شريط الإحصاء السريع */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "مفتوحة", value: stats.open, color: "#64748b" },
+          { label: "جارية", value: stats.inProgress, color: "#2563eb" },
+          { label: "مكتملة", value: stats.done, color: "#10b981" },
+          { label: "متأخرة", value: stats.overdue, color: "#dc2626" },
+        ].map((c) => (
+          <Card key={c.label} className="p-3 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">{c.label}</span>
+            <span className="text-xl font-bold" style={{ color: c.color }}>{c.value}</span>
+          </Card>
+        ))}
       </div>
 
       {/* الفلاتر */}
