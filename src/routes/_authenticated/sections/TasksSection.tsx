@@ -275,8 +275,15 @@ export function TasksSection() {
                             {s.label}
                           </span>
                           {t.due_date && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 flex items-center gap-1">
-                              <CalendarDays size={10} /> {t.due_date}
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 ${isOverdue(t) ? "bg-red-50 text-red-700 font-semibold" : "bg-slate-100 text-slate-600"}`}
+                            >
+                              <CalendarDays size={10} /> {t.due_date}{isOverdue(t) ? " — متأخرة" : ""}
+                            </span>
+                          )}
+                          {t.source_type && t.source_type !== "manual" && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
+                              {SOURCE_LABELS[t.source_type] ?? t.source_type}
                             </span>
                           )}
                         </div>
