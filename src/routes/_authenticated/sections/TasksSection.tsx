@@ -321,11 +321,12 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function TaskDialog({
-  open, onOpenChange, prefill, onSave,
+  open, onOpenChange, prefill, editing, onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   prefill: TaskPrefill | null;
+  editing: Task | null;
   onSave: (payload: any) => void;
 }) {
   const [title, setTitle] = useState("");
@@ -334,22 +335,24 @@ function TaskDialog({
   const [priority, setPriority] = useState("medium");
   const [status, setStatus] = useState("open");
   const [dueDate, setDueDate] = useState("");
+  const [sectionRef, setSectionRef] = useState("");
 
   useEffect(() => {
     if (!open) return;
-    setTitle(prefill?.title ?? "");
-    setDescription(prefill?.description ?? "");
-    setOrgId(prefill?.org_id ?? "");
-    setPriority(prefill?.priority ?? "medium");
-    setStatus("open");
-    setDueDate("");
-  }, [open, prefill]);
+    setTitle(editing?.title ?? prefill?.title ?? "");
+    setDescription(editing?.description ?? prefill?.description ?? "");
+    setOrgId(editing?.org_id ?? prefill?.org_id ?? "");
+    setPriority(editing?.priority ?? prefill?.priority ?? "medium");
+    setStatus(editing?.status ?? "open");
+    setDueDate(editing?.due_date ?? "");
+    setSectionRef(editing?.section_ref ?? prefill?.section_ref ?? "");
+  }, [open, prefill, editing]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg" dir="rtl">
         <DialogHeader>
-          <DialogTitle>إضافة مهمة متابعة</DialogTitle>
+          <DialogTitle>{editing ? "تعديل مهمة" : "إضافة مهمة متابعة"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
