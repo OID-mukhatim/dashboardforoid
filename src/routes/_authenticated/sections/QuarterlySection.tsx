@@ -159,7 +159,7 @@ export function QuarterlySection() {
       )}
 
       {/* ===== الإنجازات والمشاريع ===== */}
-      {!isLoading && (filters.type === "all" || filters.type === "ach") && (
+      {!isLoading && !showStaticFallback && (filters.type === "all" || filters.type === "ach") && (
         achievements.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد إنجازات مطابقة — ارفع تقرير الأداء الربعي أو عدّل الفلاتر" />
@@ -215,7 +215,7 @@ export function QuarterlySection() {
       )}
 
       {/* ===== الفعاليات والبرامج التدريبية ===== */}
-      {!isLoading && (filters.type === "all" || filters.type === "ev") && (
+      {!isLoading && !showStaticFallback && (filters.type === "all" || filters.type === "ev") && (
         events.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد فعاليات مطابقة — عدّل الفلاتر أو ارفع تقريراً يحتوي على قسم المشاركات" />
@@ -257,7 +257,7 @@ export function QuarterlySection() {
       )}
 
       {/* ===== التحديات والعوائق ===== */}
-      {!isLoading && (filters.type === "all" || filters.type === "ch") && (
+      {!isLoading && !showStaticFallback && (filters.type === "all" || filters.type === "ch") && (
         challenges.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد تحديات مستخرجة من التقارير المرفوعة" />
@@ -291,7 +291,7 @@ export function QuarterlySection() {
       )}
 
       {/* ===== التوصيات ===== */}
-      {!isLoading && (filters.type === "all" || filters.type === "rec") && (
+      {!isLoading && !showStaticFallback && (filters.type === "all" || filters.type === "rec") && (
         recommendations.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد توصيات مستخرجة من التقارير المرفوعة" />
