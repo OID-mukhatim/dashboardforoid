@@ -320,6 +320,8 @@ export type Database = {
           org_id: string | null
           priority: string
           section_ref: string | null
+          source_ref: string | null
+          source_type: string
           status: string
           title: string
           updated_at: string
@@ -334,6 +336,8 @@ export type Database = {
           org_id?: string | null
           priority?: string
           section_ref?: string | null
+          source_ref?: string | null
+          source_type?: string
           status?: string
           title: string
           updated_at?: string
@@ -348,6 +352,8 @@ export type Database = {
           org_id?: string | null
           priority?: string
           section_ref?: string | null
+          source_ref?: string | null
+          source_type?: string
           status?: string
           title?: string
           updated_at?: string
