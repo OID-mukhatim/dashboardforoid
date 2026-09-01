@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ORGS, orgName, type OrgId } from "@/lib/oid-data";
-import { Plus, Trash2, ClipboardList, CalendarDays } from "lucide-react";
+import { Plus, Trash2, Pencil, ClipboardList, CalendarDays } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +21,8 @@ type Task = {
   description: string | null;
   org_id: string | null;
   section_ref: string | null;
+  source_type: string | null;
+  source_ref: string | null;
   priority: string;
   status: string;
   due_date: string | null;
@@ -28,16 +30,30 @@ type Task = {
 };
 
 const STATUSES = [
-  { id: "open", label: "مفتوحة", color: "#0ea5e9" },
-  { id: "in_progress", label: "جارية", color: "#f59e0b" },
+  { id: "open", label: "مفتوحة", color: "#64748b" },
+  { id: "in_progress", label: "جارية", color: "#2563eb" },
   { id: "done", label: "مكتملة", color: "#10b981" },
+  { id: "cancelled", label: "ملغاة", color: "#94a3b8" },
 ] as const;
 
 const PRIORITIES = [
-  { id: "high", label: "عالية", color: "#dc2626" },
-  { id: "medium", label: "متوسطة", color: "#f59e0b" },
+  { id: "critical", label: "حرجة", color: "#dc2626" },
+  { id: "high", label: "عالية", color: "#ea580c" },
+  { id: "medium", label: "متوسطة", color: "#2563eb" },
   { id: "low", label: "منخفضة", color: "#64748b" },
 ] as const;
+
+const SECTION_REFS = [
+  { id: "dashboard", label: "لوحة القيادة" },
+  { id: "kpis", label: "مؤشرات الأداء" },
+  { id: "gaps", label: "تحليل الفجوات" },
+  { id: "governance", label: "الحوكمة والامتثال" },
+  { id: "financial", label: "المالية" },
+  { id: "partnerships", label: "الشراكات" },
+  { id: "initiatives", label: "المبادرات" },
+] as const;
+
+const SOURCE_LABELS: Record<string, string> = { manual: "يدوي", anomaly: "شذوذ", overdue: "تأخير" };
 
 const SELECT_CLS =
   "text-xs px-3 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30";
