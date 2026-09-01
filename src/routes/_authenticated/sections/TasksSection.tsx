@@ -233,15 +233,25 @@ export function TasksSection() {
                         style={{ borderInlineStartWidth: 4, borderInlineStartColor: p.color }}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <span className="font-semibold text-sm leading-snug">{t.title}</span>
-                          <button
-                            type="button"
-                            onClick={() => remove(t.id)}
-                            className="text-muted-foreground hover:text-danger shrink-0"
-                            title="حذف"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <span className={`font-semibold text-sm leading-snug ${t.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>{t.title}</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => { setPrefill(null); setEditing(t); setOpen(true); }}
+                              className="text-muted-foreground hover:text-primary"
+                              title="تعديل"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => remove(t.id)}
+                              className="text-muted-foreground hover:text-danger"
+                              title="حذف"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                         {t.description && (
                           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t.description}</p>
