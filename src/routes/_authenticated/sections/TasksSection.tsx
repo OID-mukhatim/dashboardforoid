@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ORGS, orgName, type OrgId } from "@/lib/oid-data";
+import { OrgLogo } from "@/components/oid/OrgLogo";
 import { Plus, Trash2, Pencil, ClipboardList, CalendarDays } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -258,7 +259,8 @@ export function TasksSection() {
                         )}
                         <div className="flex flex-wrap items-center gap-1.5 mt-2">
                           {t.org_id && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                              <OrgLogo orgId={t.org_id as OrgId} size={20} shape="circle" />
                               {orgName(t.org_id as OrgId)}
                             </span>
                           )}
