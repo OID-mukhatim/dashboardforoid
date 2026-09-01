@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { ORGS, type OrgId } from "@/lib/oid-data";
+import { ORGS, q1Data, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
-import { loadQuarterlyReports, type QuarterlyReportRecord } from "@/lib/dashboard.functions";
+import { loadQuarterlyActivities } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { Card, EmptyData, Progress, SectionTitle, OrgChip, FilterSelect } from "./_shared";
@@ -27,14 +27,17 @@ export function QuarterlySection() {
   const update = (k: keyof typeof filters, v: string) => setFilters((p) => ({ ...p, [k]: v }));
   const reset = () => setFilters({ org: "all", quarter: "all", year: "2026", type: "all" });
 
-  const reportsFn = useServerFn(loadQuarterlyReports);
-  const { data: reports, isLoading } = useQuery({
-    queryKey: ["quarterly-reports"],
-    queryFn: () => reportsFn(),
+  const activitiesFn = useServerFn(loadQuarterlyActivities);
+  const { data: result, isLoading } = useQuery({
+    queryKey: ["quarterly-activities"],
+    queryFn: () => activitiesFn(),
     refetchInterval: 15000,
+    staleTime: 2 * 60 * 1000,
   });
 
-  const rows = (reports ?? []) as QuarterlyReportRecord[];
+  const rows = useMemo(() => result?.rows ?? [], [result]);
+  // عرض البيانات الثابتة التجريبية فقط عند فراغ قاعدة البيانات والاستخراجات
+  const showStaticFallback = !isLoading && rows.length === 0;
 
   const live = useMemo(() => rows.filter((r) => {
     const okOrg = filters.org === "all" || r.orgCode === filters.org;
@@ -116,8 +119,47 @@ export function QuarterlySection() {
 
       {isLoading && <Card className="p-8 text-center text-sm text-muted-foreground">جارٍ تحميل التقارير…</Card>}
 
+      {/* ===== بيانات تجريبية ثابتة عند فراغ قاعدة البيانات ===== */}
+      {showStaticFallback && (
+        <Card>
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
+            <div className="text-sm font-medium">أنشطة الربع الأول (نموذج)</div>
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">بيانات تجريبية — تُستبدل فور رفع التقارير</span>
+          </div>
+          <ScrollableTable>
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs text-muted-foreground">
+                <tr>{["م","النشاط","كود المؤشر","المؤسسة","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {q1Data.map((r, i) => (
+                  <tr key={r.id} className="border-t border-border hover:bg-muted/20 align-top">
+                    <td className="px-3 py-2 tabular-nums">{i + 1}</td>
+                    <td className="px-3 py-2 min-w-[240px]">{r.title}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-primary">{r.kpiCode}</td>
+                    <td className="px-3 py-2"><OrgChip id={r.org as OrgId} /></td>
+                    <td className="px-3 py-2 text-xs tabular-nums">{r.target}</td>
+                    <td className="px-3 py-2 text-xs tabular-nums">{r.done}</td>
+                    <td className="px-3 py-2 min-w-[120px]">
+                      <div className="flex items-center gap-2"><Progress value={Math.min(100, Math.max(0, r.pct))} /><span className="text-xs tabular-nums">{r.pct}%</span></div>
+                    </td>
+                    <td className="px-3 py-2 text-xs tabular-nums">{r.beneficiaries}</td>
+                    <td className="px-3 py-2 tabular-nums text-xs">{r.budget ? `$${r.budget}` : "—"}</td>
+                    <td className="px-3 py-2 tabular-nums text-xs">{r.cost ? `$${r.cost}` : "—"}</td>
+                    <td className="px-3 py-2">
+                      {!r.deviation ? <span className="text-xs text-gray-500">—</span>
+                        : <span className={`text-xs px-2 py-0.5 rounded-full ${r.deviation > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{r.deviation > 0 ? `+$${r.deviation}` : `-$${Math.abs(r.deviation)}`}</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollableTable>
+        </Card>
+      )}
+
       {/* ===== الإنجازات والمشاريع ===== */}
-      {!isLoading && (filters.type === "all" || filters.type === "ach") && (
+      {!isLoading && !showStaticFallback && (filters.type === "all" || filters.type === "ach") && (
         achievements.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد إنجازات مطابقة — ارفع تقرير الأداء الربعي أو عدّل الفلاتر" />
@@ -173,7 +215,7 @@ export function QuarterlySection() {
       )}
 
       {/* ===== الفعاليات والبرامج التدريبية ===== */}
-      {!isLoading && (filters.type === "all" || filters.type === "ev") && (
+      {!isLoading && !showStaticFallback && (filters.type === "all" || filters.type === "ev") && (
         events.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد فعاليات مطابقة — عدّل الفلاتر أو ارفع تقريراً يحتوي على قسم المشاركات" />
@@ -215,7 +257,7 @@ export function QuarterlySection() {
       )}
 
       {/* ===== التحديات والعوائق ===== */}
-      {!isLoading && (filters.type === "all" || filters.type === "ch") && (
+      {!isLoading && !showStaticFallback && (filters.type === "all" || filters.type === "ch") && (
         challenges.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد تحديات مستخرجة من التقارير المرفوعة" />
@@ -249,7 +291,7 @@ export function QuarterlySection() {
       )}
 
       {/* ===== التوصيات ===== */}
-      {!isLoading && (filters.type === "all" || filters.type === "rec") && (
+      {!isLoading && !showStaticFallback && (filters.type === "all" || filters.type === "rec") && (
         recommendations.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <EmptyData msg="لا توجد توصيات مستخرجة من التقارير المرفوعة" />

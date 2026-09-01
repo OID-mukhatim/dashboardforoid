@@ -840,6 +840,33 @@ export const parseUpload = createServerFn({ method: "POST" })
           .from("document_extractions")
           .insert(quarterlyRows as never);
         if (qErr) throw qErr;
+
+        // مزامنة تلقائية مع جدول quarterly_reports (fire-and-forget)
+        void Promise.allSettled(
+          quarterlyRows.map((row) => {
+            const payload = (row.payload ?? {}) as Record<string, unknown>;
+            const orgCode = (row.entity_code as string | null) ?? ((payload.org_code as string | null) ?? null);
+            if (!orgCode) return Promise.resolve();
+            const year = typeof payload.year === "number" ? payload.year : 2026;
+            const quarter = String(payload.quarter ?? "Q1");
+            const title = `تقرير ${quarter} ${year} — ${String(payload.orgName ?? row.file_name ?? "نشاط")}`;
+            return supabaseAdmin
+              .from("quarterly_reports")
+              .upsert(
+                {
+                  org_id: orgCode,
+                  year,
+                  quarter,
+                  title,
+                  raw: payload as never,
+                  upload_id: (row.upload_id as string | null) ?? null,
+                },
+                { onConflict: "org_id,year,quarter,title" },
+              );
+          }),
+        ).then((results) => {
+          for (const r of results) if (r.status === "rejected") console.warn("[quarterly sync]", r.reason);
+        });
       }
 
       if (spreadsheetExtracts.length) {
