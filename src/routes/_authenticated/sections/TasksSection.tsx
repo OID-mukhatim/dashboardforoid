@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ORGS, orgName, type OrgId } from "@/lib/oid-data";
+import { OrgLogo } from "@/components/oid/OrgLogo";
 import { Plus, Trash2, Pencil, ClipboardList, CalendarDays } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
