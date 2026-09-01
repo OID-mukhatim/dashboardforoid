@@ -136,7 +136,9 @@ export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilt
                         description: `${a.message}\n\nالمقترح: ${a.suggestion}`,
                         org_id: a.orgId,
                         section_ref: getCategoryLabel(a.category),
-                        priority: a.severity === "high" ? "high" : a.severity === "medium" ? "medium" : "low",
+                        priority: a.severity === "high" ? "critical" : a.severity === "medium" ? "high" : "medium",
+                        source_type: "anomaly",
+                        source_ref: a.title,
                       });
                     }}
                     className="mt-2 inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border bg-white hover:bg-slate-50 font-medium"
