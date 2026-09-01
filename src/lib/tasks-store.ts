@@ -9,7 +9,9 @@ export type TaskPrefill = {
   description?: string;
   org_id?: string | null;
   section_ref?: string | null;
-  priority?: "low" | "medium" | "high";
+  priority?: "low" | "medium" | "high" | "critical";
+  source_type?: "manual" | "anomaly" | "overdue";
+  source_ref?: string | null;
 };
 
 type State = { pending: (TaskPrefill & { _n: number }) | null };
