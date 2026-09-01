@@ -306,7 +306,7 @@ export function TasksSection() {
         </div>
       )}
 
-      <TaskDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setPrefill(null); }} prefill={prefill} onSave={handleSave} />
+      <TaskDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setPrefill(null); setEditing(null); } }} prefill={prefill} editing={editing} onSave={handleSave} />
     </div>
   );
 }
@@ -387,6 +387,13 @@ function TaskDialog({
               <Label>تاريخ الاستحقاق</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
+            <div className="space-y-1 col-span-2">
+              <Label>القسم المرتبط</Label>
+              <select className={SELECT_CLS + " w-full"} value={sectionRef} onChange={(e) => setSectionRef(e.target.value)}>
+                <option value="">— غير محدد —</option>
+                {SECTION_REFS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+            </div>
           </div>
         </div>
         <DialogFooter>
@@ -398,10 +405,14 @@ function TaskDialog({
                 title: title.trim(),
                 description: description.trim() || null,
                 org_id: orgId || null,
-                section_ref: prefill?.section_ref ?? null,
+                section_ref: sectionRef || null,
                 priority,
                 status,
                 due_date: dueDate || null,
+                ...(editing ? {} : {
+                  source_type: prefill?.source_type ?? "manual",
+                  source_ref: prefill?.source_ref ?? null,
+                }),
               });
             }}
           >
