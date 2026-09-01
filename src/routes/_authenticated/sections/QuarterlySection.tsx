@@ -119,6 +119,45 @@ export function QuarterlySection() {
 
       {isLoading && <Card className="p-8 text-center text-sm text-muted-foreground">جارٍ تحميل التقارير…</Card>}
 
+      {/* ===== بيانات تجريبية ثابتة عند فراغ قاعدة البيانات ===== */}
+      {showStaticFallback && (
+        <Card>
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
+            <div className="text-sm font-medium">أنشطة الربع الأول (نموذج)</div>
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">بيانات تجريبية — تُستبدل فور رفع التقارير</span>
+          </div>
+          <ScrollableTable>
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs text-muted-foreground">
+                <tr>{["م","النشاط","كود المؤشر","المؤسسة","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {q1Data.map((r, i) => (
+                  <tr key={r.id} className="border-t border-border hover:bg-muted/20 align-top">
+                    <td className="px-3 py-2 tabular-nums">{i + 1}</td>
+                    <td className="px-3 py-2 min-w-[240px]">{r.title}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-primary">{r.kpiCode}</td>
+                    <td className="px-3 py-2"><OrgChip id={r.org as OrgId} /></td>
+                    <td className="px-3 py-2 text-xs tabular-nums">{r.target}</td>
+                    <td className="px-3 py-2 text-xs tabular-nums">{r.done}</td>
+                    <td className="px-3 py-2 min-w-[120px]">
+                      <div className="flex items-center gap-2"><Progress value={Math.min(100, Math.max(0, r.pct))} /><span className="text-xs tabular-nums">{r.pct}%</span></div>
+                    </td>
+                    <td className="px-3 py-2 text-xs tabular-nums">{r.beneficiaries}</td>
+                    <td className="px-3 py-2 tabular-nums text-xs">{r.budget ? `$${r.budget}` : "—"}</td>
+                    <td className="px-3 py-2 tabular-nums text-xs">{r.cost ? `$${r.cost}` : "—"}</td>
+                    <td className="px-3 py-2">
+                      {!r.deviation ? <span className="text-xs text-gray-500">—</span>
+                        : <span className={`text-xs px-2 py-0.5 rounded-full ${r.deviation > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{r.deviation > 0 ? `+$${r.deviation}` : `-$${Math.abs(r.deviation)}`}</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollableTable>
+        </Card>
+      )}
+
       {/* ===== الإنجازات والمشاريع ===== */}
       {!isLoading && (filters.type === "all" || filters.type === "ach") && (
         achievements.length === 0 ? (
