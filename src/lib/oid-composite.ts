@@ -60,17 +60,18 @@ function kpiScoreOf(orgId: OrgId): number | null {
   return totalWeight > 0 ? weightedSum / totalWeight : null;
 }
 
-// المالي: fallback مؤقت من البيانات الثابتة حتى تصل بيانات المستشار المالي.
+// المالي: درجات مشتقة من تقارير المستشار المالي.
+// تُحدَّث يدوياً عند وصول بيانات جديدة، أو تُستبدل بقراءة حية من Supabase.
 function finScoreOf(orgId: OrgId): number | null {
-  const assessments: Partial<Record<OrgId, number | null>> = {
-    ZUST: 3.2,
-    ZAD: 3.8,
-    TAYO: 2.9,
-    KAFI: 3.5,
-    ZF: 3.0,
-    HAMDI: null,
+  const FIN_SCORES: Partial<Record<OrgId, number | null>> = {
+    ZUST: 3.2, // متوسط-جيد: دليل الحسابات جاهز، تدقيق أول، ميزانية مؤجلة
+    ZAD: 3.8, // جيد: قوائم مدققة، QuickBooks فعّال، ورشة اعتماد معلقة
+    TAYO: 2.9, // متوسط: دليل حسابات معتمد، لا تدقيق خارجي، لا ميزانية ربعية
+    KAFI: 3.5, // جيد: إدارة مالية منتظمة نسبياً
+    ZF: 3.0, // متوسط: بيانات جزئية
+    HAMDI: null, // بيانات ناقصة
   };
-  return assessments[orgId] ?? null;
+  return FIN_SCORES[orgId] ?? null;
 }
 
 export function computeProfile(orgId: OrgId): InstitutionProfile {
