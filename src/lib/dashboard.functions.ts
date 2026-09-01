@@ -252,6 +252,68 @@ export const loadQuarterlyReports = createServerFn({ method: "GET" })
     return out;
   });
 
+export type QuarterlyActivitiesResult = {
+  source: "db" | "docs";
+  rows: QuarterlyReportRecord[];
+};
+
+/**
+ * المصدر الوحيد للتقارير الربعية: يقرأ من جدول quarterly_reports أولاً،
+ * وإن كان فارغاً يعود إلى document_extractions (kind='quarterly_report').
+ */
+export const loadQuarterlyActivities = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<QuarterlyActivitiesResult> => {
+    const { data: qr, error: qrErr } = await context.supabase
+      .from("quarterly_reports")
+      .select("id, org_id, year, quarter, title, raw, created_at")
+      .order("created_at", { ascending: false });
+    if (qrErr) throw qrErr;
+
+    if (qr && qr.length > 0) {
+      const seen = new Set<string>();
+      const rows: QuarterlyReportRecord[] = [];
+      for (const r of qr) {
+        const key = `${r.org_id}|${r.quarter}|${r.year}`;
+        if (seen.has(key)) continue; // الأحدث يفوز
+        seen.add(key);
+        const p = (r.raw ?? {}) as Record<string, unknown>;
+        rows.push({
+          id: r.id,
+          orgCode: (r.org_id as string | null) ?? ((p.org_code as string | null) ?? null),
+          fileName: r.title,
+          quarter: r.quarter ?? ((p.quarter as string | null) ?? null),
+          year: r.year ?? (typeof p.year === "number" ? p.year : null),
+          payload: p,
+          createdAt: r.created_at,
+        });
+      }
+      return { source: "db", rows };
+    }
+
+    // fallback: القراءة من الاستخراجات الخام
+    const { data: de, error: deErr } = await context.supabase
+      .from("document_extractions")
+      .select("id, entity_code, file_name, payload, created_at")
+      .eq("kind", "quarterly_report")
+      .order("created_at", { ascending: false });
+    if (deErr) throw deErr;
+
+    const rows: QuarterlyReportRecord[] = [];
+    const seen = new Set<string>();
+    for (const r of de ?? []) {
+      const p = (r.payload ?? {}) as Record<string, unknown>;
+      const orgCode = (r.entity_code as string | null) ?? ((p.org_code as string | null) ?? null);
+      const quarter = (p.quarter as string | null) ?? null;
+      const year = typeof p.year === "number" ? p.year : null;
+      const key = `${orgCode ?? "?"}|${quarter ?? "?"}|${year ?? "?"}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({ id: r.id, orgCode, fileName: r.file_name, quarter, year, payload: p, createdAt: r.created_at });
+    }
+    return { source: "docs", rows };
+  });
+
 export type KpiAggregate = { weightedPct: number | null; count: number };
 
 /** متوسط إنجاز مؤشرات الأداء الموزون لكل مؤسسة (0..100). */
