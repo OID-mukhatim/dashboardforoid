@@ -1,9 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, Building, Rocket, Upload, Download, FileBarChart, LogOut, Shield, ClipboardList } from "lucide-react";
 import { generateExecutiveReport } from "@/lib/oid-report-generator";
+import { computeProfileFromLive, type InstitutionProfile } from "@/lib/oid-composite";
+import { ORGS, type OrgId } from "@/lib/oid-data";
+import { useDashboardSnapshotQuery } from "./sections/_shared";
 import { NotificationsPanel } from "@/components/oid/NotificationsPanel";
 import { InstitutionProfileDrawer } from "@/components/oid/InstitutionProfileDrawer";
 import { useLiveTimeline } from "@/lib/timeline-live";
@@ -82,6 +85,22 @@ function Page() {
 function Header({ onNavigate }: { onNavigate: (s: SectionId) => void }) {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
+  // بروفايلات حيّة من Supabase (نفس مصدر لوحة القيادة) لتقرير مطابق تماماً.
+  const { data: snap } = useDashboardSnapshotQuery();
+  const liveProfiles = useMemo(() => {
+    const out = {} as Record<OrgId, InstitutionProfile>;
+    for (const o of ORGS) {
+      const m = snap?.matrix?.[o.id];
+      const k = snap?.kpi?.[o.id];
+      out[o.id] = computeProfileFromLive(o.id, {
+        gapAvg: m?.gapAvg ?? null,
+        govScore: m?.govScore ?? null,
+        kpiScorePct: k?.weightedAvgPct ?? null,
+        finScore: m?.finScore ?? null,
+      });
+    }
+    return out;
+  }, [snap]);
   async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
@@ -104,7 +123,7 @@ function Header({ onNavigate }: { onNavigate: (s: SectionId) => void }) {
           <span className="text-xs px-2 py-1 rounded-md bg-white/15 border border-white/20">v1.0 — 2026</span>
           <IconBtn icon={Download} label="تصدير PDF" onClick={() => window.print()} />
           <button
-            onClick={() => generateExecutiveReport("Q2", 2026)}
+            onClick={() => generateExecutiveReport("Q2", 2026, liveProfiles)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition"
             title="تقرير تنفيذي"
           >
