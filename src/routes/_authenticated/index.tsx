@@ -82,6 +82,22 @@ function Page() {
 function Header({ onNavigate }: { onNavigate: (s: SectionId) => void }) {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
+  // بروفايلات حيّة من Supabase (نفس مصدر لوحة القيادة) لتقرير مطابق تماماً.
+  const { data: snap } = useDashboardSnapshotQuery();
+  const liveProfiles = useMemo(() => {
+    const out = {} as Record<OrgId, InstitutionProfile>;
+    for (const o of ORGS) {
+      const m = snap?.matrix?.[o.id];
+      const k = snap?.kpi?.[o.id];
+      out[o.id] = computeProfileFromLive(o.id, {
+        gapAvg: m?.gapAvg ?? null,
+        govScore: m?.govScore ?? null,
+        kpiScorePct: k?.weightedAvgPct ?? null,
+        finScore: m?.finScore ?? null,
+      });
+    }
+    return out;
+  }, [snap]);
   async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });

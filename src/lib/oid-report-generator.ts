@@ -42,10 +42,17 @@ function axisColor(val: number | null): string {
   return "#dc2626";
 }
 
-export const generateExecutiveReport = (quarter: string, year: number) => {
+export const generateExecutiveReport = (
+  quarter: string,
+  year: number,
+  // البروفايلات الحيّة (من Supabase عبر computeProfileFromLive) تُمرَّر جاهزة
+  // من لوحة القيادة حتى تتطابق أرقام التقرير مع اللوحة تماماً.
+  // إن لم تُمرَّر نحسب من البيانات الثابتة كـ fallback.
+  liveProfiles?: Partial<Record<OrgId, InstitutionProfile>>,
+) => {
   const orgIds = ORGS.map((o) => o.id);
   const profilesMap = {} as Record<OrgId, InstitutionProfile>;
-  for (const id of orgIds) profilesMap[id] = computeProfile(id);
+  for (const id of orgIds) profilesMap[id] = liveProfiles?.[id] ?? computeProfile(id);
   const profiles = orgIds.map((id) => profilesMap[id]);
 
   const anomalies: Anomaly[] = profiles.flatMap((p) =>
