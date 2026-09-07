@@ -70,6 +70,78 @@ export type Database = {
           },
         ]
       }
+      gap_scores: {
+        Row: {
+          created_at: string
+          domain_index: number
+          domain_name: string
+          id: string
+          note: string | null
+          org_id: string
+          period: string
+          score: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain_index: number
+          domain_name: string
+          id?: string
+          note?: string | null
+          org_id: string
+          period?: string
+          score: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain_index?: number
+          domain_name?: string
+          id?: string
+          note?: string | null
+          org_id?: string
+          period?: string
+          score?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      governance_policies: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          org_id: string
+          policy_id: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          org_id: string
+          policy_id: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          org_id?: string
+          policy_id?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       initiatives: {
         Row: {
           code: string | null
