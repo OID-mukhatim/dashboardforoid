@@ -120,8 +120,39 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
       const cur = matrix[code];
       const gapVals = Object.values(cur.gaps).filter((v) => typeof v === "number" && Number.isFinite(v));
       if (gapVals.length) cur.gapAvg = Math.round((gapVals.reduce((a, b) => a + b, 0) / gapVals.length) * 100) / 100;
+    }
+
+    // 2b) Live governance policies + gap scores tables take precedence
+    const { data: govRows } = await sb.from("governance_policies").select("org_id, status");
+    const { data: gapRows } = await sb
+      .from("gap_scores")
+      .select("org_id, domain_index, domain_name, score")
+      .eq("period", "Q2-2026");
+
+    const GOV_WEIGHTS: Record<string, number> = {
+      active: 0.9, inactive: 0.5, review: 0.4, inDev: 0.3, missing: 0, pending: 0,
+    };
+
+    for (const code of VALID_ORGS) {
+      const cur = matrix[code];
+      const orgPolicies = (govRows ?? []).filter((p) => p.org_id === code);
+      if (orgPolicies.length > 0) {
+        const raw = orgPolicies.reduce((s, p) => s + (GOV_WEIGHTS[String(p.status)] ?? 0), 0) / orgPolicies.length;
+        cur.govScore = Math.round(raw * 5 * 100) / 100;
+      }
+      const orgGaps = (gapRows ?? []).filter((g) => g.org_id === code);
+      if (orgGaps.length > 0) {
+        for (const g of orgGaps) {
+          const n = Number(g.score);
+          if (Number.isFinite(n)) cur.gaps[String(g.domain_name)] = n;
+        }
+        cur.gapAvg =
+          Math.round((orgGaps.reduce((s, g) => s + Number(g.score), 0) / orgGaps.length) * 100) / 100;
+      }
       if (cur.govScore !== null) cur.govPct = Math.round((cur.govScore / 5) * 100);
     }
+
+
 
 
     // 3) totals: initiatives count + last upload timestamp (never throws)
