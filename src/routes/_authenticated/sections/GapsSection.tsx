@@ -1,11 +1,68 @@
+import { useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend } from "recharts";
-import { ORGS, GAP_AXES, gapScores, criticalGaps } from "@/lib/oid-data";
+import { ORGS, GAP_AXES, gapScores, criticalGaps, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
+import { loadGapScores, updateGapScore } from "@/lib/dashboard.functions";
 import { Card, CardHeader, useDashboardSnapshotQuery, getLiveGapValue, SectionTitle } from "./_shared";
+
+const PERIOD = "Q2-2026";
+const DOMAIN_NAMES = [
+  "الاستراتيجية",
+  "القيادة والكفاءات",
+  "الأداء والنتائج",
+  "العمليات والأنظمة",
+  "الموارد المالية",
+  "البنية التحتية",
+  "الحوكمة والامتثال",
+];
 
 /* ============================ GAPS ============================ */
 export function GapsSection() {
   const { data: snap } = useDashboardSnapshotQuery();
+  const queryClient = useQueryClient();
+  const loadGaps = useServerFn(loadGapScores);
+  const saveGap = useServerFn(updateGapScore);
+
+  const { data: dbGaps } = useQuery({
+    queryKey: ["gap-scores"],
+    queryFn: () => loadGaps(),
+    staleTime: 60 * 1000,
+  });
+
+  const liveGapScores = useMemo(() => {
+    const result: Record<string, (number | null)[]> = {};
+    for (const o of ORGS) {
+      result[o.id] = Array.from({ length: 7 }, (_, i) => {
+        const row = (dbGaps ?? []).find((g: any) => g.org_id === o.id && g.domain_index === i && g.period === PERIOD);
+        if (row) return Number(row.score);
+        const live = getLiveGapValue(snap, o.id as OrgId, GAP_AXES[i]);
+        if (typeof live === "number") return live;
+        return gapScores[o.id as OrgId]?.[i] ?? null;
+      });
+    }
+    return result;
+  }, [dbGaps, snap]);
+
+  async function handleGapScoreChange(orgId: string, domainIndex: number, newScore: number) {
+    queryClient.setQueryData(["gap-scores"], (old: any[] | undefined) => {
+      const rows = old ? [...old] : [];
+      const idx = rows.findIndex((g) => g.org_id === orgId && g.domain_index === domainIndex && g.period === PERIOD);
+      if (idx >= 0) rows[idx] = { ...rows[idx], score: newScore };
+      else rows.push({ org_id: orgId, domain_index: domainIndex, domain_name: DOMAIN_NAMES[domainIndex], score: newScore, period: PERIOD });
+      return rows;
+    });
+    try {
+      await saveGap({
+        data: { orgId, domainIndex, domainName: DOMAIN_NAMES[domainIndex], score: newScore, period: PERIOD },
+      });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-snapshot"] });
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ["gap-scores"] });
+    }
+  }
+
   const heatColor = (v: number | null) => {
     if (v === null) return "bg-gray-100 text-gray-400";
     if (v < 2) return "bg-red-100 text-red-700";
@@ -17,8 +74,7 @@ export function GapsSection() {
   const radarData = GAP_AXES.map((axis, i) => {
     const row: any = { axis };
     ORGS.forEach((o) => {
-      const liveGap = getLiveGapValue(snap, o.id, axis);
-      row[o.id] = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? 0);
+      row[o.id] = liveGapScores[o.id]?.[i] ?? 0;
     });
     return row;
   });
@@ -27,7 +83,7 @@ export function GapsSection() {
       <SectionTitle title="تحليل الفجوات المؤسسية" subtitle="تشخيص مستوى النضج عبر 7 محاور" />
 
       <Card>
-        <CardHeader title="خريطة الحرارة (Heatmap)" subtitle="6 مؤسسات × 7 محاور" />
+        <CardHeader title="خريطة الحرارة (Heatmap)" subtitle="اضغط على أي رقم لتعديله — يُحفظ تلقائياً" />
         <div className="p-4"><ScrollableTable>
           <table className="w-full text-sm">
             <thead><tr><th className="px-3 py-2 text-right text-xs text-muted-foreground">المؤسسة</th>
@@ -38,11 +94,27 @@ export function GapsSection() {
                 <tr key={o.id} className="border-t border-border">
                   <td className="px-3 py-2 font-medium">{o.nameAr}</td>
                   {GAP_AXES.map((axis, i) => {
-                    const liveGap = getLiveGapValue(snap, o.id, axis);
-                    const v = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? null);
+                    const v = liveGapScores[o.id]?.[i] ?? null;
                     return (
                       <td key={axis} className="px-2 py-2 text-center">
-                        <span className={`inline-block w-14 py-1 rounded text-xs font-semibold tabular-nums ${heatColor(v)}`}>{v !== null ? v.toFixed(2) : "—"}</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={5}
+                          step={0.1}
+                          defaultValue={v ?? ""}
+                          dir="ltr"
+                          onBlur={(e) => {
+                            const n = parseFloat(e.target.value);
+                            if (!Number.isNaN(n) && n >= 0 && n <= 5 && n !== v) {
+                              void handleGapScoreChange(o.id, i, Math.round(n * 100) / 100);
+                            } else if (Number.isNaN(n)) {
+                              e.target.value = v === null ? "" : String(v);
+                            }
+                          }}
+                          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                          className={`w-16 py-1 rounded text-xs font-semibold tabular-nums text-center border border-border/60 ${heatColor(v)}`}
+                        />
                       </td>
                     );
                   })}
