@@ -1,19 +1,49 @@
 import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
 import { ORGS, type OrgId, orgOverallScores, POLICY_STATUS_META, type PolicyStatus, generalPolicies, universityPolicies, humanitarianPolicies, educationPolicies } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
+import { loadGovernancePolicies, updatePolicyStatus } from "@/lib/dashboard.functions";
 import { Card, CardHeader, useDashboardSnapshotQuery, SectionTitle } from "./_shared";
+
+const STATUS_OPTIONS: { value: PolicyStatus; label: string }[] = [
+  { value: "active", label: "✅ موجود ومفعّل" },
+  { value: "inactive", label: "🔵 موجود وغير مفعّل" },
+  { value: "review", label: "🟡 بحاجة تحديث" },
+  { value: "inDev", label: "🟠 قيد الإعداد" },
+  { value: "missing", label: "❌ غير موجود" },
+  { value: "pending", label: "⏳ بيانات ناقصة" },
+];
+
+const ALL_POLICIES = [...generalPolicies, ...universityPolicies, ...humanitarianPolicies, ...educationPolicies];
 
 /* ============================ GOVERNANCE ============================ */
 export function GovernanceSection() {
   const { data: snap } = useDashboardSnapshotQuery();
   const [cat, setCat] = useState<"all"|"general"|"university"|"humanitarian"|"education">("general");
+  const queryClient = useQueryClient();
+  const loadPolicies = useServerFn(loadGovernancePolicies);
+  const savePolicy = useServerFn(updatePolicyStatus);
+
+  const { data: dbPolicies } = useQuery({
+    queryKey: ["governance-policies"],
+    queryFn: () => loadPolicies(),
+    staleTime: 60 * 1000,
+  });
+
+  const livePoliciesMap = useMemo(() => {
+    const map = new Map<string, PolicyStatus>();
+    for (const p of dbPolicies ?? []) map.set(`${p.policy_id}__${p.org_id}`, p.status as PolicyStatus);
+    return map;
+  }, [dbPolicies]);
+
   const data = useMemo(() => {
     if (cat === "general") return generalPolicies;
     if (cat === "university") return universityPolicies;
     if (cat === "humanitarian") return humanitarianPolicies;
     if (cat === "education") return educationPolicies;
-    return [...generalPolicies, ...universityPolicies, ...humanitarianPolicies, ...educationPolicies];
+    return ALL_POLICIES;
   }, [cat]);
 
   const statusFromGovScore = (score: number | null | undefined): PolicyStatus | null => {
@@ -25,15 +55,33 @@ export function GovernanceSection() {
     return "missing";
   };
 
-  const effectivePolicyStatus = (orgId: OrgId, raw: PolicyStatus | undefined): PolicyStatus | undefined => {
+  const effectivePolicyStatus = (policyId: string, orgId: OrgId, raw: PolicyStatus | undefined): PolicyStatus | undefined => {
+    const live = livePoliciesMap.get(`${policyId}__${orgId}`);
+    if (live) return live;
     if (raw !== "pending") return raw;
     return statusFromGovScore(snap?.matrix?.[orgId]?.govScore) ?? raw;
   };
 
+  async function handleStatusChange(policyId: string, orgId: string, newStatus: PolicyStatus) {
+    queryClient.setQueryData(["governance-policies"], (old: any[] | undefined) => {
+      const rows = old ? [...old] : [];
+      const idx = rows.findIndex((p) => p.policy_id === policyId && p.org_id === orgId);
+      if (idx >= 0) rows[idx] = { ...rows[idx], status: newStatus };
+      else rows.push({ policy_id: policyId, org_id: orgId, status: newStatus });
+      return rows;
+    });
+    try {
+      await savePolicy({ data: { policyId, orgId, status: newStatus } });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-snapshot"] });
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ["governance-policies"] });
+    }
+  }
+
   const stackedData = ORGS.map(o => {
     const counts: any = { org: o.abbr, active: 0, inactive: 0, review: 0, inDev: 0, missing: 0, pending: 0 };
-    [...generalPolicies, ...universityPolicies, ...humanitarianPolicies, ...educationPolicies].forEach(p => {
-      const s = effectivePolicyStatus(o.id, p.values[o.id]);
+    ALL_POLICIES.forEach(p => {
+      const s = effectivePolicyStatus(p.id, o.id, p.values[o.id]);
       if (s) counts[s]++;
     });
     return counts;
@@ -88,7 +136,7 @@ export function GovernanceSection() {
       </Card>
 
       <Card>
-        <CardHeader title="جدول السياسات التفصيلي" action={
+        <CardHeader title="جدول السياسات التفصيلي" subtitle="اختر الحالة من القائمة — تُحفظ تلقائياً" action={
           <div className="flex gap-2">
             {[["general","عامة"],["university","جامعية"],["humanitarian","إنسانية"],["education","تعليمية"],["all","الكل"]].map(([k,l])=>(
               <button key={k} onClick={()=>setCat(k as any)} className={`text-xs px-3 py-1 rounded-md border ${cat===k?"bg-primary text-primary-foreground border-primary":"border-border text-muted-foreground hover:bg-muted"}`}>{l}</button>
@@ -110,11 +158,22 @@ export function GovernanceSection() {
                   <td className="px-3 py-2 font-mono text-xs">{p.id}</td>
                   <td className="px-3 py-2">{p.name}</td>
                   {ORGS.map(o => {
-                    const raw = p.values[o.id];
-                    const s = effectivePolicyStatus(o.id, raw);
-                    if (!s) return <td key={o.id} className="px-2 py-2 text-center text-gray-300">·</td>;
+                    const s = effectivePolicyStatus(p.id, o.id, p.values[o.id]) ?? "pending";
                     const meta = POLICY_STATUS_META[s];
-                    return <td key={o.id} className={`px-2 py-2 text-center text-xs ${meta.bg} ${meta.fg}`} title={raw === "pending" && s !== "pending" ? `${meta.label} — من درجة الحوكمة الحية` : meta.label}>{meta.icon}</td>;
+                    return (
+                      <td key={o.id} className="px-2 py-2 text-center">
+                        <select
+                          value={s}
+                          onChange={(e) => void handleStatusChange(p.id, o.id, e.target.value as PolicyStatus)}
+                          title={meta?.label}
+                          className={`text-[11px] font-semibold rounded-md border border-border/60 px-1.5 py-1 cursor-pointer ${meta?.bg ?? ""} ${meta?.fg ?? ""}`}
+                        >
+                          {STATUS_OPTIONS.map(op => (
+                            <option key={op.value} value={op.value}>{op.label}</option>
+                          ))}
+                        </select>
+                      </td>
+                    );
                   })}
                 </tr>
               ))}

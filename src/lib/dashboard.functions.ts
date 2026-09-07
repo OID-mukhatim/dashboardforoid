@@ -120,8 +120,39 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
       const cur = matrix[code];
       const gapVals = Object.values(cur.gaps).filter((v) => typeof v === "number" && Number.isFinite(v));
       if (gapVals.length) cur.gapAvg = Math.round((gapVals.reduce((a, b) => a + b, 0) / gapVals.length) * 100) / 100;
+    }
+
+    // 2b) Live governance policies + gap scores tables take precedence
+    const { data: govRows } = await sb.from("governance_policies").select("org_id, status");
+    const { data: gapRows } = await sb
+      .from("gap_scores")
+      .select("org_id, domain_index, domain_name, score")
+      .eq("period", "Q2-2026");
+
+    const GOV_WEIGHTS: Record<string, number> = {
+      active: 0.9, inactive: 0.5, review: 0.4, inDev: 0.3, missing: 0, pending: 0,
+    };
+
+    for (const code of VALID_ORGS) {
+      const cur = matrix[code];
+      const orgPolicies = (govRows ?? []).filter((p) => p.org_id === code);
+      if (orgPolicies.length > 0) {
+        const raw = orgPolicies.reduce((s, p) => s + (GOV_WEIGHTS[String(p.status)] ?? 0), 0) / orgPolicies.length;
+        cur.govScore = Math.round(raw * 5 * 100) / 100;
+      }
+      const orgGaps = (gapRows ?? []).filter((g) => g.org_id === code);
+      if (orgGaps.length > 0) {
+        for (const g of orgGaps) {
+          const n = Number(g.score);
+          if (Number.isFinite(n)) cur.gaps[String(g.domain_name)] = n;
+        }
+        cur.gapAvg =
+          Math.round((orgGaps.reduce((s, g) => s + Number(g.score), 0) / orgGaps.length) * 100) / 100;
+      }
       if (cur.govScore !== null) cur.govPct = Math.round((cur.govScore / 5) * 100);
     }
+
+
 
 
     // 3) totals: initiatives count + last upload timestamp (never throws)
@@ -384,6 +415,71 @@ export const saveTimelineEntry = createServerFn({ method: "POST" })
         },
         { onConflict: "org_id,domain,period" },
       );
+    if (error) return { ok: false as const, error: error.message };
+    return { ok: true as const };
+  });
+
+/* ============ Governance policies & gap scores (live editing) ============ */
+
+export const loadGovernancePolicies = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("governance_policies")
+      .select("policy_id, org_id, status, note, updated_at");
+    if (error) return [];
+    return data ?? [];
+  });
+
+export const updatePolicyStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { policyId: string; orgId: string; status: string; note?: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("governance_policies").upsert(
+      {
+        policy_id: data.policyId,
+        org_id: data.orgId,
+        status: data.status,
+        note: data.note ?? null,
+        updated_by: context.userId,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "policy_id,org_id" },
+    );
+    if (error) return { ok: false as const, error: error.message };
+    return { ok: true as const };
+  });
+
+export const loadGapScores = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("gap_scores")
+      .select("org_id, domain_index, domain_name, score, period, note")
+      .order("domain_index", { ascending: true });
+    if (error) return [];
+    return data ?? [];
+  });
+
+export const updateGapScore = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: { orgId: string; domainIndex: number; domainName: string; score: number; period: string; note?: string }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("gap_scores").upsert(
+      {
+        org_id: data.orgId,
+        domain_index: data.domainIndex,
+        domain_name: data.domainName,
+        score: data.score,
+        period: data.period || "Q2-2026",
+        note: data.note ?? null,
+        updated_by: context.userId,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "org_id,domain_index,period" },
+    );
     if (error) return { ok: false as const, error: error.message };
     return { ok: true as const };
   });
