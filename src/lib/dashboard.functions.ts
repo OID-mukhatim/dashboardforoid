@@ -418,3 +418,68 @@ export const saveTimelineEntry = createServerFn({ method: "POST" })
     if (error) return { ok: false as const, error: error.message };
     return { ok: true as const };
   });
+
+/* ============ Governance policies & gap scores (live editing) ============ */
+
+export const loadGovernancePolicies = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("governance_policies")
+      .select("policy_id, org_id, status, note, updated_at");
+    if (error) return [];
+    return data ?? [];
+  });
+
+export const updatePolicyStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { policyId: string; orgId: string; status: string; note?: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("governance_policies").upsert(
+      {
+        policy_id: data.policyId,
+        org_id: data.orgId,
+        status: data.status,
+        note: data.note ?? null,
+        updated_by: context.userId,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "policy_id,org_id" },
+    );
+    if (error) return { ok: false as const, error: error.message };
+    return { ok: true as const };
+  });
+
+export const loadGapScores = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("gap_scores")
+      .select("org_id, domain_index, domain_name, score, period, note")
+      .order("domain_index", { ascending: true });
+    if (error) return [];
+    return data ?? [];
+  });
+
+export const updateGapScore = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: { orgId: string; domainIndex: number; domainName: string; score: number; period: string; note?: string }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("gap_scores").upsert(
+      {
+        org_id: data.orgId,
+        domain_index: data.domainIndex,
+        domain_name: data.domainName,
+        score: data.score,
+        period: data.period || "Q2-2026",
+        note: data.note ?? null,
+        updated_by: context.userId,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "org_id,domain_index,period" },
+    );
+    if (error) return { ok: false as const, error: error.message };
+    return { ok: true as const };
+  });
