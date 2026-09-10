@@ -88,6 +88,7 @@ export function TasksSection() {
   const [fOrg, setFOrg] = useState<"all" | OrgId>("all");
   const [fPriority, setFPriority] = useState<string>("all");
   const [fStatus, setFStatus] = useState<string>("all");
+  const [fSource, setFSource] = useState<string>("all");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["office_tasks"],
