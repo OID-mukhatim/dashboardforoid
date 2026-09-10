@@ -214,10 +214,16 @@ export function TasksSection() {
             {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
         </Field>
+        <Field label="المصدر">
+          <select className={SELECT_CLS} value={fSource} onChange={(e) => setFSource(e.target.value)}>
+            <option value="all">كل المصادر</option>
+            {SOURCES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        </Field>
         <button
           type="button"
           className="text-xs px-3 py-2 rounded-md border border-border hover:bg-slate-50"
-          onClick={() => { setFOrg("all"); setFPriority("all"); setFStatus("all"); }}
+          onClick={() => { setFOrg("all"); setFPriority("all"); setFStatus("all"); setFSource("all"); }}
         >
           إعادة تعيين
         </button>
