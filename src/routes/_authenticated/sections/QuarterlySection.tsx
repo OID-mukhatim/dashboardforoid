@@ -4,7 +4,7 @@ import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { loadQuarterlyActivities } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { Card, EmptyData, Progress, SectionTitle, OrgChip, FilterSelect } from "./_shared";
+import { Card, EmptyData, Progress, SectionTitle, OrgChip, FilterSelect, QuarterBadge } from "./_shared";
 
 /* ============================ QUARTERLY ============================ */
 type QAch = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; beneficiaries: number|null; location: string|null; budget: number|null; cost: number|null; variance: number|null; outcomes: string|null };
@@ -189,7 +189,7 @@ export function QuarterlySection() {
                     </td>
                     <td className="px-3 py-2"><span className="font-mono text-xs text-primary">{r.code ?? "—"}</span></td>
                     <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
-                    <td className="px-3 py-2 text-xs whitespace-nowrap">{[r.quarter, r.year].filter(Boolean).join(" ") || "—"}</td>
+                    <td className="px-3 py-2 text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} />{r.year ? <span className="mr-1 text-muted-foreground">{r.year}</span> : null}</td>
                     <td className="px-3 py-2 text-xs tabular-nums">{r.target ?? "—"}</td>
                     <td className="px-3 py-2 text-xs tabular-nums">{r.achieved ?? "—"}</td>
                     <td className="px-3 py-2 min-w-[120px]">
@@ -236,7 +236,7 @@ export function QuarterlySection() {
                       <td className="px-3 py-2 min-w-[200px]">{r.title}</td>
                       <td className="px-3 py-2 font-mono text-xs text-primary">{r.code ?? "—"}</td>
                       <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
-                      <td className="px-3 py-2 text-xs whitespace-nowrap">{r.quarter ?? "—"}</td>
+                      <td className="px-3 py-2 text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>
                       <td className="px-3 py-2 text-xs tabular-nums">{r.target ?? "—"}</td>
                       <td className="px-3 py-2 text-xs tabular-nums">{r.achieved ?? "—"}</td>
                       <td className="px-3 py-2 min-w-[120px]">
@@ -276,7 +276,7 @@ export function QuarterlySection() {
                       <td className="px-3 py-2 tabular-nums">{i + 1}</td>
                       <td className="px-3 py-2 min-w-[200px]">{r.title}</td>
                       <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
-                      <td className="px-3 py-2 text-xs whitespace-nowrap">{r.quarter ?? "—"}</td>
+                      <td className="px-3 py-2 text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>
                       <td className="px-3 py-2 text-xs">{r.reasons ?? "—"}</td>
                       <td className="px-3 py-2 text-xs">{r.actions ?? "—"}</td>
                       <td className="px-3 py-2 text-xs">{r.status ?? "—"}</td>
@@ -303,7 +303,7 @@ export function QuarterlySection() {
               <div key={r._k} className="flex gap-3 items-start border-b border-border last:border-0 pb-3 last:pb-0">
                 <div className="mt-0.5">{r.org ? <OrgChip id={r.org as OrgId} /> : null}</div>
                 <div className="text-sm leading-relaxed flex-1">{r.text}</div>
-                <span className="text-[11px] text-muted-foreground whitespace-nowrap">{r.quarter ?? ""}</span>
+                <QuarterBadge orgId={r.org} quarter={r.quarter} className="whitespace-nowrap" />
               </div>
             ))}
           </Card>
