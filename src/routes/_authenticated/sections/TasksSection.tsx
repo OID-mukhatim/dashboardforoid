@@ -54,7 +54,23 @@ const SECTION_REFS = [
   { id: "initiatives", label: "المبادرات" },
 ] as const;
 
-const SOURCE_LABELS: Record<string, string> = { manual: "يدوي", anomaly: "شذوذ", overdue: "تأخير" };
+const SOURCE_LABELS: Record<string, string> = {
+  manual: "يدوي",
+  anomaly: "شذوذ",
+  overdue: "تأخير",
+  meeting: "اجتماع",
+  visit: "زيارة",
+  plan: "خطة",
+};
+
+const SOURCES = [
+  { id: "meeting", label: "اجتماعات" },
+  { id: "visit", label: "زيارات" },
+  { id: "plan", label: "خطط" },
+  { id: "manual", label: "يدوي" },
+  { id: "anomaly", label: "شذوذ" },
+  { id: "overdue", label: "تأخير" },
+] as const;
 
 const SELECT_CLS =
   "text-xs px-3 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30";
@@ -72,6 +88,7 @@ export function TasksSection() {
   const [fOrg, setFOrg] = useState<"all" | OrgId>("all");
   const [fPriority, setFPriority] = useState<string>("all");
   const [fStatus, setFStatus] = useState<string>("all");
+  const [fSource, setFSource] = useState<string>("all");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["office_tasks"],
@@ -102,9 +119,10 @@ export function TasksSection() {
         (t) =>
           (fOrg === "all" || t.org_id === fOrg) &&
           (fPriority === "all" || t.priority === fPriority) &&
-          (fStatus === "all" || t.status === fStatus),
+          (fStatus === "all" || t.status === fStatus) &&
+          (fSource === "all" || (t.source_type ?? "manual") === fSource),
       ),
-    [rows, fOrg, fPriority, fStatus],
+    [rows, fOrg, fPriority, fStatus, fSource],
   );
 
   async function handleSave(payload: any) {
@@ -196,10 +214,16 @@ export function TasksSection() {
             {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
         </Field>
+        <Field label="المصدر">
+          <select className={SELECT_CLS} value={fSource} onChange={(e) => setFSource(e.target.value)}>
+            <option value="all">كل المصادر</option>
+            {SOURCES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        </Field>
         <button
           type="button"
           className="text-xs px-3 py-2 rounded-md border border-border hover:bg-slate-50"
-          onClick={() => { setFOrg("all"); setFPriority("all"); setFStatus("all"); }}
+          onClick={() => { setFOrg("all"); setFPriority("all"); setFStatus("all"); setFSource("all"); }}
         >
           إعادة تعيين
         </button>
