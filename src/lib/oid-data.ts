@@ -346,3 +346,43 @@ export const alerts = [
   { level: "success", title: "أول تدقيق خارجي لجامعة زمزم — جارٍ", action: "خطوة نوعية" },
   { level: "success", title: "كافي حققت 88% في مؤشر الحوكمة", action: "نموذج يُحتذى" },
 ];
+
+/* ============ التقويم المالي / الأكاديمي لكل مؤسسة ============ */
+export const ORG_FISCAL_YEAR: Record<OrgId, "calendar" | "academic"> = {
+  ZF: "calendar",
+  ZAD: "calendar",
+  KAFI: "calendar",
+  ZUST: "academic",
+  TAYO: "academic",
+  HAMDI: "academic",
+};
+
+export const FISCAL_QUARTERS: Record<
+  "calendar" | "academic",
+  { q: string; label: string; months: string }[]
+> = {
+  calendar: [
+    { q: "Q1", label: "الربع الأول", months: "يناير - مارس" },
+    { q: "Q2", label: "الربع الثاني", months: "أبريل - يونيو" },
+    { q: "Q3", label: "الربع الثالث", months: "يوليو - سبتمبر" },
+    { q: "Q4", label: "الربع الرابع", months: "أكتوبر - ديسمبر" },
+  ],
+  academic: [
+    { q: "Q1", label: "الربع الأول", months: "أكتوبر - ديسمبر" },
+    { q: "Q2", label: "الربع الثاني", months: "يناير - مارس" },
+    { q: "Q3", label: "الربع الثالث", months: "أبريل - يونيو" },
+    { q: "Q4", label: "الربع الرابع", months: "يوليو - سبتمبر" },
+  ],
+};
+
+/** الأشهر التي يغطيها ربع معيّن لمؤسسة معيّنة (أو null إذا كان الربع غير معروف). */
+export const quarterMonths = (orgId: string | null | undefined, q: string | null | undefined): string | null => {
+  if (!q) return null;
+  const type = ORG_FISCAL_YEAR[orgId as OrgId] ?? "calendar";
+  return FISCAL_QUARTERS[type].find((x) => x.q === q)?.months ?? null;
+};
+
+export const getQuarterLabel = (orgId: OrgId | string, q: string): string => {
+  const months = quarterMonths(orgId, q);
+  return months ? `${q} (${months})` : q;
+};
