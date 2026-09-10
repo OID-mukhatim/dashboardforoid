@@ -1,7 +1,7 @@
 import { Fragment, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, ChevronRight } from "lucide-react";
-import { ORGS } from "@/lib/oid-data";
+import { ORGS, ORG_FISCAL_YEAR, FISCAL_QUARTERS, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -257,6 +257,21 @@ export function UploadSection() {
             <Select value={orgId} onChange={setOrgId} options={orgOptions} label="المؤسسة" />
             <Select value={period} onChange={setPeriod} options={PERIODS} label="الفترة" />
           </div>
+
+          {(() => {
+            const q = period.match(/^Q[1-4]/)?.[0];
+            if (orgId === "الكل" || !q) return null;
+            const fiscalType = ORG_FISCAL_YEAR[orgId as OrgId] ?? "calendar";
+            const info = FISCAL_QUARTERS[fiscalType].find((x) => x.q === q);
+            if (!info) return null;
+            return (
+              <div className="text-xs p-2 rounded-md mb-4 bg-muted border border-border">
+                📅 هذا الربع يغطي فترة:
+                <span className="font-semibold mr-1">{info.months}</span>
+                {fiscalType === "academic" && <span className="text-blue-600 mr-1">(سنة دراسية)</span>}
+              </div>
+            );
+          })()}
 
           <input
             ref={inputRef} type="file" multiple

@@ -21,6 +21,7 @@ export type Database = {
           entity_code: string | null
           file_name: string
           file_path: string
+          fiscal_year_type: string
           id: string
           kind: string
           numbers_found: Json | null
@@ -36,6 +37,7 @@ export type Database = {
           entity_code?: string | null
           file_name: string
           file_path: string
+          fiscal_year_type?: string
           id?: string
           kind?: string
           numbers_found?: Json | null
@@ -51,6 +53,7 @@ export type Database = {
           entity_code?: string | null
           file_name?: string
           file_path?: string
+          fiscal_year_type?: string
           id?: string
           kind?: string
           numbers_found?: Json | null
@@ -286,6 +289,7 @@ export type Database = {
           entity_code: string
           entity_name: string | null
           final_output: string | null
+          fiscal_year_type: string
           id: string
           kpi_code: string
           kpi_name: string | null
@@ -317,6 +321,7 @@ export type Database = {
           entity_code: string
           entity_name?: string | null
           final_output?: string | null
+          fiscal_year_type?: string
           id?: string
           kpi_code: string
           kpi_name?: string | null
@@ -348,6 +353,7 @@ export type Database = {
           entity_code?: string
           entity_name?: string | null
           final_output?: string | null
+          fiscal_year_type?: string
           id?: string
           kpi_code?: string
           kpi_name?: string | null
@@ -494,6 +500,7 @@ export type Database = {
           cost: number | null
           created_at: string
           deviation: number | null
+          fiscal_year_type: string
           id: string
           kpi_code: string | null
           org_id: string
@@ -515,6 +522,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           deviation?: number | null
+          fiscal_year_type?: string
           id?: string
           kpi_code?: string | null
           org_id: string
@@ -536,6 +544,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           deviation?: number | null
+          fiscal_year_type?: string
           id?: string
           kpi_code?: string | null
           org_id?: string
@@ -563,6 +572,7 @@ export type Database = {
       timeline_entries: {
         Row: {
           domain: string
+          fiscal_year_type: string
           id: string
           note: string | null
           org_id: string
@@ -573,6 +583,7 @@ export type Database = {
         }
         Insert: {
           domain: string
+          fiscal_year_type?: string
           id?: string
           note?: string | null
           org_id: string
@@ -583,6 +594,7 @@ export type Database = {
         }
         Update: {
           domain?: string
+          fiscal_year_type?: string
           id?: string
           note?: string | null
           org_id?: string

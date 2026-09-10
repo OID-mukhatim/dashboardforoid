@@ -1,5 +1,5 @@
 import { Settings, Clock } from "lucide-react";
-import { ORGS, type OrgId } from "@/lib/oid-data";
+import { ORGS, ORG_FISCAL_YEAR, quarterMonths, type OrgId } from "@/lib/oid-data";
 import { OrgLogo } from "@/components/oid/OrgLogo";
 import { formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatting";
 import { loadDashboardSnapshot } from "@/lib/dashboard.functions";
@@ -157,6 +157,20 @@ export function SectionTitle({ title, subtitle }: { title: string; subtitle?: st
         <Settings size={14} /> تعديل
       </button>
     </div>
+  );
+}
+
+/** عرض الربع مع الفترة الزمنية التي يغطيها بحسب تقويم المؤسسة (ميلادي/دراسي). */
+export function QuarterBadge({ orgId, quarter, className = "" }: { orgId?: string | null; quarter?: string | null; className?: string }) {
+  if (!quarter) return <span className="text-xs text-muted-foreground">—</span>;
+  const months = quarterMonths(orgId, quarter);
+  const academic = ORG_FISCAL_YEAR[orgId as OrgId] === "academic";
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium text-muted-foreground whitespace-nowrap ${className}`}>
+      <span className="font-bold text-foreground">{quarter}</span>
+      {months && <span className="opacity-70">({months})</span>}
+      {academic && <span className="text-blue-600 opacity-80">دراسي</span>}
+    </span>
   );
 }
 

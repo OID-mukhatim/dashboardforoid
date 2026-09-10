@@ -26,6 +26,7 @@ import { detectAnomalies, getSeverityMeta, getCategoryLabel } from "@/lib/oid-an
 import { computeTrend, getSeries, type TimelineDomain } from "@/lib/oid-timeline";
 import { useOrgDrill, closeOrgProfile } from "@/lib/oid-drill";
 import { DATA_STATES } from "@/lib/oid-data-states";
+import { quarterMonths } from "@/lib/oid-data";
 import { formatScore, formatBudget, formatPct, formatCount } from "@/lib/oid-formatting";
 import { TrendBadge } from "./TrendBadge";
 import { useDashboardSnapshotQuery } from "@/routes/_authenticated/sections/_shared";
@@ -429,7 +430,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                       <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11, fill: "#64748b" }} />
                       <PolarRadiusAxis domain={[0, 5]} tick={{ fontSize: 10, fill: "#94a3b8" }} />
                       <Radar name="النتيجة" dataKey="score" stroke={org.color} fill={org.color} fillOpacity={0.35} />
-                      <Tooltip formatter={(v: any) => formatScore(Number(v))} />
+                      <Tooltip formatter={(v: any) => formatScore(Number(v))} labelFormatter={(l: any) => periodWithMonths(orgId, String(l))} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
@@ -525,9 +526,9 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                   <ResponsiveContainer>
                     <LineChart data={lineData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="period" tick={{ fontSize: 11, fill: "#64748b" }} />
+                      <XAxis dataKey="period" tick={{ fontSize: 11, fill: "#64748b" }} tickFormatter={(p: string) => periodWithMonths(orgId, p)} />
                       <YAxis domain={[0, 5]} tick={{ fontSize: 10, fill: "#94a3b8" }} />
-                      <Tooltip formatter={(v: any) => formatScore(Number(v))} />
+                      <Tooltip formatter={(v: any) => formatScore(Number(v))} labelFormatter={(l: any) => periodWithMonths(orgId, String(l))} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {TL_DOMAINS.map((d) => (
                         <Line key={d.key} type="monotone" dataKey={d.key} name={d.label} stroke={d.color} strokeWidth={2} dot={{ r: 3 }} connectNulls />
@@ -547,6 +548,14 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
 }
 
 /* ============ helpers ============ */
+/** يضيف الفترة الزمنية للربع بحسب تقويم المؤسسة: "Q2-2026 · يناير - مارس" */
+function periodWithMonths(orgId: string, period: string) {
+  const m = /^(Q[1-4])-(\d{4})$/.exec(period);
+  if (!m) return period;
+  const months = quarterMonths(orgId, m[1]);
+  return months ? `${period} · ${months}` : period;
+}
+
 function Block({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <section>

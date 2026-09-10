@@ -5,7 +5,7 @@ import { ORGS } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { BSC_PERSPECTIVES, BSC_LABELS, perspectiveLabelOf } from "@/lib/oid-bsc";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardHeader, Progress, fmtNum, SectionTitle, Select, CircularProgress } from "./_shared";
+import { Card, CardHeader, Progress, fmtNum, SectionTitle, Select, CircularProgress, QuarterBadge } from "./_shared";
 
 export function KPIsSection() {
   const [orgF, setOrgF] = useState<string>("الكل");
@@ -148,10 +148,21 @@ export function KPIsSection() {
                 <th colSpan={4} className="px-3 py-1.5 text-center font-medium border-b border-r border-border">النتائج</th>
               </tr>
               <tr>
-                {["الكود","المؤسسة","المنظور","الهدف","المؤشر","النوع","الوزن","خط الأساس","المستهدف السنوي",
-                  "Q1 مخطط","Q2 مخطط","Q3 مخطط","Q4 مخطط","إجمالي المخطط",
-                  "Q1 منجز","Q2 منجز","Q3 منجز","Q4 منجز","مجموع المنجز",
-                  "الإجمالي التراكمي","% الإنجاز","النسبة العامة","المخرجات"].map(h => (
+                {["الكود","المؤسسة","المنظور","الهدف","المؤشر","النوع","الوزن","خط الأساس","المستهدف السنوي"].map(h => (
+                  <th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>
+                ))}
+                {["Q1","Q2","Q3","Q4"].map(q => (
+                  <th key={`p-${q}`} className="px-3 py-2 text-right font-medium whitespace-nowrap">
+                    {orgF === "الكل" ? `${q} مخطط` : <span className="inline-flex flex-col items-start"><span>{q} مخطط</span><QuarterBadge orgId={orgF} quarter={q} className="text-[10px]" /></span>}
+                  </th>
+                ))}
+                <th className="px-3 py-2 text-right font-medium whitespace-nowrap">إجمالي المخطط</th>
+                {["Q1","Q2","Q3","Q4"].map(q => (
+                  <th key={`a-${q}`} className="px-3 py-2 text-right font-medium whitespace-nowrap">
+                    {orgF === "الكل" ? `${q} منجز` : <span className="inline-flex flex-col items-start"><span>{q} منجز</span><QuarterBadge orgId={orgF} quarter={q} className="text-[10px]" /></span>}
+                  </th>
+                ))}
+                {["مجموع المنجز","الإجمالي التراكمي","% الإنجاز","النسبة العامة","المخرجات"].map(h => (
                   <th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
