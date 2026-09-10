@@ -387,6 +387,147 @@ export type Database = {
           },
         ]
       }
+      meeting_decisions: {
+        Row: {
+          assigned_to: string | null
+          converted: boolean
+          created_at: string
+          decision: string
+          due_date: string | null
+          id: string
+          meeting_id: string
+          task_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          converted?: boolean
+          created_at?: string
+          decision: string
+          due_date?: string | null
+          id?: string
+          meeting_id: string
+          task_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          converted?: boolean
+          created_at?: string
+          decision?: string
+          due_date?: string | null
+          id?: string
+          meeting_id?: string
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_decisions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_decisions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "office_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          attendees: Json
+          created_at: string
+          created_by: string | null
+          date: string
+          duration: string | null
+          id: string
+          location: string | null
+          meeting_type: string
+          minutes: string | null
+          objective: string | null
+          org_id: string | null
+          outputs: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          attendees?: Json
+          created_at?: string
+          created_by?: string | null
+          date: string
+          duration?: string | null
+          id?: string
+          location?: string | null
+          meeting_type?: string
+          minutes?: string | null
+          objective?: string | null
+          org_id?: string | null
+          outputs?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          attendees?: Json
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          duration?: string | null
+          id?: string
+          location?: string | null
+          meeting_type?: string
+          minutes?: string | null
+          objective?: string | null
+          org_id?: string | null
+          outputs?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      office_plans: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          objective: string | null
+          quarter: string | null
+          status: string
+          title: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          objective?: string | null
+          quarter?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          year?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          objective?: string | null
+          quarter?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       office_tasks: {
         Row: {
           assigned_to: string | null
@@ -491,6 +632,60 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      plan_activities: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          plan_id: string
+          status: string
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          plan_id: string
+          status?: string
+          task_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          plan_id?: string
+          status?: string
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_activities_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "office_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_activities_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "office_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quarterly_reports: {
         Row: {
@@ -677,6 +872,132 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      visit_gaps: {
+        Row: {
+          action: string | null
+          converted: boolean
+          created_at: string
+          due_date: string | null
+          gap: string
+          id: string
+          priority: string
+          task_id: string | null
+          visit_id: string
+        }
+        Insert: {
+          action?: string | null
+          converted?: boolean
+          created_at?: string
+          due_date?: string | null
+          gap: string
+          id?: string
+          priority?: string
+          task_id?: string | null
+          visit_id: string
+        }
+        Update: {
+          action?: string | null
+          converted?: boolean
+          created_at?: string
+          due_date?: string | null
+          gap?: string
+          id?: string
+          priority?: string
+          task_id?: string | null
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_gaps_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "office_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_gaps_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visits: {
+        Row: {
+          best_practices: string | null
+          challenges: string | null
+          created_at: string
+          created_by: string | null
+          date: string
+          discipline: string | null
+          general_work: string | null
+          guidance: string | null
+          id: string
+          notes: string | null
+          objective: string | null
+          oid_delegate: string | null
+          org_delegate: string | null
+          org_id: string
+          outputs: string | null
+          performance: string
+          prev_followups: string | null
+          readiness: string | null
+          status: string
+          updated_at: string
+          visit_type: string
+          visual_identity: string | null
+        }
+        Insert: {
+          best_practices?: string | null
+          challenges?: string | null
+          created_at?: string
+          created_by?: string | null
+          date: string
+          discipline?: string | null
+          general_work?: string | null
+          guidance?: string | null
+          id?: string
+          notes?: string | null
+          objective?: string | null
+          oid_delegate?: string | null
+          org_delegate?: string | null
+          org_id: string
+          outputs?: string | null
+          performance?: string
+          prev_followups?: string | null
+          readiness?: string | null
+          status?: string
+          updated_at?: string
+          visit_type?: string
+          visual_identity?: string | null
+        }
+        Update: {
+          best_practices?: string | null
+          challenges?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          discipline?: string | null
+          general_work?: string | null
+          guidance?: string | null
+          id?: string
+          notes?: string | null
+          objective?: string | null
+          oid_delegate?: string | null
+          org_delegate?: string | null
+          org_id?: string
+          outputs?: string | null
+          performance?: string
+          prev_followups?: string | null
+          readiness?: string | null
+          status?: string
+          updated_at?: string
+          visit_type?: string
+          visual_identity?: string | null
         }
         Relationships: []
       }
