@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, Building, Rocket, Upload, Download, FileBarChart, LogOut, Shield, ClipboardList } from "lucide-react";
+import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, Building, Rocket, Upload, Download, FileBarChart, LogOut, Shield, Building2 } from "lucide-react";
 import { generateExecutiveReport } from "@/lib/oid-report-generator";
 import { computeProfileFromLive, type InstitutionProfile } from "@/lib/oid-composite";
 import { ORGS, type OrgId } from "@/lib/oid-data";
@@ -20,7 +20,7 @@ import { PartnershipsSection } from "./sections/PartnershipsSection";
 import { ProfilesSection } from "./sections/ProfilesSection";
 import { InitiativesSection } from "./sections/InitiativesSection";
 import { UploadSection } from "./sections/UploadSection";
-import { TasksSection } from "./sections/TasksSection";
+import { OfficeSection } from "./sections/OfficeSection";
 import { useTaskRequest } from "@/lib/tasks-store";
 import { useEffect } from "react";
 
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/")({ component: Page });
 
 type SectionId =
   | "dashboard" | "kpis" | "quarterly" | "gaps" | "governance"
-  | "financial" | "partnerships" | "profiles" | "initiatives" | "tasks" | "upload";
+  | "financial" | "partnerships" | "profiles" | "initiatives" | "office" | "upload";
 
 const NAV: { group: string; items: { id: SectionId; label: string; icon: any }[] }[] = [
   { group: "القيادة", items: [
@@ -45,7 +45,7 @@ const NAV: { group: string; items: { id: SectionId; label: string; icon: any }[]
   { group: "المؤسسات", items: [
     { id: "profiles", label: "البيانات المؤسسية", icon: Building },
     { id: "initiatives", label: "المبادرات التطويرية", icon: Rocket },
-    { id: "tasks", label: "متابعة المكتب", icon: ClipboardList },
+    { id: "office", label: "أعمال المكتب", icon: Building2 },
   ]},
   { group: "الأدوات", items: [
     { id: "upload", label: "رفع البيانات وتحديثها", icon: Upload },
@@ -56,7 +56,7 @@ function Page() {
   const [section, setSection] = useState<SectionId>("dashboard");
   useLiveTimeline();
   const { pending } = useTaskRequest();
-  useEffect(() => { if (pending) setSection("tasks"); }, [pending]);
+  useEffect(() => { if (pending) setSection("office"); }, [pending]);
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header onNavigate={setSection} />
@@ -72,7 +72,7 @@ function Page() {
           {section === "partnerships" && <PartnershipsSection />}
           {section === "profiles" && <ProfilesSection />}
           {section === "initiatives" && <InitiativesSection />}
-          {section === "tasks" && <TasksSection />}
+          {section === "office" && <OfficeSection />}
           {section === "upload" && <UploadSection />}
         </main>
       </div>
