@@ -119,9 +119,10 @@ export function TasksSection() {
         (t) =>
           (fOrg === "all" || t.org_id === fOrg) &&
           (fPriority === "all" || t.priority === fPriority) &&
-          (fStatus === "all" || t.status === fStatus),
+          (fStatus === "all" || t.status === fStatus) &&
+          (fSource === "all" || (t.source_type ?? "manual") === fSource),
       ),
-    [rows, fOrg, fPriority, fStatus],
+    [rows, fOrg, fPriority, fStatus, fSource],
   );
 
   async function handleSave(payload: any) {
