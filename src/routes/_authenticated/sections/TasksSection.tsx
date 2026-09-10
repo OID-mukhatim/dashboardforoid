@@ -54,7 +54,23 @@ const SECTION_REFS = [
   { id: "initiatives", label: "المبادرات" },
 ] as const;
 
-const SOURCE_LABELS: Record<string, string> = { manual: "يدوي", anomaly: "شذوذ", overdue: "تأخير" };
+const SOURCE_LABELS: Record<string, string> = {
+  manual: "يدوي",
+  anomaly: "شذوذ",
+  overdue: "تأخير",
+  meeting: "اجتماع",
+  visit: "زيارة",
+  plan: "خطة",
+};
+
+const SOURCES = [
+  { id: "meeting", label: "اجتماعات" },
+  { id: "visit", label: "زيارات" },
+  { id: "plan", label: "خطط" },
+  { id: "manual", label: "يدوي" },
+  { id: "anomaly", label: "شذوذ" },
+  { id: "overdue", label: "تأخير" },
+] as const;
 
 const SELECT_CLS =
   "text-xs px-3 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30";
