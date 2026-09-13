@@ -768,13 +768,17 @@ export const parseUpload = createServerFn({ method: "POST" })
           if (sector) lastSector = sector;
 
           const rowOrg = entityFromKpiCode(code);
+          const rowEntity = rowOrg ?? entityCode;
           kpiRows.push({
             upload_id: data.uploadId,
-            entity_code: rowOrg ?? entityCode,
+            entity_code: rowEntity,
             entity_name: rowOrg && rowOrg !== entityCode ? normalizeEntity(rowOrg).name : entityName,
             sector: lastSector,
             objective: toStr(row[cols.objective]),
-            kpi_code: code,
+            kpi_code: kpiCodeWithYear(code, planYear),
+            plan_year: planYear,
+            is_baseline: planYear === 2026,
+            fiscal_type: ACADEMIC_ORGS.has(rowEntity) ? "academic" : "calendar",
             kpi_name: name,
             kpi_type: toStr(row[cols.type]),
             weight: toNum(row[cols.weight]),
