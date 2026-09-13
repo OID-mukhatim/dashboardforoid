@@ -289,14 +289,17 @@ export type Database = {
           entity_code: string
           entity_name: string | null
           final_output: string | null
+          fiscal_type: string | null
           fiscal_year_type: string
           id: string
+          is_baseline: boolean | null
           kpi_code: string
           kpi_name: string | null
           kpi_type: string | null
           objective: string | null
           overall_pct: number | null
           period: string
+          plan_year: number | null
           q1_actual: number | null
           q1_planned: number | null
           q2_actual: number | null
@@ -321,14 +324,17 @@ export type Database = {
           entity_code: string
           entity_name?: string | null
           final_output?: string | null
+          fiscal_type?: string | null
           fiscal_year_type?: string
           id?: string
+          is_baseline?: boolean | null
           kpi_code: string
           kpi_name?: string | null
           kpi_type?: string | null
           objective?: string | null
           overall_pct?: number | null
           period?: string
+          plan_year?: number | null
           q1_actual?: number | null
           q1_planned?: number | null
           q2_actual?: number | null
@@ -353,14 +359,17 @@ export type Database = {
           entity_code?: string
           entity_name?: string | null
           final_output?: string | null
+          fiscal_type?: string | null
           fiscal_year_type?: string
           id?: string
+          is_baseline?: boolean | null
           kpi_code?: string
           kpi_name?: string | null
           kpi_type?: string | null
           objective?: string | null
           overall_pct?: number | null
           period?: string
+          plan_year?: number | null
           q1_actual?: number | null
           q1_planned?: number | null
           q2_actual?: number | null
@@ -579,6 +588,27 @@ export type Database = {
         }
         Relationships: []
       }
+      org_active_years: {
+        Row: {
+          active_year: number
+          fiscal_type: string
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          active_year: number
+          fiscal_type?: string
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          active_year?: number
+          fiscal_type?: string
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       partnerships: {
         Row: {
           contact: string | null
@@ -697,9 +727,11 @@ export type Database = {
           deviation: number | null
           fiscal_year_type: string
           id: string
+          is_baseline: boolean | null
           kpi_code: string | null
           org_id: string
           pct: number | null
+          plan_year: number | null
           quarter: string
           raw: Json | null
           report_type: string | null
@@ -719,9 +751,11 @@ export type Database = {
           deviation?: number | null
           fiscal_year_type?: string
           id?: string
+          is_baseline?: boolean | null
           kpi_code?: string | null
           org_id: string
           pct?: number | null
+          plan_year?: number | null
           quarter?: string
           raw?: Json | null
           report_type?: string | null
@@ -741,9 +775,11 @@ export type Database = {
           deviation?: number | null
           fiscal_year_type?: string
           id?: string
+          is_baseline?: boolean | null
           kpi_code?: string | null
           org_id?: string
           pct?: number | null
+          plan_year?: number | null
           quarter?: string
           raw?: Json | null
           report_type?: string | null
