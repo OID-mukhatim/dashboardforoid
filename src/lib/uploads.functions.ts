@@ -272,9 +272,18 @@ function spreadsheetTextPreview(aoa: unknown[][], maxRows = 20): string {
 }
 
 
+/** المؤسسات ذات التقويم الدراسي (أكتوبر–سبتمبر). */
+const ACADEMIC_ORGS = new Set(["ZUST", "TAYO", "HAMDI"]);
+/** كود المؤشر يحمل دائماً لاحقة سنة الخطة: ORG-S1-2026 */
+export function kpiCodeWithYear(code: string | null, year: number): string {
+  const base = (code ?? "").trim();
+  if (!base) return base;
+  return /-20\d{2}$/.test(base) ? base : `${base}-${year}`;
+}
+
 export const parseUpload = createServerFn({ method: "POST" })
   .inputValidator((input) =>
-    z.object({ uploadId: z.string().uuid(), filePath: z.string().min(1) }).parse(input),
+    z.object({ uploadId: z.string().uuid(), filePath: z.string().min(1), planYear: z.number().int().min(2000).max(2100).optional() }).parse(input),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
