@@ -176,7 +176,7 @@ export function UploadSection() {
           setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: true });
           let handledAsNonKpi = false;
           try {
-            const result = await previewFn({ data: { filePath: path, period, fileName: file.name, dataType } });
+            const result = await previewFn({ data: { filePath: path, period, fileName: file.name, dataType, planYear: uploadYear } });
             setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, result });
           } catch (e) {
             const errText = e instanceof Error ? e.message : "فشلت المعاينة";
