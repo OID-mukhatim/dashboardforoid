@@ -272,9 +272,18 @@ function spreadsheetTextPreview(aoa: unknown[][], maxRows = 20): string {
 }
 
 
+/** المؤسسات ذات التقويم الدراسي (أكتوبر–سبتمبر). */
+const ACADEMIC_ORGS = new Set(["ZUST", "TAYO", "HAMDI"]);
+/** كود المؤشر يحمل دائماً لاحقة سنة الخطة: ORG-S1-2026 */
+export function kpiCodeWithYear(code: string | null, year: number): string {
+  const base = (code ?? "").trim();
+  if (!base) return base;
+  return /-20\d{2}$/.test(base) ? base : `${base}-${year}`;
+}
+
 export const parseUpload = createServerFn({ method: "POST" })
   .inputValidator((input) =>
-    z.object({ uploadId: z.string().uuid(), filePath: z.string().min(1) }).parse(input),
+    z.object({ uploadId: z.string().uuid(), filePath: z.string().min(1), planYear: z.number().int().min(2000).max(2100).optional() }).parse(input),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -319,6 +328,7 @@ export const parseUpload = createServerFn({ method: "POST" })
       .eq("id", data.uploadId)
       .maybeSingle();
     const period = uploadRow?.period ?? "all";
+    const planYear = data.planYear ?? Number(String(period).match(/20\d{2}/)?.[0] ?? 2026);
     const originalFileName = uploadRow?.file_name ?? data.filePath;
     const selectedDataType = uploadRow?.data_type ?? "";
 
@@ -759,13 +769,17 @@ export const parseUpload = createServerFn({ method: "POST" })
           if (sector) lastSector = sector;
 
           const rowOrg = entityFromKpiCode(code);
+          const rowEntity = rowOrg ?? entityCode;
           kpiRows.push({
             upload_id: data.uploadId,
-            entity_code: rowOrg ?? entityCode,
+            entity_code: rowEntity,
             entity_name: rowOrg && rowOrg !== entityCode ? normalizeEntity(rowOrg).name : entityName,
             sector: lastSector,
             objective: toStr(row[cols.objective]),
-            kpi_code: code,
+            kpi_code: kpiCodeWithYear(code, planYear),
+            plan_year: planYear,
+            is_baseline: planYear === 2026,
+            fiscal_type: ACADEMIC_ORGS.has(rowEntity) ? "academic" : "calendar",
             kpi_name: name,
             kpi_type: toStr(row[cols.type]),
             weight: toNum(row[cols.weight]),
@@ -1001,7 +1015,7 @@ const FIELD_LABELS_AR: Record<string, string> = {
 };
 
 export const previewKpiUpload = createServerFn({ method: "POST" })
-  .inputValidator((input) => z.object({ filePath: z.string().min(1), period: z.string().optional(), fileName: z.string().optional(), dataType: z.string().optional() }).parse(input))
+  .inputValidator((input) => z.object({ filePath: z.string().min(1), period: z.string().optional(), fileName: z.string().optional(), dataType: z.string().optional(), planYear: z.number().int().min(2000).max(2100).optional() }).parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const XLSX = await import("xlsx");
@@ -1014,6 +1028,7 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
     const buf = new Uint8Array(await file.arrayBuffer());
     const wb = XLSX.read(buf, { type: "array" });
     const period = data.period || "all";
+    const planYear = data.planYear ?? Number(String(period).match(/20\d{2}/)?.[0] ?? 2026);
     const fileName = data.fileName ?? data.filePath;
     if (isInstitutionalDataType(data.dataType ?? "") || looksLikeNetworksSheet(fileName)) {
       throw new Error("هذا الملف مصنّف كبيانات مؤسسية، وليس ملف مؤشرات أداء. ستتم معالجته دون إدخاله في جدول المؤشرات.");
@@ -1039,11 +1054,13 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
         const sector = toStr(row[cols.sector]);
         if (sector) lastSector = sector;
         const rowOrg = entityFromKpiCode(code);
+        const rowEntity = rowOrg ?? norm.code;
         parsed.push({
-          entity_code: rowOrg ?? norm.code,
+          entity_code: rowEntity,
           entity_name: rowOrg && rowOrg !== norm.code ? normalizeEntity(rowOrg).name : norm.name,
           sector: lastSector,
-          objective: toStr(row[cols.objective]), kpi_code: code, kpi_name: name, kpi_type: toStr(row[cols.type]),
+          objective: toStr(row[cols.objective]), kpi_code: kpiCodeWithYear(code, planYear), kpi_name: name, kpi_type: toStr(row[cols.type]),
+          plan_year: planYear, is_baseline: planYear === 2026, fiscal_type: ACADEMIC_ORGS.has(rowEntity) ? "academic" : "calendar",
           weight: toNum(row[cols.weight]), baseline: toNum(row[cols.baseline]), annual_target: toNum(row[cols.target]),
           q1_planned: toNum(row[cols.q1p]), q2_planned: toNum(row[cols.q2p]), q3_planned: toNum(row[cols.q3p]), q4_planned: toNum(row[cols.q4p]),
           total_planned: toNum(row[cols.totalPlanned]),

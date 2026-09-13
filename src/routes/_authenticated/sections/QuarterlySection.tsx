@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { ORGS, q1Data, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
-import { loadQuarterlyActivities } from "@/lib/dashboard.functions";
+import { loadQuarterlyActivities, loadActiveYears, setActiveYear } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { YearSelector } from "@/components/oid/YearSelector";
 import { Card, EmptyData, Progress, SectionTitle, OrgChip, FilterSelect, QuarterBadge } from "./_shared";
 
 /* ============================ QUARTERLY ============================ */
@@ -24,7 +25,20 @@ function effPct(a: { target: number|null; achieved: number|null; pct: number|nul
 
 export function QuarterlySection() {
   const [filters, setFilters] = useState({ org: "all", quarter: "all", year: "2026", type: "all" as FilterType });
-  const update = (k: keyof typeof filters, v: string) => setFilters((p) => ({ ...p, [k]: v }));
+  const qc = useQueryClient();
+  const activeYearsFn = useServerFn(loadActiveYears);
+  const setActiveYearFn = useServerFn(setActiveYear);
+  const { data: activeYears = {} } = useQuery({
+    queryKey: ["active-years"],
+    queryFn: () => activeYearsFn(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const update = (k: keyof typeof filters, v: string) =>
+    setFilters((p) => {
+      // اختيار مؤسسة يعرض سنتها النشطة مباشرة
+      if (k === "org" && v !== "all" && activeYears[v]) return { ...p, org: v, year: String(activeYears[v]) };
+      return { ...p, [k]: v };
+    });
   const reset = () => setFilters({ org: "all", quarter: "all", year: "2026", type: "all" });
 
   const activitiesFn = useServerFn(loadQuarterlyActivities);
@@ -107,6 +121,19 @@ export function QuarterlySection() {
         <FilterSelect label="الربع" value={filters.quarter} onChange={(v) => update("quarter", v)} options={qOpts} />
         <FilterSelect label="السنة" value={filters.year} onChange={(v) => update("year", v)} options={yOpts} />
         <FilterSelect label="نوع النشاط" value={filters.type} onChange={(v) => update("type", v)} options={typeOpts} />
+        {filters.org !== "all" && years.length > 1 && (
+          <YearSelector
+            orgId={filters.org}
+            activeYear={activeYears[filters.org]}
+            availableYears={[...years].sort((a, b) => b - a)}
+            onYearChange={async (year) => {
+              setFilters((p) => ({ ...p, year: String(year) }));
+              await setActiveYearFn({ data: { orgId: filters.org, year } });
+              qc.invalidateQueries({ queryKey: ["active-years"] });
+              qc.invalidateQueries({ queryKey: ["kpis-active"] });
+            }}
+          />
+        )}
         {hasActive && (
           <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط</button>
         )}

@@ -6,6 +6,7 @@ import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseUpload, processUpload, previewKpiUpload, deleteUploads } from "@/lib/uploads.functions";
+import { loadActiveYears, setActiveYear } from "@/lib/dashboard.functions";
 import { Card, CardHeader, EmptyData, UploadProgressBar, SectionTitle, Select } from "./_shared";
 
 
@@ -18,6 +19,7 @@ export function UploadSection() {
   const [dataType, setDataType] = useState("الكل");
   const [orgId, setOrgId] = useState<string>("الكل");
   const [period, setPeriod] = useState("الكل");
+  const [uploadYear, setUploadYear] = useState(2026);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -25,6 +27,13 @@ export function UploadSection() {
   const processFn = useServerFn(processUpload);
   const previewFn = useServerFn(previewKpiUpload);
   const deleteFn = useServerFn(deleteUploads);
+  const setActiveYearFn = useServerFn(setActiveYear);
+  const activeYearsFn = useServerFn(loadActiveYears);
+  const { data: activeYears = {} } = useQuery({
+    queryKey: ["active-years"],
+    queryFn: () => activeYearsFn(),
+    staleTime: 5 * 60 * 1000,
+  });
   const qc = useQueryClient();
   const [reprocessing, setReprocessing] = useState<string | null>(null);
   const [viewExtract, setViewExtract] = useState<string | null>(null);
@@ -76,7 +85,7 @@ export function UploadSection() {
   async function runProcessing(uploadId: string, filePath: string) {
     const ext = filePath.split(".").pop()?.toLowerCase() || "";
     if (["xlsx", "xls", "csv"].includes(ext)) {
-      return parseFn({ data: { uploadId, filePath } });
+      return parseFn({ data: { uploadId, filePath, planYear: uploadYear } });
     }
     return processFn({ data: { uploadId, filePath } });
   }
@@ -167,7 +176,7 @@ export function UploadSection() {
           setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: true });
           let handledAsNonKpi = false;
           try {
-            const result = await previewFn({ data: { filePath: path, period, fileName: file.name, dataType } });
+            const result = await previewFn({ data: { filePath: path, period, fileName: file.name, dataType, planYear: uploadYear } });
             setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, result });
           } catch (e) {
             const errText = e instanceof Error ? e.message : "فشلت المعاينة";
@@ -207,10 +216,20 @@ export function UploadSection() {
     try {
       await runProcessing(preview.uploadId, preview.filePath);
       const s = preview.result.summary;
-      setMsg({ kind: "ok", text: `تم الاستيراد: +${s.inserted} جديد · ↻${s.updated} مُحدَّث · ${s.unchanged} بلا تغيير` });
+      // ترقية السنة النشطة تلقائياً عند رفع خطة لسنة أحدث
+      const orgs = orgId !== "الكل" ? [orgId] : ORGS.map((o) => o.id as string);
+      await Promise.allSettled(
+        orgs.map(async (id) => {
+          const current = activeYears[id] ?? 2026;
+          if (uploadYear > current) await setActiveYearFn({ data: { orgId: id, year: uploadYear } });
+        }),
+      );
+      setMsg({ kind: "ok", text: `تم الاستيراد لسنة ${uploadYear}: +${s.inserted} جديد · ↻${s.updated} مُحدَّث · ${s.unchanged} بلا تغيير` });
       setPreview(null);
       qc.invalidateQueries({ queryKey: ["uploads"] });
       qc.invalidateQueries({ queryKey: ["kpis"] });
+      qc.invalidateQueries({ queryKey: ["kpis-active"] });
+      qc.invalidateQueries({ queryKey: ["active-years"] });
     } catch (e) {
       setMsg({ kind: "err", text: e instanceof Error ? e.message : "فشل الاستيراد" });
     } finally {
@@ -252,10 +271,18 @@ export function UploadSection() {
       <Card>
         <CardHeader title="منطقة الرفع" />
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <Select value={dataType} onChange={setDataType} options={DATA_TYPES} label="نوع البيانات" />
             <Select value={orgId} onChange={setOrgId} options={orgOptions} label="المؤسسة" />
             <Select value={period} onChange={setPeriod} options={PERIODS} label="الفترة" />
+            <label className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground whitespace-nowrap">سنة الخطة</span>
+              <input
+                type="number" min={2026} max={2030} value={uploadYear}
+                onChange={(e) => setUploadYear(Number(e.target.value) || 2026)}
+                className="px-2 py-1.5 rounded-md bg-muted border border-border text-sm w-28 focus:outline-none"
+              />
+            </label>
           </div>
 
           {(() => {

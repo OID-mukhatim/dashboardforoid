@@ -1,29 +1,41 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Search } from "lucide-react";
 import { ORGS } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
+import { YearSelector } from "@/components/oid/YearSelector";
 import { BSC_PERSPECTIVES, BSC_LABELS, perspectiveLabelOf } from "@/lib/oid-bsc";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { loadActiveYears, loadActiveKPIs, loadAvailableYears, setActiveYear } from "@/lib/dashboard.functions";
 import { Card, CardHeader, Progress, fmtNum, SectionTitle, Select, CircularProgress, QuarterBadge } from "./_shared";
 
 export function KPIsSection() {
   const [orgF, setOrgF] = useState<string>("الكل");
   const [persF, setPersF] = useState<string>("الكل");
   const [q, setQ] = useState("");
+  const qc = useQueryClient();
+
+  const activeYearsFn = useServerFn(loadActiveYears);
+  const activeKpisFn = useServerFn(loadActiveKPIs);
+  const availableYearsFn = useServerFn(loadAvailableYears);
+  const setActiveYearFn = useServerFn(setActiveYear);
+
+  const { data: activeYears = {} } = useQuery({
+    queryKey: ["active-years"],
+    queryFn: () => activeYearsFn(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["kpis"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("kpis")
-        .select("*")
-        .order("entity_code", { ascending: true })
-        .order("kpi_code", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
-    refetchInterval: 5000,
+    queryKey: ["kpis-active"],
+    queryFn: () => activeKpisFn(),
+    refetchInterval: 15000,
+  });
+
+  const { data: availableYears = [] } = useQuery({
+    queryKey: ["available-years", orgF],
+    queryFn: () => availableYearsFn({ data: { orgId: orgF } }),
+    enabled: orgF !== "الكل",
   });
 
   const normSector = (s: string | null | undefined) =>
@@ -116,6 +128,19 @@ export function KPIsSection() {
       <Card className="p-4 flex flex-wrap items-center gap-3">
         <Select value={orgF} onChange={setOrgF} options={["الكل", ...entities]} label="المؤسسة" />
         <Select value={persF} onChange={setPersF} options={["الكل", ...perspectiveOptions]} label="المنظور" />
+        {orgF !== "الكل" && availableYears.length > 0 && (
+          <YearSelector
+            orgId={orgF}
+            activeYear={activeYears[orgF]}
+            availableYears={availableYears}
+            onYearChange={async (year) => {
+              await setActiveYearFn({ data: { orgId: orgF, year } });
+              qc.invalidateQueries({ queryKey: ["active-years"] });
+              qc.invalidateQueries({ queryKey: ["kpis-active"] });
+              qc.invalidateQueries({ queryKey: ["dashboard-snapshot"] });
+            }}
+          />
+        )}
         <div className="relative ml-auto">
           <Search size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input value={q} onChange={e=>setQ(e.target.value)} placeholder="بحث (اسم/كود)" className="pr-8 pl-3 py-1.5 text-sm bg-muted rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 w-56" />
