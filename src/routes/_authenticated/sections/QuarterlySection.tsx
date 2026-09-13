@@ -24,7 +24,20 @@ function effPct(a: { target: number|null; achieved: number|null; pct: number|nul
 
 export function QuarterlySection() {
   const [filters, setFilters] = useState({ org: "all", quarter: "all", year: "2026", type: "all" as FilterType });
-  const update = (k: keyof typeof filters, v: string) => setFilters((p) => ({ ...p, [k]: v }));
+  const qc = useQueryClient();
+  const activeYearsFn = useServerFn(loadActiveYears);
+  const setActiveYearFn = useServerFn(setActiveYear);
+  const { data: activeYears = {} } = useQuery({
+    queryKey: ["active-years"],
+    queryFn: () => activeYearsFn(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const update = (k: keyof typeof filters, v: string) =>
+    setFilters((p) => {
+      // اختيار مؤسسة يعرض سنتها النشطة مباشرة
+      if (k === "org" && v !== "all" && activeYears[v]) return { ...p, org: v, year: String(activeYears[v]) };
+      return { ...p, [k]: v };
+    });
   const reset = () => setFilters({ org: "all", quarter: "all", year: "2026", type: "all" });
 
   const activitiesFn = useServerFn(loadQuarterlyActivities);
