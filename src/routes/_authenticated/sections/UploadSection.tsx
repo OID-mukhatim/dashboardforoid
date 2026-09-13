@@ -271,10 +271,18 @@ export function UploadSection() {
       <Card>
         <CardHeader title="منطقة الرفع" />
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <Select value={dataType} onChange={setDataType} options={DATA_TYPES} label="نوع البيانات" />
             <Select value={orgId} onChange={setOrgId} options={orgOptions} label="المؤسسة" />
             <Select value={period} onChange={setPeriod} options={PERIODS} label="الفترة" />
+            <label className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground whitespace-nowrap">سنة الخطة</span>
+              <input
+                type="number" min={2026} max={2030} value={uploadYear}
+                onChange={(e) => setUploadYear(Number(e.target.value) || 2026)}
+                className="px-2 py-1.5 rounded-md bg-muted border border-border text-sm w-28 focus:outline-none"
+              />
+            </label>
           </div>
 
           {(() => {
