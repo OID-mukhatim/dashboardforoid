@@ -121,6 +121,19 @@ export function QuarterlySection() {
         <FilterSelect label="الربع" value={filters.quarter} onChange={(v) => update("quarter", v)} options={qOpts} />
         <FilterSelect label="السنة" value={filters.year} onChange={(v) => update("year", v)} options={yOpts} />
         <FilterSelect label="نوع النشاط" value={filters.type} onChange={(v) => update("type", v)} options={typeOpts} />
+        {filters.org !== "all" && years.length > 1 && (
+          <YearSelector
+            orgId={filters.org}
+            activeYear={activeYears[filters.org]}
+            availableYears={[...years].sort((a, b) => b - a)}
+            onYearChange={async (year) => {
+              setFilters((p) => ({ ...p, year: String(year) }));
+              await setActiveYearFn({ data: { orgId: filters.org, year } });
+              qc.invalidateQueries({ queryKey: ["active-years"] });
+              qc.invalidateQueries({ queryKey: ["kpis-active"] });
+            }}
+          />
+        )}
         {hasActive && (
           <button onClick={reset} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted">↺ إعادة ضبط</button>
         )}
