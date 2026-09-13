@@ -483,3 +483,80 @@ export const updateGapScore = createServerFn({ method: "POST" })
     if (error) return { ok: false as const, error: error.message };
     return { ok: true as const };
   });
+
+/* ════════════ دورات الخطط: السنة النشطة لكل مؤسسة ════════════ */
+
+/** خريطة: كود المؤسسة → السنة النشطة. */
+export const loadActiveYears = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await context.supabase.from("org_active_years").select("org_id, active_year");
+    const map: Record<string, number> = {};
+    for (const r of data ?? []) map[r.org_id] = r.active_year;
+    return map;
+  });
+
+/** مؤشرات السنة النشطة فقط لكل مؤسسة. */
+export const loadActiveKPIs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb = context.supabase;
+    const { data: activeYears } = await sb.from("org_active_years").select("org_id, active_year");
+    if (!activeYears || activeYears.length === 0) {
+      const { data } = await sb.from("kpis").select("*");
+      return data ?? [];
+    }
+    const results = await Promise.all(
+      activeYears.map(({ org_id, active_year }) =>
+        sb.from("kpis").select("*").eq("entity_code", org_id).eq("plan_year", active_year),
+      ),
+    );
+    return results.flatMap((r) => r.data ?? []);
+  });
+
+/** كل السنوات المتاحة لمؤسسة (تنازلياً). */
+export const loadAvailableYears = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { orgId: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { data: years } = await context.supabase
+      .from("kpis")
+      .select("plan_year")
+      .eq("entity_code", data.orgId)
+      .not("plan_year", "is", null);
+    const unique = Array.from(new Set((years ?? []).map((r) => r.plan_year).filter((y): y is number => typeof y === "number")));
+    return unique.sort((a, b) => b - a);
+  });
+
+/** مؤشرات مؤسسة بسنة محددة (مقارنة يدوية). */
+export const loadKPIsByYear = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { orgId: string; year: number }) => d)
+  .handler(async ({ data, context }) => {
+    const { data: kpis } = await context.supabase
+      .from("kpis")
+      .select("*")
+      .eq("entity_code", data.orgId)
+      .eq("plan_year", data.year)
+      .order("kpi_code");
+    return kpis ?? [];
+  });
+
+/** تعيين السنة النشطة لمؤسسة. */
+export const setActiveYear = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { orgId: string; year: number }) => d)
+  .handler(async ({ data, context }) => {
+    const academic = ["ZUST", "TAYO", "HAMDI"].includes(data.orgId);
+    const { error } = await context.supabase.from("org_active_years").upsert(
+      {
+        org_id: data.orgId,
+        active_year: data.year,
+        fiscal_type: academic ? "academic" : "calendar",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "org_id" },
+    );
+    if (error) throw error;
+    return { ok: true };
+  });
