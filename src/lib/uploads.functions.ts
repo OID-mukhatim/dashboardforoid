@@ -1015,7 +1015,7 @@ const FIELD_LABELS_AR: Record<string, string> = {
 };
 
 export const previewKpiUpload = createServerFn({ method: "POST" })
-  .inputValidator((input) => z.object({ filePath: z.string().min(1), period: z.string().optional(), fileName: z.string().optional(), dataType: z.string().optional() }).parse(input))
+  .inputValidator((input) => z.object({ filePath: z.string().min(1), period: z.string().optional(), fileName: z.string().optional(), dataType: z.string().optional(), planYear: z.number().int().min(2000).max(2100).optional() }).parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const XLSX = await import("xlsx");
