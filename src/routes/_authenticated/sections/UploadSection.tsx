@@ -26,6 +26,13 @@ export function UploadSection() {
   const processFn = useServerFn(processUpload);
   const previewFn = useServerFn(previewKpiUpload);
   const deleteFn = useServerFn(deleteUploads);
+  const setActiveYearFn = useServerFn(setActiveYear);
+  const activeYearsFn = useServerFn(loadActiveYears);
+  const { data: activeYears = {} } = useQuery({
+    queryKey: ["active-years"],
+    queryFn: () => activeYearsFn(),
+    staleTime: 5 * 60 * 1000,
+  });
   const qc = useQueryClient();
   const [reprocessing, setReprocessing] = useState<string | null>(null);
   const [viewExtract, setViewExtract] = useState<string | null>(null);
