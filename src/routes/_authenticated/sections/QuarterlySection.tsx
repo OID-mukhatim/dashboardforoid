@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { ORGS, q1Data, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
-import { loadQuarterlyActivities } from "@/lib/dashboard.functions";
+import { loadQuarterlyActivities, loadActiveYears, setActiveYear } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { YearSelector } from "@/components/oid/YearSelector";
 import { Card, EmptyData, Progress, SectionTitle, OrgChip, FilterSelect, QuarterBadge } from "./_shared";
 
 /* ============================ QUARTERLY ============================ */
