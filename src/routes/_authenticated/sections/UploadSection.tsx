@@ -18,6 +18,7 @@ export function UploadSection() {
   const [dataType, setDataType] = useState("الكل");
   const [orgId, setOrgId] = useState<string>("الكل");
   const [period, setPeriod] = useState("الكل");
+  const [uploadYear, setUploadYear] = useState(2026);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
