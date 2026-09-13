@@ -6,6 +6,7 @@ import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseUpload, processUpload, previewKpiUpload, deleteUploads } from "@/lib/uploads.functions";
+import { loadActiveYears, setActiveYear } from "@/lib/dashboard.functions";
 import { Card, CardHeader, EmptyData, UploadProgressBar, SectionTitle, Select } from "./_shared";
 
 
