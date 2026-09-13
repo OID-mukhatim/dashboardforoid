@@ -207,10 +207,20 @@ export function UploadSection() {
     try {
       await runProcessing(preview.uploadId, preview.filePath);
       const s = preview.result.summary;
-      setMsg({ kind: "ok", text: `تم الاستيراد: +${s.inserted} جديد · ↻${s.updated} مُحدَّث · ${s.unchanged} بلا تغيير` });
+      // ترقية السنة النشطة تلقائياً عند رفع خطة لسنة أحدث
+      const orgs = orgId !== "الكل" ? [orgId] : ORGS.map((o) => o.id as string);
+      await Promise.allSettled(
+        orgs.map(async (id) => {
+          const current = activeYears[id] ?? 2026;
+          if (uploadYear > current) await setActiveYearFn({ data: { orgId: id, year: uploadYear } });
+        }),
+      );
+      setMsg({ kind: "ok", text: `تم الاستيراد لسنة ${uploadYear}: +${s.inserted} جديد · ↻${s.updated} مُحدَّث · ${s.unchanged} بلا تغيير` });
       setPreview(null);
       qc.invalidateQueries({ queryKey: ["uploads"] });
       qc.invalidateQueries({ queryKey: ["kpis"] });
+      qc.invalidateQueries({ queryKey: ["kpis-active"] });
+      qc.invalidateQueries({ queryKey: ["active-years"] });
     } catch (e) {
       setMsg({ kind: "err", text: e instanceof Error ? e.message : "فشل الاستيراد" });
     } finally {
