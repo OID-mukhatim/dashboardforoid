@@ -1028,6 +1028,7 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
     const buf = new Uint8Array(await file.arrayBuffer());
     const wb = XLSX.read(buf, { type: "array" });
     const period = data.period || "all";
+    const planYear = data.planYear ?? Number(String(period).match(/20\d{2}/)?.[0] ?? 2026);
     const fileName = data.fileName ?? data.filePath;
     if (isInstitutionalDataType(data.dataType ?? "") || looksLikeNetworksSheet(fileName)) {
       throw new Error("هذا الملف مصنّف كبيانات مؤسسية، وليس ملف مؤشرات أداء. ستتم معالجته دون إدخاله في جدول المؤشرات.");
