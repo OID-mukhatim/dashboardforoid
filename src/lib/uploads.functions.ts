@@ -328,6 +328,7 @@ export const parseUpload = createServerFn({ method: "POST" })
       .eq("id", data.uploadId)
       .maybeSingle();
     const period = uploadRow?.period ?? "all";
+    const planYear = data.planYear ?? Number(String(period).match(/20\d{2}/)?.[0] ?? 2026);
     const originalFileName = uploadRow?.file_name ?? data.filePath;
     const selectedDataType = uploadRow?.data_type ?? "";
 
