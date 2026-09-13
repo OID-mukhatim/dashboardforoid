@@ -85,7 +85,7 @@ export function UploadSection() {
   async function runProcessing(uploadId: string, filePath: string) {
     const ext = filePath.split(".").pop()?.toLowerCase() || "";
     if (["xlsx", "xls", "csv"].includes(ext)) {
-      return parseFn({ data: { uploadId, filePath } });
+      return parseFn({ data: { uploadId, filePath, planYear: uploadYear } });
     }
     return processFn({ data: { uploadId, filePath } });
   }
