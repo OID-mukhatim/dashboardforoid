@@ -1,29 +1,41 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Search } from "lucide-react";
 import { ORGS } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
+import { YearSelector } from "@/components/oid/YearSelector";
 import { BSC_PERSPECTIVES, BSC_LABELS, perspectiveLabelOf } from "@/lib/oid-bsc";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { loadActiveYears, loadActiveKPIs, loadAvailableYears, setActiveYear } from "@/lib/dashboard.functions";
 import { Card, CardHeader, Progress, fmtNum, SectionTitle, Select, CircularProgress, QuarterBadge } from "./_shared";
 
 export function KPIsSection() {
   const [orgF, setOrgF] = useState<string>("الكل");
   const [persF, setPersF] = useState<string>("الكل");
   const [q, setQ] = useState("");
+  const qc = useQueryClient();
+
+  const activeYearsFn = useServerFn(loadActiveYears);
+  const activeKpisFn = useServerFn(loadActiveKPIs);
+  const availableYearsFn = useServerFn(loadAvailableYears);
+  const setActiveYearFn = useServerFn(setActiveYear);
+
+  const { data: activeYears = {} } = useQuery({
+    queryKey: ["active-years"],
+    queryFn: () => activeYearsFn(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["kpis"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("kpis")
-        .select("*")
-        .order("entity_code", { ascending: true })
-        .order("kpi_code", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
-    refetchInterval: 5000,
+    queryKey: ["kpis-active"],
+    queryFn: () => activeKpisFn(),
+    refetchInterval: 15000,
+  });
+
+  const { data: availableYears = [] } = useQuery({
+    queryKey: ["available-years", orgF],
+    queryFn: () => availableYearsFn({ data: { orgId: orgF } }),
+    enabled: orgF !== "الكل",
   });
 
   const normSector = (s: string | null | undefined) =>
