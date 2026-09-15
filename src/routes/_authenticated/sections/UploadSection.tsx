@@ -212,6 +212,7 @@ export function UploadSection() {
   }
 
   async function confirmPreview() {
+    setForceImport(false);
     if (!preview?.result) return;
     setConfirming(true);
     try {
@@ -239,6 +240,7 @@ export function UploadSection() {
   }
 
   async function cancelPreview() {
+    setForceImport(false);
     if (!preview) return;
     // Mark upload as cancelled by deleting the storage object & row
     try {
