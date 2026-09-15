@@ -80,6 +80,12 @@ export const importKPIMatrix = createServerFn({ method: "POST" })
     return { ok: true as const, inserted: records.length, errors: validation.errors, warnings: validation.warnings };
   });
 
+type Quarter = "q1" | "q2" | "q3" | "q4";
+
+/** بناء تحديث المنجز للربع المحدد بنوع صريح. */
+const quarterPatch = (q: Quarter, v: number | null) =>
+  q === "q1" ? { q1_actual: v } : q === "q2" ? { q2_actual: v } : q === "q3" ? { q3_actual: v } : { q4_actual: v };
+
 export type KPICardInput = {
   id: string;
   description?: string | null;
@@ -125,13 +131,12 @@ export const updateKPICard = createServerFn({ method: "POST" })
 /** تحديث المنجز الفعلي لربع واحد (يُسجَّل أيضاً في البعد الزمني). */
 export const updateKPIAchieved = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string; quarter: "q1" | "q2" | "q3" | "q4"; achieved: number | null }) => d)
+  .inputValidator((d: { id: string; quarter: Quarter; achieved: number | null }) => d)
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
-    const field = `${data.quarter}_actual` as const;
     const { error } = await sb
       .from("kpis")
-      .update({ [field]: data.achieved, updated_at: new Date().toISOString() })
+      .update({ ...quarterPatch(data.quarter, data.achieved), updated_at: new Date().toISOString() })
       .eq("id", data.id);
     if (error) throw error;
 
@@ -162,13 +167,12 @@ export const updateKPIAchieved = createServerFn({ method: "POST" })
 /** حفظ دفعة تحديثات المنجز. */
 export const saveQuarterAchievements = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { quarter: "q1" | "q2" | "q3" | "q4"; items: { id: string; achieved: number | null }[] }) => d)
+  .inputValidator((d: { quarter: Quarter; items: { id: string; achieved: number | null }[] }) => d)
   .handler(async ({ data, context }) => {
-    const field = `${data.quarter}_actual` as const;
     for (const item of data.items) {
       const { error } = await context.supabase
         .from("kpis")
-        .update({ [field]: item.achieved, updated_at: new Date().toISOString() })
+        .update({ ...quarterPatch(data.quarter, item.achieved), updated_at: new Date().toISOString() })
         .eq("id", item.id);
       if (error) throw error;
     }
