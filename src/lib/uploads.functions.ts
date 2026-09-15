@@ -1123,6 +1123,36 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
       .map((r) => ({ entity_code: r.entity_code as string, kpi_code: r.kpi_code as string }));
 
 
+    // فحص الأوزان النسبية لكل مؤسسة: كل منظور 25% والمجموع 100%
+    const { validateWeights } = await import("@/lib/oid-data");
+    const { perspectiveLabelOf } = await import("@/lib/oid-bsc");
+    const byEntity = new Map<string, Array<Record<string, unknown>>>();
+    for (const row of uniq) {
+      const e = row.entity_code as string;
+      if (!byEntity.has(e)) byEntity.set(e, []);
+      byEntity.get(e)!.push({
+        "المنظور": perspectiveLabelOf((row.sector as string) ?? null) ?? "غير مصنّف",
+        "الوزن": row.weight ?? 0,
+      });
+    }
+    const weightChecks = Array.from(byEntity.entries()).map(([entity, rows]) => {
+      const v = validateWeights(rows);
+      const perspectives = new Map<string, number>();
+      rows.forEach((r) => {
+        const n = Number(String(r["الوزن"] ?? 0));
+        const w = Number.isFinite(n) ? (n > 0 && n <= 1 ? n * 100 : n) : 0;
+        const key = String(r["المنظور"]);
+        perspectives.set(key, (perspectives.get(key) ?? 0) + w);
+      });
+      return {
+        entity,
+        valid: v.valid,
+        errors: v.errors,
+        warnings: v.warnings,
+        perspectives: Array.from(perspectives.entries()).map(([name, sum]) => ({ name, sum })),
+      };
+    });
+
     return {
       summary: {
         totalInFile: uniq.length,
@@ -1132,8 +1162,9 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
         rejected,
         duplicatesInFile,
         stale: stale.length,
+        weightsValid: weightChecks.every((w) => w.valid),
       },
-      inserted, updated, stale,
+      inserted, updated, stale, weightChecks,
     };
   });
 
