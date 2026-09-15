@@ -80,6 +80,7 @@ export function UploadSection() {
     result?: Awaited<ReturnType<typeof previewKpiUpload>>;
   };
   const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [forceImport, setForceImport] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   async function runProcessing(uploadId: string, filePath: string) {
@@ -695,7 +696,12 @@ export function UploadSection() {
               >إلغاء</button>
               <button
                 onClick={confirmPreview}
-                disabled={!preview.result || confirming || !!preview.error}
+                disabled={
+                  !preview.result ||
+                  confirming ||
+                  !!preview.error ||
+                  (!preview.result.summary.weightsValid && !forceImport)
+                }
                 className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
               >
                 {confirming ? "جارٍ التأكيد..." :
