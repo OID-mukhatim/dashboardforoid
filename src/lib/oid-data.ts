@@ -386,3 +386,97 @@ export const getQuarterLabel = (orgId: OrgId | string, q: string): string => {
   const months = quarterMonths(orgId, q);
   return months ? `${q} (${months})` : q;
 };
+
+/* ============ قواعد الأوزان النسبية للمؤشرات ============ */
+export const WEIGHT_RULES = {
+  perspectiveWeight: 25,
+  totalWeight: 100,
+  tolerance: 0.01,
+};
+
+const pickField = (row: Record<string, unknown>, keys: string[]): string => {
+  for (const k of keys) {
+    const v = row[k];
+    if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+  }
+  return "";
+};
+
+const toWeight = (v: string): number => {
+  const n = parseFloat(v.replace("%", "").replace(",", "."));
+  if (!Number.isFinite(n)) return 0;
+  // وزن مخزَّن ككسر (0.05) يُحوَّل إلى نسبة مئوية
+  return n > 0 && n <= 1 ? n * 100 : n;
+};
+
+/** التحقق من أن كل منظور = 25% والمجموع الكلي = 100%. */
+export const validateWeights = (
+  rows: Record<string, unknown>[],
+): { valid: boolean; errors: string[]; warnings: string[] } => {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const PERSPECTIVE_KEYS = ["المنظور", "Sector", "sector", "perspective"];
+  const WEIGHT_KEYS = ["الوزن", "الوزن النسبي", "Weight", "Weight %", "weight"];
+
+  const byPerspective = new Map<string, number>();
+  let total = 0;
+
+  rows.forEach((row) => {
+    const perspective = pickField(row, PERSPECTIVE_KEYS) || "غير مصنّف";
+    const weight = toWeight(pickField(row, WEIGHT_KEYS));
+    byPerspective.set(perspective, (byPerspective.get(perspective) ?? 0) + weight);
+    total += weight;
+  });
+
+  byPerspective.forEach((sum, name) => {
+    const diff = Math.abs(sum - WEIGHT_RULES.perspectiveWeight);
+    if (diff > WEIGHT_RULES.tolerance) {
+      errors.push(
+        `منظور "${name}": مجموع الأوزان ${sum.toFixed(2)}% — يجب أن يساوي ${WEIGHT_RULES.perspectiveWeight}% بالضبط`,
+      );
+    }
+  });
+
+  if (byPerspective.size !== 4) {
+    warnings.push(`عدد المناظير في الملف ${byPerspective.size} — المتوقع 4 مناظير`);
+  }
+
+  if (Math.abs(total - WEIGHT_RULES.totalWeight) > WEIGHT_RULES.tolerance) {
+    errors.push(`المجموع الكلي للأوزان: ${total.toFixed(2)}% — يجب أن يساوي 100% بالضبط`);
+  }
+
+  return { valid: errors.length === 0, errors, warnings };
+};
+
+const numFrom = (v: unknown): number => {
+  if (v === null || v === undefined) return NaN;
+  const n = parseFloat(
+    String(v).replace("%", "").replace("<", "").replace(">", "").replace("أقل من", "").replace("أكثر من", "").trim(),
+  );
+  return n;
+};
+
+/** نسبة الإنجاز ولون العتبة لمؤشر واحد. */
+export const computeKPIStatus = (
+  kpi: { annual_target?: unknown; threshold_red?: string | null; threshold_green?: string | null },
+  achieved: unknown,
+): { pct: number | null; color: "green" | "yellow" | "red" | "gray"; label: string } => {
+  const achievedNum = numFrom(achieved);
+  const targetNum = numFrom(kpi.annual_target);
+  if (!Number.isFinite(achievedNum) || !Number.isFinite(targetNum) || targetNum === 0) {
+    return { pct: null, color: "gray", label: "—" };
+  }
+  const pct = (achievedNum / targetNum) * 100;
+
+  const redVal = kpi.threshold_red ? numFrom(kpi.threshold_red) : NaN;
+  const greenVal = kpi.threshold_green ? numFrom(kpi.threshold_green) : NaN;
+  if (Number.isFinite(redVal) || Number.isFinite(greenVal)) {
+    if (Number.isFinite(redVal) && pct < redVal) return { pct, color: "red", label: `🔴 ${pct.toFixed(0)}%` };
+    if (Number.isFinite(greenVal) && pct >= greenVal) return { pct, color: "green", label: `🟢 ${pct.toFixed(0)}%` };
+    return { pct, color: "yellow", label: `🟡 ${pct.toFixed(0)}%` };
+  }
+
+  if (pct >= 90) return { pct, color: "green", label: `🟢 ${pct.toFixed(0)}%` };
+  if (pct >= 70) return { pct, color: "yellow", label: `🟡 ${pct.toFixed(0)}%` };
+  return { pct, color: "red", label: `🔴 ${pct.toFixed(0)}%` };
+};
