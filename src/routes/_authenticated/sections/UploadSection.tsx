@@ -80,6 +80,7 @@ export function UploadSection() {
     result?: Awaited<ReturnType<typeof previewKpiUpload>>;
   };
   const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [forceImport, setForceImport] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   async function runProcessing(uploadId: string, filePath: string) {
@@ -211,6 +212,7 @@ export function UploadSection() {
   }
 
   async function confirmPreview() {
+    setForceImport(false);
     if (!preview?.result) return;
     setConfirming(true);
     try {
@@ -238,6 +240,7 @@ export function UploadSection() {
   }
 
   async function cancelPreview() {
+    setForceImport(false);
     if (!preview) return;
     // Mark upload as cancelled by deleting the storage object & row
     try {
@@ -652,6 +655,37 @@ export function UploadSection() {
                       ⚠️ {preview.result.summary.duplicatesInFile} صف مكرر داخل الملف نفسه — سيُعتمد آخر ظهور فقط.
                     </div>
                   )}
+
+                  {(preview.result.weightChecks ?? []).map((wc) => (
+                    <div
+                      key={wc.entity}
+                      className={`p-3 rounded-md text-xs border ${wc.valid ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-rose-50 text-rose-800 border-rose-200"}`}
+                    >
+                      <div className="font-semibold mb-1">
+                        {wc.valid ? "✅" : "⚠️"} فحص الأوزان — {wc.entity}
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 mb-1">
+                        {wc.perspectives.map((p) => (
+                          <span key={p.name} className="tabular-nums">
+                            {p.name}: {p.sum.toFixed(2)}%
+                          </span>
+                        ))}
+                      </div>
+                      {wc.errors.map((e, i) => (
+                        <div key={i}>• {e}</div>
+                      ))}
+                      {wc.warnings.map((w, i) => (
+                        <div key={`w${i}`} className="opacity-80">• {w}</div>
+                      ))}
+                    </div>
+                  ))}
+
+                  {!preview.result.summary.weightsValid && (
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input type="checkbox" checked={forceImport} onChange={(e) => setForceImport(e.target.checked)} />
+                      أتجاوز فحص الأوزان وأؤكد الاستيراد رغم الأخطاء
+                    </label>
+                  )}
                 </>
               )}
             </div>
@@ -664,7 +698,12 @@ export function UploadSection() {
               >إلغاء</button>
               <button
                 onClick={confirmPreview}
-                disabled={!preview.result || confirming || !!preview.error}
+                disabled={
+                  !preview.result ||
+                  confirming ||
+                  !!preview.error ||
+                  (!preview.result.summary.weightsValid && !forceImport)
+                }
                 className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
               >
                 {confirming ? "جارٍ التأكيد..." :
