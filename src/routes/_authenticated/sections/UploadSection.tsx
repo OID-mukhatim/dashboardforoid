@@ -652,6 +652,37 @@ export function UploadSection() {
                       ⚠️ {preview.result.summary.duplicatesInFile} صف مكرر داخل الملف نفسه — سيُعتمد آخر ظهور فقط.
                     </div>
                   )}
+
+                  {(preview.result.weightChecks ?? []).map((wc) => (
+                    <div
+                      key={wc.entity}
+                      className={`p-3 rounded-md text-xs border ${wc.valid ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-rose-50 text-rose-800 border-rose-200"}`}
+                    >
+                      <div className="font-semibold mb-1">
+                        {wc.valid ? "✅" : "⚠️"} فحص الأوزان — {wc.entity}
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 mb-1">
+                        {wc.perspectives.map((p) => (
+                          <span key={p.name} className="tabular-nums">
+                            {p.name}: {p.sum.toFixed(2)}%
+                          </span>
+                        ))}
+                      </div>
+                      {wc.errors.map((e, i) => (
+                        <div key={i}>• {e}</div>
+                      ))}
+                      {wc.warnings.map((w, i) => (
+                        <div key={`w${i}`} className="opacity-80">• {w}</div>
+                      ))}
+                    </div>
+                  ))}
+
+                  {!preview.result.summary.weightsValid && (
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input type="checkbox" checked={forceImport} onChange={(e) => setForceImport(e.target.checked)} />
+                      أتجاوز فحص الأوزان وأؤكد الاستيراد رغم الأخطاء
+                    </label>
+                  )}
                 </>
               )}
             </div>
