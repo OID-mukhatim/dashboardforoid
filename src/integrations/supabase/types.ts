@@ -280,18 +280,95 @@ export type Database = {
         }
         Relationships: []
       }
+      kpi_goals: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          org_id: string
+          perspective_id: string
+          plan_year: number
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          org_id: string
+          perspective_id: string
+          plan_year: number
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          org_id?: string
+          perspective_id?: string
+          plan_year?: number
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_goals_perspective_id_fkey"
+            columns: ["perspective_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_perspectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kpi_perspectives: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          name_en: string | null
+          org_id: string
+          plan_year: number
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          name_en?: string | null
+          org_id: string
+          plan_year: number
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          name_en?: string | null
+          org_id?: string
+          plan_year?: number
+          weight?: number
+        }
+        Relationships: []
+      }
       kpis: {
         Row: {
           achievement_pct: number | null
           annual_target: number | null
           baseline: number | null
+          calculation: string | null
+          card_completed: boolean
           created_at: string
+          data_sources: string | null
+          department: string | null
+          description: string | null
+          enablers: string | null
           entity_code: string
           entity_name: string | null
           final_output: string | null
           fiscal_type: string | null
           fiscal_year_type: string
+          frequency: string | null
+          goal_id: string | null
           id: string
+          indicator_type: string | null
           is_baseline: boolean | null
           kpi_code: string
           kpi_name: string | null
@@ -300,6 +377,7 @@ export type Database = {
           overall_pct: number | null
           period: string
           plan_year: number | null
+          polarity: string | null
           q1_actual: number | null
           q1_planned: number | null
           q2_actual: number | null
@@ -309,9 +387,15 @@ export type Database = {
           q4_actual: number | null
           q4_planned: number | null
           raw: Json | null
+          related_goal: string | null
+          related_kpis: string | null
           sector: string | null
+          threshold_green: string | null
+          threshold_red: string | null
+          threshold_yellow: string | null
           total_actual: number | null
           total_planned: number | null
+          unit: string | null
           updated_at: string
           upload_id: string | null
           weight: number | null
@@ -320,13 +404,22 @@ export type Database = {
           achievement_pct?: number | null
           annual_target?: number | null
           baseline?: number | null
+          calculation?: string | null
+          card_completed?: boolean
           created_at?: string
+          data_sources?: string | null
+          department?: string | null
+          description?: string | null
+          enablers?: string | null
           entity_code: string
           entity_name?: string | null
           final_output?: string | null
           fiscal_type?: string | null
           fiscal_year_type?: string
+          frequency?: string | null
+          goal_id?: string | null
           id?: string
+          indicator_type?: string | null
           is_baseline?: boolean | null
           kpi_code: string
           kpi_name?: string | null
@@ -335,6 +428,7 @@ export type Database = {
           overall_pct?: number | null
           period?: string
           plan_year?: number | null
+          polarity?: string | null
           q1_actual?: number | null
           q1_planned?: number | null
           q2_actual?: number | null
@@ -344,9 +438,15 @@ export type Database = {
           q4_actual?: number | null
           q4_planned?: number | null
           raw?: Json | null
+          related_goal?: string | null
+          related_kpis?: string | null
           sector?: string | null
+          threshold_green?: string | null
+          threshold_red?: string | null
+          threshold_yellow?: string | null
           total_actual?: number | null
           total_planned?: number | null
+          unit?: string | null
           updated_at?: string
           upload_id?: string | null
           weight?: number | null
@@ -355,13 +455,22 @@ export type Database = {
           achievement_pct?: number | null
           annual_target?: number | null
           baseline?: number | null
+          calculation?: string | null
+          card_completed?: boolean
           created_at?: string
+          data_sources?: string | null
+          department?: string | null
+          description?: string | null
+          enablers?: string | null
           entity_code?: string
           entity_name?: string | null
           final_output?: string | null
           fiscal_type?: string | null
           fiscal_year_type?: string
+          frequency?: string | null
+          goal_id?: string | null
           id?: string
+          indicator_type?: string | null
           is_baseline?: boolean | null
           kpi_code?: string
           kpi_name?: string | null
@@ -370,6 +479,7 @@ export type Database = {
           overall_pct?: number | null
           period?: string
           plan_year?: number | null
+          polarity?: string | null
           q1_actual?: number | null
           q1_planned?: number | null
           q2_actual?: number | null
@@ -379,14 +489,27 @@ export type Database = {
           q4_actual?: number | null
           q4_planned?: number | null
           raw?: Json | null
+          related_goal?: string | null
+          related_kpis?: string | null
           sector?: string | null
+          threshold_green?: string | null
+          threshold_red?: string | null
+          threshold_yellow?: string | null
           total_actual?: number | null
           total_planned?: number | null
+          unit?: string | null
           updated_at?: string
           upload_id?: string | null
           weight?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "kpis_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_goals"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "kpis_upload_id_fkey"
             columns: ["upload_id"]
