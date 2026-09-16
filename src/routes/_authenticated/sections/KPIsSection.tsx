@@ -227,12 +227,10 @@ function MatrixView({
   orgF: string;
   sectorStats: { name: string; color: string; count: number; avg: number }[];
 }) {
-  // وزن الهدف = مجموع أوزان مؤشراته
-  const goalWeights = new Map<string, number>();
-  rows.forEach((k) => {
-    const key = `${k.entity_code}|${k.objective ?? ""}`;
-    goalWeights.set(key, (goalWeights.get(key) ?? 0) + (num(k.weight) ?? 0));
-  });
+  // وزن الهدف يأتي من تعريف الهدف نفسه (kpi_goals) — لا يُشتق من مجموع أوزان المؤشرات.
+  // المؤشرات القديمة غير المرتبطة بهدف معرّف تبقى بدون وزن هدف.
+
+
 
   const HEAD = "px-3 py-2 text-right font-medium whitespace-nowrap";
   const GROUPS = ["Q1", "Q2", "Q3", "Q4", "الإجمالي"];
