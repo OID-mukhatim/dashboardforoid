@@ -325,7 +325,7 @@ function MatrixView({
               )}
               {rows.map((k) => {
                 const d = derive(k);
-                const st = computeKPIStatus(k, d.totalActual);
+                const res = computeRowAchievement(k);
                  const unit = k.unit ?? k.kpi_type ?? null;
                 const gw = k.goal_id ? num(k.goal_weight) : null;
                 return (
