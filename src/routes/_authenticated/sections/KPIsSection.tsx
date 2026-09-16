@@ -494,7 +494,7 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
     }
   };
 
-  const orgName = ORGS.find((o) => o.id === kpi.entity_code)?.name ?? kpi.entity_code ?? "—";
+  const orgName = ORGS.find((o) => o.id === kpi.entity_code)?.nameAr ?? kpi.entity_code ?? "—";
   const goalWeight = kpi.goal_id ? num(kpi.goal_weight) : null;
   const quarters: { q: string; planned: unknown; actual: unknown }[] = [1, 2, 3, 4].map((i) => ({
     q: `Q${i}`,
