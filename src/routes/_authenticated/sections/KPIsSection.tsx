@@ -9,7 +9,13 @@ import {
   validateKPIValue,
   type OrgId,
 } from "@/lib/oid-data";
-import { computeRowAchievement, natureOf } from "@/lib/oid-kpi-engine";
+import {
+  computeKPIAchievement,
+  computeRowAchievement,
+  natureOf,
+  polarityOf,
+  type MeasurementNature,
+} from "@/lib/oid-kpi-engine";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { YearSelector } from "@/components/oid/YearSelector";
 import { BSC_PERSPECTIVES, BSC_LABELS, perspectiveLabelOf } from "@/lib/oid-bsc";
@@ -722,32 +728,45 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
             {rows.map((k) => {
               const target = num(k[plannedKey]) ?? num(k.annual_target);
               const current = edits[k.id] !== undefined ? edits[k.id] : k[actualKey] ?? "";
-              const achievedNum = current === "" ? null : Number(current);
-              const pct = target && achievedNum !== null ? (achievedNum / target) * 100 : null;
-              const st = computeKPIStatus({ ...k, annual_target: target }, achievedNum);
-              const unit = k.unit ?? k.kpi_type ?? null;
-              const check = validateKPIValue(current as string, unit, k.kpi_name ?? "");
+              const nature = natureOf(k);
+              const unit = nature === "qualitative" ? "ليكرت 1-5" : k.unit ?? k.kpi_type ?? null;
+              const res = computeKPIAchievement(
+                {
+                  measurement_nature: nature,
+                  polarity: polarityOf(k),
+                  threshold_red: k.threshold_red,
+                  threshold_green: k.threshold_green,
+                  unit,
+                },
+                target,
+                current === "" ? null : current,
+              );
+              const check =
+                nature === "qualitative" ? { warning: null } : validateKPIValue(current as string, unit, k.kpi_name ?? "");
               return (
                 <tr key={k.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{k.kpi_code}</td>
                   <td className="px-3 py-2 max-w-[320px]">{k.kpi_name}</td>
                   <td className="px-3 py-2 tabular-nums text-xs">{formatKPIValue(target, unit)}</td>
                   <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      step="any"
-                      value={current as string}
-                      onChange={(e) => setEdits({ ...edits, [k.id]: e.target.value })}
-                      placeholder={unit && unit.includes("%") ? "مثال: 65" : "مثال: 11"}
-                      className={`w-28 text-sm bg-muted rounded-md border px-2 py-1 tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                        check.warning ? "border-red-400" : "border-border"
-                      }`}
+                    <AchievedInput
+                      nature={nature}
+                      value={String(current ?? "")}
+                      warning={!!check.warning}
+                      onChange={(v) => setEdits({ ...edits, [k.id]: v })}
                     />
                     {check.warning && <div className="mt-1 text-[10px] text-red-600">⚠️ {check.warning}</div>}
                   </td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{pct === null ? "—" : `${pct.toFixed(0)}%`}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">
+                    {res.rawPct === null ? "—" : `${res.rawPct}%`}
+                    {res.exceeded !== null && (
+                      <span className="mr-1 text-[10px] text-emerald-600 font-bold">+{res.exceeded}%</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[st.color]}`}>{st.label}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[res.status]}`}>
+                      {res.statusLabel}
+                    </span>
                   </td>
                 </tr>
               );
@@ -763,5 +782,78 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
         </table>
       </ScrollableTable>
     </Card>
+  );
+}
+
+/* إدخال المنجز حسب طبيعة القياس */
+function AchievedInput({
+  nature,
+  value,
+  warning,
+  onChange,
+}: {
+  nature: MeasurementNature;
+  value: string;
+  warning?: boolean;
+  onChange: (v: string) => void;
+}) {
+  const border = warning ? "border-red-400" : "border-border";
+
+  if (nature === "qualitative") {
+    const labels = ["ضعيف", "مقبول", "جيد", "جيد جداً", "ممتاز"];
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((score) => {
+          const active = value === String(score);
+          return (
+            <button
+              key={score}
+              type="button"
+              title={labels[score - 1]}
+              onClick={() => onChange(active ? "" : String(score))}
+              className={`w-8 h-8 rounded-full border-2 text-[13px] font-bold transition-colors ${
+                active
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted"
+              }`}
+            >
+              {score}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (nature === "quantitative_ratio") {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          min={0}
+          max={200}
+          step={0.1}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="65"
+          dir="ltr"
+          className={`w-20 text-center text-sm bg-muted rounded-md border px-2 py-1 tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30 ${border}`}
+        />
+        <span className="text-sm text-muted-foreground">%</span>
+      </div>
+    );
+  }
+
+  return (
+    <input
+      type="number"
+      min={0}
+      step="any"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="11"
+      dir="ltr"
+      className={`w-24 text-center text-sm bg-muted rounded-md border px-2 py-1 tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30 ${border}`}
+    />
   );
 }
