@@ -49,7 +49,9 @@ export const importKPIMatrix = createServerFn({ method: "POST" })
       const baseCode = pick(row, ["الكود", "ID", "kpi_code", "code"]);
       const code = /-20\d{2}$/.test(baseCode) ? baseCode : `${baseCode}-${year}`;
       const weightRaw = numOrNull(pick(row, ["الوزن", "الوزن النسبي", "Weight", "Weight %"]));
+      const unit = pick(row, ["الوحدة", "وحدة القياس", "Unit"]) || null;
       return {
+        unit,
         kpi_code: code,
         entity_code: orgId,
         plan_year: year,
@@ -62,12 +64,12 @@ export const importKPIMatrix = createServerFn({ method: "POST" })
         kpi_name: pick(row, ["مؤشر الأداء", "المؤشر", "KPI"]),
         kpi_type: pick(row, ["نوعه", "النوع", "Type"]) || null,
         weight: weightRaw !== null && weightRaw > 1 ? weightRaw / 100 : weightRaw,
-        baseline: numOrNull(pick(row, ["خط الأساس", "Baseline"])),
-        annual_target: numOrNull(pick(row, ["المستهدف السنوي", "Annual Target"])),
-        q1_planned: numOrNull(pick(row, ["Q1", "الربع الأول"])),
-        q2_planned: numOrNull(pick(row, ["Q2", "الربع الثاني"])),
-        q3_planned: numOrNull(pick(row, ["Q3", "الربع الثالث"])),
-        q4_planned: numOrNull(pick(row, ["Q4", "الربع الرابع"])),
+        baseline: fixExcelValue(pick(row, ["خط الأساس", "Baseline"]), unit),
+        annual_target: fixExcelValue(pick(row, ["المستهدف السنوي", "Annual Target"]), unit),
+        q1_planned: fixExcelValue(pick(row, ["Q1", "الربع الأول"]), unit),
+        q2_planned: fixExcelValue(pick(row, ["Q2", "الربع الثاني"]), unit),
+        q3_planned: fixExcelValue(pick(row, ["Q3", "الربع الثالث"]), unit),
+        q4_planned: fixExcelValue(pick(row, ["Q4", "الربع الرابع"]), unit),
         card_completed: false,
       };
     });
