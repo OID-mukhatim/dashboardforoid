@@ -366,14 +366,25 @@ function MatrixView({
                     </td>
                     <td className="px-3 py-2 min-w-[120px]">
                       <div className="flex items-center gap-2">
-                        <Progress
-                          value={Math.max(0, Math.min(100, Number(fmtPct(d.achievement, 2).replace("%", "")) || 0))}
-                        />
-                        <span className="text-xs tabular-nums w-12">{fmtPct(d.achievement)}</span>
+                        <Progress value={res.cappedPct ?? 0} />
+                        <span className="text-xs tabular-nums w-12">
+                          {res.rawPct !== null ? `${res.rawPct}%` : "—"}
+                        </span>
                       </div>
                     </td>
+                    <td className="px-3 py-2 tabular-nums text-xs text-center">
+                      {res.exceeded !== null ? (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600">
+                          +{res.exceeded}%
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="px-3 py-2 whitespace-nowrap text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[st.color]}`}>{st.label}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[res.status]}`}>
+                        {res.statusLabel}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-xs max-w-[240px]">{k.final_output ?? "—"}</td>
                   </tr>
