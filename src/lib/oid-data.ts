@@ -480,3 +480,49 @@ export const computeKPIStatus = (
   if (pct >= 70) return { pct, color: "yellow", label: `🟡 ${pct.toFixed(0)}%` };
   return { pct, color: "red", label: `🔴 ${pct.toFixed(0)}%` };
 };
+
+/* ============ عرض القيم حسب وحدة المؤشر ============ */
+export const isPercentUnit = (unit?: string | null): boolean =>
+  !!unit && (unit.trim() === "%" || unit.includes("%") || unit.includes("نسبة") || unit.toLowerCase().includes("percent"));
+
+const smartNumber = (n: number): string =>
+  Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
+
+/** عرض قيمة مؤشر بشكل صحيح حسب وحدته (بدون أصفار زائدة). */
+export const formatKPIValue = (
+  value: string | number | null | undefined,
+  unit?: string | null,
+): string => {
+  if (value === null || value === undefined || value === "") return "—";
+  const asText = String(value).trim();
+  const percent = isPercentUnit(unit) || asText.includes("%");
+  const n = parseFloat(asText.replace("%", "").replace(",", "."));
+  if (!Number.isFinite(n)) return asText;
+  const corrected = percent && n > 0 && n < 1 ? n * 100 : n;
+  return percent ? `${smartNumber(corrected)}%` : smartNumber(corrected);
+};
+
+/** تحذير عند تناقض القيمة مع نوع المؤشر. */
+export const validateKPIValue = (
+  value: string | number | null | undefined,
+  unit: string | null | undefined,
+  kpiName: string,
+): { valid: boolean; warning: string | null } => {
+  if (value === null || value === undefined || String(value).trim() === "") return { valid: true, warning: null };
+  const asText = String(value).trim();
+  const percent = isPercentUnit(unit);
+  const hasPercent = asText.includes("%");
+  const n = parseFloat(asText.replace("%", "").replace(",", "."));
+  if (!Number.isFinite(n)) return { valid: true, warning: null };
+
+  if (percent && n > 100) {
+    return { valid: false, warning: `"${kpiName}": قيمة نسبية تتجاوز 100% — تحقق من الإدخال` };
+  }
+  if (percent && n > 0 && n < 1) {
+    return { valid: false, warning: `"${kpiName}": القيمة ${n} تبدو مقلوبة — هل تقصد ${smartNumber(n * 100)}%؟` };
+  }
+  if (!percent && hasPercent) {
+    return { valid: false, warning: `"${kpiName}": مؤشر عددي لكن القيمة تحتوي على % — تحقق من الوحدة` };
+  }
+  return { valid: true, warning: null };
+};
