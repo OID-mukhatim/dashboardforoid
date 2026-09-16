@@ -447,76 +447,36 @@ function CardsView({ rows }: { rows: any[] }) {
   );
 }
 
-type FieldDef = {
-  key: string;
-  label: string;
-  type?: "textarea" | "select";
-  options?: string[];
-  optionPairs?: { value: string; label: string }[];
-};
-
-const FIELD_SECTIONS: { title: string; fields: FieldDef[] }[] = [
-  {
-    title: "تعريف المؤشر",
-    fields: [
-      { key: "description", label: "وصف المؤشر", type: "textarea" },
-      { key: "related_goal", label: "الهدف المرتبط" },
-      { key: "department", label: "الإدارة المسؤولة" },
-      {
-        key: "measurement_nature",
-        label: "طبيعة القياس *",
-        type: "select",
-        optionPairs: [
-          { value: "quantitative_ratio", label: "كمي نسبي (%)" },
-          { value: "quantitative_number", label: "كمي عددي" },
-          { value: "qualitative", label: "نوعي (ليكرت 1-5)" },
-        ],
-      },
-      {
-        key: "indicator_role",
-        label: "دور المؤشر *",
-        type: "select",
-        optionPairs: [
-          { value: "lagging", label: "تابع (Lagging)" },
-          { value: "leading", label: "قائد (Leading)" },
-        ],
-      },
-      { key: "unit", label: "وحدة القياس" },
-      { key: "polarity", label: "القطبية", type: "select", options: ["تصاعدي", "تنازلي"] },
-    ],
-  },
-  {
-    title: "آلية القياس",
-    fields: [
-      { key: "calculation", label: "العملية الحسابية", type: "textarea" },
-      { key: "data_sources", label: "مصادر البيانات", type: "textarea" },
-      { key: "frequency", label: "التردد والتكرار", type: "select", options: ["شهري", "ربع سنوي", "نصف سنوي", "سنوي"] },
-      { key: "related_kpis", label: "المؤشرات المرتبطة" },
-      { key: "enablers", label: "الممكنات" },
-    ],
-  },
-  {
-    title: "العتبات",
-    fields: [
-      { key: "threshold_red", label: "🔴 العتبة الحمراء (مثال: أقل من 80%)" },
-      { key: "threshold_yellow", label: "🟡 العتبة الصفراء (مثال: من 81% إلى 90%)" },
-      { key: "threshold_green", label: "🟢 العتبة الخضراء (مثال: أكثر من 90%)" },
-    ],
-  },
-];
+/* ════════════ بطاقة المؤشر: بيانات Excel (للعرض) + بيانات البطاقة (للإدخال) ════════════ */
+const FIELD_LABEL = "block text-[11px] font-semibold text-muted-foreground mb-1";
+const INPUT =
+  "w-full text-sm bg-muted rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30";
 
 function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
   const qc = useQueryClient();
   const saveFn = useServerFn(updateKPICard);
-  const [form, setForm] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    FIELD_SECTIONS.forEach((s) => s.fields.forEach((f) => (init[f.key] = kpi[f.key] ?? "")));
-    if (!init.measurement_nature) init.measurement_nature = natureOf(kpi);
-    if (!init.indicator_role) init.indicator_role = "lagging";
-    return init;
-  });
+  const [form, setForm] = useState<Record<string, string>>(() => ({
+    measurement_nature: kpi.measurement_nature ?? natureOf(kpi),
+    indicator_role: kpi.indicator_role ?? "lagging",
+    description: kpi.description ?? "",
+    related_goal: kpi.related_goal ?? "",
+    department: kpi.department ?? "",
+    unit: kpi.unit ?? "",
+    polarity: kpi.polarity ?? "تصاعدي",
+    calculation: kpi.calculation ?? "",
+    data_sources: kpi.data_sources ?? "",
+    frequency: kpi.frequency ?? "",
+    related_kpis: kpi.related_kpis ?? "",
+    enablers: kpi.enablers ?? "",
+    threshold_red: kpi.threshold_red ?? "",
+    threshold_yellow: kpi.threshold_yellow ?? "",
+    threshold_green: kpi.threshold_green ?? "",
+  }));
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const qualitative = form.measurement_nature === "qualitative";
+  const set = (key: string, value: string) => setForm((p) => ({ ...p, [key]: value }));
 
   const save = async () => {
     setSaving(true);
@@ -534,109 +494,295 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
     }
   };
 
+  const orgName = ORGS.find((o) => o.id === kpi.entity_code)?.nameAr ?? kpi.entity_code ?? "—";
+  const goalWeight = kpi.goal_id ? num(kpi.goal_weight) : null;
+  const quarters: { q: string; planned: unknown; actual: unknown }[] = [1, 2, 3, 4].map((i) => ({
+    q: `Q${i}`,
+    planned: kpi[`q${i}_planned`],
+    actual: kpi[`q${i}_actual`],
+  }));
+
+  const imported: { label: string; value: string }[] = [
+    { label: "المؤسسة", value: orgName },
+    { label: "المنظور", value: kpi.perspective ?? kpi.sector ?? "—" },
+    { label: "الهدف الاستراتيجي", value: kpi.objective ?? "—" },
+    { label: "وزن الهدف", value: goalWeight !== null ? fmtPct(goalWeight, 2) : "—" },
+    { label: "وزن المؤشر", value: fmtPct(num(kpi.weight), 2) },
+    { label: "خط الأساس", value: formatKPIValue(kpi.baseline ?? null, kpi.unit) },
+    { label: "المستهدف السنوي", value: formatKPIValue(kpi.annual_target ?? null, kpi.unit) },
+    { label: "نوع المؤشر", value: kpi.kpi_type ?? "—" },
+  ];
+
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-background border border-border rounded-xl w-full max-w-2xl my-8 shadow-xl">
-        <div className="flex items-center justify-between p-4 border-b border-border">
+      <div className="bg-background border border-border rounded-xl w-full max-w-2xl my-8 shadow-xl max-h-[90vh] overflow-y-auto">
+        {/* رأس البطاقة */}
+        <div className="header-grad text-primary-foreground px-5 py-4 rounded-t-xl flex items-start justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold">بطاقة المؤشر</div>
-            <div className="text-xs text-muted-foreground font-mono">
-              {kpi.kpi_code} · {kpi.kpi_name}
-            </div>
+            <div className="text-[11px] opacity-70 mb-1">بطاقة مؤشر الأداء الرئيسي</div>
+            <div className="text-base font-bold">{kpi.kpi_name}</div>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <code className="bg-white/15 px-2.5 py-1 rounded-md text-xs" dir="ltr">
+              {kpi.kpi_code}
+            </code>
+            {kpi.card_completed ? (
+              <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap">
+                ✅ مكتملة
+              </span>
+            ) : (
+              <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap">
+                ⚠️ تحتاج استكمال
+              </span>
+            )}
+            <button onClick={onClose} className="text-white/70 hover:text-white">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
-        <div className="p-4 space-y-5">
-          {FIELD_SECTIONS.map((section) => (
-            <div key={section.title} className="space-y-3">
-              <div className="text-xs font-semibold text-muted-foreground">{section.title}</div>
-              <div className="grid md:grid-cols-2 gap-3">
-                {section.fields.map((f) => (
-                  <div key={f.key} className={f.type === "textarea" ? "md:col-span-2" : ""}>
-                    <label className="block text-xs text-muted-foreground mb-1">{f.label}</label>
-                    {f.type === "textarea" ? (
-                      <textarea
-                        rows={2}
-                        value={form[f.key]}
-                        onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                        className="w-full text-sm bg-muted rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
-                    ) : f.type === "select" ? (
-                      <select
-                        value={form[f.key]}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            [f.key]: e.target.value,
-                            ...(f.key === "measurement_nature" && e.target.value === "qualitative"
-                              ? { unit: "ليكرت 1-5" }
-                              : {}),
-                          })
-                        }
-                        className="w-full text-sm bg-muted rounded-md border border-border px-3 py-2"
-                      >
-                        {!f.optionPairs && <option value="">—</option>}
-                        {f.optionPairs
-                          ? f.optionPairs.map((o) => (
-                              <option key={o.value} value={o.value}>
-                                {o.label}
-                              </option>
-                            ))
-                          : f.options?.map((o) => (
-                              <option key={o} value={o}>
-                                {o}
-                              </option>
-                            ))}
-                      </select>
-                    ) : (
-                      <input
-                        value={form[f.key]}
-                        onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                        className="w-full text-sm bg-muted rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
-                    )}
+        <div className="p-5 space-y-5">
+          {/* ══ القسم الأول: البيانات المستوردة من Excel ══ */}
+          <div className="bg-muted/50 border border-border rounded-lg p-4">
+            <div className="text-xs font-bold text-primary mb-3 flex items-center gap-1.5">
+              📊 البيانات المستوردة من مصفوفة المؤشرات
+              <span className="text-[10px] font-normal text-muted-foreground">
+                (للتعديل: ارفع مصفوفة Excel محدّثة)
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {imported.map((f) => (
+                <div key={f.label} className="flex flex-col gap-0.5">
+                  <span className="text-[10px] text-muted-foreground font-semibold">{f.label}</span>
+                  <span className="text-xs font-medium">{f.value}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3">
+              <div className="text-[10px] text-muted-foreground font-semibold mb-1.5">المستهدفات الربعية</div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {quarters.map(({ q, planned, actual }) => (
+                  <div key={q} className="bg-background border border-border rounded-lg p-2 text-center">
+                    <div className="text-[11px] font-bold text-primary mb-1">{q}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      مخطط: <strong>{formatKPIValue(num(planned), kpi.unit)}</strong>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      منجز:{" "}
+                      <strong className={actual !== null && actual !== undefined && actual !== "" ? "text-primary" : ""}>
+                        {formatKPIValue(num(actual), kpi.unit)}
+                      </strong>
+                    </div>
                   </div>
                 ))}
               </div>
-              {section.title === "تعريف المؤشر" && form.measurement_nature === "qualitative" && (
-                <div className="p-3 bg-sky-500/10 border border-sky-500/30 rounded-lg text-xs text-sky-700">
-                  <p className="font-medium mb-1">مقياس ليكرت الخماسي:</p>
-                  <div className="grid grid-cols-5 gap-1 text-center">
+            </div>
+          </div>
+
+          {/* ══ القسم الثاني: بيانات البطاقة (للإدخال والتعديل) ══ */}
+          <div className="border border-border rounded-lg overflow-hidden">
+            <div className="bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-primary border-b border-border">
+              📋 بيانات بطاقة المؤشر
+              {!kpi.card_completed && (
+                <span className="text-[10px] font-normal text-amber-600 mr-2">— الحقول المطلوبة مُعلَّمة بـ *</span>
+              )}
+            </div>
+            <div className="p-4 space-y-3">
+              {/* طبيعة القياس + الدور */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={FIELD_LABEL}>طبيعة القياس *</label>
+                  <select
+                    value={form.measurement_nature}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        measurement_nature: e.target.value,
+                        unit: e.target.value === "qualitative" ? "ليكرت 1-5" : p.unit,
+                      }))
+                    }
+                    className={INPUT}
+                  >
+                    <option value="quantitative_ratio">كمي نسبي (%)</option>
+                    <option value="quantitative_number">كمي عددي</option>
+                    <option value="qualitative">نوعي (ليكرت 1-5)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={FIELD_LABEL}>دور المؤشر *</label>
+                  <select value={form.indicator_role} onChange={(e) => set("indicator_role", e.target.value)} className={INPUT}>
+                    <option value="lagging">تابع (Lagging)</option>
+                    <option value="leading">قائد (Leading)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* توضيح ليكرت */}
+              {qualitative && (
+                <div className="p-3 bg-sky-500/10 border border-sky-500/30 rounded-lg text-[11px] text-sky-700">
+                  <strong>مقياس ليكرت الخماسي:</strong>
+                  <div className="grid grid-cols-5 gap-1 mt-1.5 text-center">
                     {[
-                      { val: 1, label: "ضعيف" },
-                      { val: 2, label: "مقبول" },
-                      { val: 3, label: "جيد" },
-                      { val: 4, label: "جيد جداً" },
-                      { val: 5, label: "ممتاز" },
-                    ].map((l) => (
-                      <div key={l.val} className="bg-background rounded border border-sky-500/30 p-1">
-                        <div className="font-bold">{l.val}</div>
-                        <div className="text-[10px]">{l.label}</div>
+                      { v: 1, l: "ضعيف" },
+                      { v: 2, l: "مقبول" },
+                      { v: 3, l: "جيد" },
+                      { v: 4, l: "جيد جداً" },
+                      { v: 5, l: "ممتاز" },
+                    ].map((s) => (
+                      <div key={s.v} className="bg-background border border-sky-500/30 rounded-md p-1">
+                        <div className="font-bold">{s.v}</div>
+                        <div className="text-[10px]">{s.l}</div>
                       </div>
                     ))}
                   </div>
-                  <p className="mt-2 opacity-70">نسبة الإنجاز = (الدرجة ÷ 5) × 100</p>
+                  <p className="mt-1.5 opacity-70">نسبة الإنجاز = (الدرجة ÷ 5) × 100</p>
                 </div>
               )}
-            </div>
-          ))}
-          {msg && <div className="text-xs text-amber-600">{msg}</div>}
-        </div>
 
-        <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
-          <button onClick={onClose} className="px-3 py-1.5 text-sm rounded-md border border-border">
-            إغلاق
-          </button>
-          <button
-            onClick={save}
-            disabled={saving}
-            className="px-4 py-1.5 text-sm rounded-md bg-primary text-primary-foreground disabled:opacity-60"
-          >
-            {saving ? "جارٍ الحفظ…" : "حفظ ✅"}
-          </button>
+              {/* وصف المؤشر */}
+              <div>
+                <label className={FIELD_LABEL}>وصف المؤشر *</label>
+                <textarea
+                  rows={3}
+                  value={form.description}
+                  onChange={(e) => set("description", e.target.value)}
+                  placeholder="يقيس نسبة..."
+                  className={`${INPUT} resize-y`}
+                />
+              </div>
+
+              {/* الهدف المرتبط + الإدارة */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={FIELD_LABEL}>الهدف المرتبط</label>
+                  <input value={form.related_goal} onChange={(e) => set("related_goal", e.target.value)} className={INPUT} />
+                </div>
+                <div>
+                  <label className={FIELD_LABEL}>الإدارة المسؤولة</label>
+                  <input value={form.department} onChange={(e) => set("department", e.target.value)} className={INPUT} />
+                </div>
+              </div>
+
+              {/* وحدة القياس + القطبية */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={FIELD_LABEL}>وحدة القياس *</label>
+                  <input
+                    value={form.unit}
+                    onChange={(e) => set("unit", e.target.value)}
+                    placeholder="% أو عدد أو درجة..."
+                    disabled={qualitative}
+                    className={`${INPUT} ${qualitative ? "opacity-60" : ""}`}
+                  />
+                </div>
+                <div>
+                  <label className={FIELD_LABEL}>القطبية *</label>
+                  <select value={form.polarity} onChange={(e) => set("polarity", e.target.value)} className={INPUT}>
+                    <option value="تصاعدي">تصاعدي (الأعلى أفضل) ↑</option>
+                    <option value="ascending">تصاعدي (الأعلى أفضل) ↑</option>
+                    <option value="تنازلي">تنازلي (الأقل أفضل) ↓</option>
+                    <option value="descending">تنازلي (الأقل أفضل) ↓</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* العملية الحسابية */}
+              <div>
+                <label className={FIELD_LABEL}>العملية الحسابية *</label>
+                <textarea
+                  rows={2}
+                  value={form.calculation}
+                  onChange={(e) => set("calculation", e.target.value)}
+                  placeholder="(المنجز ÷ المستهدف) × 100"
+                  className={`${INPUT} resize-y`}
+                />
+              </div>
+
+              {/* مصادر البيانات + التردد/المرتبطة */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={FIELD_LABEL}>مصادر البيانات *</label>
+                  <textarea
+                    rows={2}
+                    value={form.data_sources}
+                    onChange={(e) => set("data_sources", e.target.value)}
+                    placeholder="سجلات التدريب، نظام الموارد..."
+                    className={`${INPUT} resize-y`}
+                  />
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className={FIELD_LABEL}>التردد والتكرار</label>
+                    <select value={form.frequency} onChange={(e) => set("frequency", e.target.value)} className={INPUT}>
+                      <option value="">اختر...</option>
+                      <option value="ربع سنوي - تراكمي">ربع سنوي - تراكمي</option>
+                      <option value="ربع سنوي - مستقل">ربع سنوي - مستقل</option>
+                      <option value="نصف سنوي">نصف سنوي</option>
+                      <option value="سنوي">سنوي</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={FIELD_LABEL}>المؤشرات المرتبطة</label>
+                    <input
+                      value={form.related_kpis}
+                      onChange={(e) => set("related_kpis", e.target.value)}
+                      placeholder="TAYO-L2, TAYO-L3"
+                      className={INPUT}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* الممكنات */}
+              <div>
+                <label className={FIELD_LABEL}>الممكنات</label>
+                <input
+                  value={form.enablers}
+                  onChange={(e) => set("enablers", e.target.value)}
+                  placeholder="ميزانية التدريب المعتمدة..."
+                  className={INPUT}
+                />
+              </div>
+
+              {/* العتبات الثلاث */}
+              <div className="bg-muted/40 border border-border rounded-lg p-3">
+                <div className="text-xs font-bold mb-2.5">العتبات الثلاث *</div>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {[
+                    { key: "threshold_red", label: "🔴 الحمراء", ph: qualitative ? "≤ 2" : "أقل من 60%" },
+                    { key: "threshold_yellow", label: "🟡 الصفراء", ph: qualitative ? "3" : "60% - 89%" },
+                    { key: "threshold_green", label: "🟢 الخضراء", ph: qualitative ? "≥ 4" : "90% فأكثر" },
+                  ].map((t) => (
+                    <div key={t.key}>
+                      <label className={FIELD_LABEL}>{t.label}</label>
+                      <input
+                        value={form[t.key]}
+                        onChange={(e) => set(t.key, e.target.value)}
+                        placeholder={t.ph}
+                        className={`${INPUT} text-center`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {msg && <div className="text-xs text-amber-600">{msg}</div>}
+
+              {/* أزرار */}
+              <div className="flex justify-end gap-2 pt-1 border-t border-border">
+                <button onClick={onClose} className="px-5 py-2 text-[13px] rounded-lg border border-border bg-background">
+                  إغلاق
+                </button>
+                <button
+                  onClick={save}
+                  disabled={saving}
+                  className="px-6 py-2 text-[13px] font-bold rounded-lg bg-primary text-primary-foreground disabled:opacity-60"
+                >
+                  {saving ? "جارٍ الحفظ…" : "✅ حفظ البطاقة"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
