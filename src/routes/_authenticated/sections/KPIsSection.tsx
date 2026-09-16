@@ -653,19 +653,25 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
               const achievedNum = current === "" ? null : Number(current);
               const pct = target && achievedNum !== null ? (achievedNum / target) * 100 : null;
               const st = computeKPIStatus({ ...k, annual_target: target }, achievedNum);
+              const unit = k.unit ?? null;
+              const check = validateKPIValue(current as string, unit, k.kpi_name ?? "");
               return (
                 <tr key={k.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{k.kpi_code}</td>
                   <td className="px-3 py-2 max-w-[320px]">{k.kpi_name}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(target)}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">{formatKPIValue(target, unit)}</td>
                   <td className="px-3 py-2">
                     <input
                       type="number"
                       step="any"
                       value={current as string}
                       onChange={(e) => setEdits({ ...edits, [k.id]: e.target.value })}
-                      className="w-28 text-sm bg-muted rounded-md border border-border px-2 py-1 tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      placeholder={unit && unit.includes("%") ? "مثال: 65" : "مثال: 11"}
+                      className={`w-28 text-sm bg-muted rounded-md border px-2 py-1 tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                        check.warning ? "border-red-400" : "border-border"
+                      }`}
                     />
+                    {check.warning && <div className="mt-1 text-[10px] text-red-600">⚠️ {check.warning}</div>}
                   </td>
                   <td className="px-3 py-2 tabular-nums text-xs">{pct === null ? "—" : `${pct.toFixed(0)}%`}</td>
                   <td className="px-3 py-2 whitespace-nowrap">
