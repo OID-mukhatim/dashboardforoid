@@ -49,7 +49,7 @@ const fmtPct = (v: number | null | undefined, decimals = 0) => {
   const n = Number(v);
   if (!Number.isFinite(n)) return "—";
   const pct = n <= 1 && n >= -1 ? n * 100 : n;
-  return `${pct.toFixed(decimals)}%`;
+  return `${Number(pct.toFixed(decimals))}%`;
 };
 const fmtNum = (v: number | null | undefined) =>
   v === null || v === undefined ? "—" : String(Math.round(Number(v) * 100) / 100);
