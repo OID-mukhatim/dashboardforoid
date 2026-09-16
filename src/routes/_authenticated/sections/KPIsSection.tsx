@@ -9,6 +9,7 @@ import {
   validateKPIValue,
   type OrgId,
 } from "@/lib/oid-data";
+import { computeRowAchievement, natureOf } from "@/lib/oid-kpi-engine";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { YearSelector } from "@/components/oid/YearSelector";
 import { BSC_PERSPECTIVES, BSC_LABELS, perspectiveLabelOf } from "@/lib/oid-bsc";
