@@ -288,7 +288,7 @@ function MatrixView({
                     )}
                   </th>
                 ))}
-                {["نسبة الإنجاز %", "الحالة", "المخرجات والنتائج"].map((h) => (
+                {["نسبة الإنجاز %", "التجاوز", "الحالة", "المخرجات والنتائج"].map((h) => (
                   <th key={h} rowSpan={2} className={`${HEAD} align-bottom border-b border-border`}>
                     {h}
                   </th>
@@ -312,14 +312,14 @@ function MatrixView({
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={24} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={25} className="px-3 py-6 text-center text-muted-foreground">
                     جاري التحميل…
                   </td>
                 </tr>
               )}
               {!isLoading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={24} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={25} className="px-3 py-6 text-center text-muted-foreground">
                     لا توجد بيانات — ارفع مصفوفة المؤشرات من قسم "رفع البيانات".
                   </td>
                 </tr>
