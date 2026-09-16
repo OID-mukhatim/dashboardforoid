@@ -368,11 +368,13 @@ export type Database = {
           frequency: string | null
           goal_id: string | null
           id: string
+          indicator_role: string | null
           indicator_type: string | null
           is_baseline: boolean | null
           kpi_code: string
           kpi_name: string | null
           kpi_type: string | null
+          measurement_nature: string | null
           objective: string | null
           overall_pct: number | null
           period: string
@@ -419,11 +421,13 @@ export type Database = {
           frequency?: string | null
           goal_id?: string | null
           id?: string
+          indicator_role?: string | null
           indicator_type?: string | null
           is_baseline?: boolean | null
           kpi_code: string
           kpi_name?: string | null
           kpi_type?: string | null
+          measurement_nature?: string | null
           objective?: string | null
           overall_pct?: number | null
           period?: string
@@ -470,11 +474,13 @@ export type Database = {
           frequency?: string | null
           goal_id?: string | null
           id?: string
+          indicator_role?: string | null
           indicator_type?: string | null
           is_baseline?: boolean | null
           kpi_code?: string
           kpi_name?: string | null
           kpi_type?: string | null
+          measurement_nature?: string | null
           objective?: string | null
           overall_pct?: number | null
           period?: string

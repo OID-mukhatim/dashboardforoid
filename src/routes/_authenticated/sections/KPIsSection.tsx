@@ -4,11 +4,17 @@ import {
   ORGS,
   ORG_FISCAL_YEAR,
   FISCAL_QUARTERS,
-  computeKPIStatus,
   formatKPIValue,
   validateKPIValue,
   type OrgId,
 } from "@/lib/oid-data";
+import {
+  computeKPIAchievement,
+  computeRowAchievement,
+  natureOf,
+  polarityOf,
+  type MeasurementNature,
+} from "@/lib/oid-kpi-engine";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { YearSelector } from "@/components/oid/YearSelector";
 import { BSC_PERSPECTIVES, BSC_LABELS, perspectiveLabelOf } from "@/lib/oid-bsc";
@@ -287,7 +293,7 @@ function MatrixView({
                     )}
                   </th>
                 ))}
-                {["نسبة الإنجاز %", "الحالة", "المخرجات والنتائج"].map((h) => (
+                {["نسبة الإنجاز %", "التجاوز", "الحالة", "المخرجات والنتائج"].map((h) => (
                   <th key={h} rowSpan={2} className={`${HEAD} align-bottom border-b border-border`}>
                     {h}
                   </th>
@@ -311,21 +317,21 @@ function MatrixView({
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={24} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={25} className="px-3 py-6 text-center text-muted-foreground">
                     جاري التحميل…
                   </td>
                 </tr>
               )}
               {!isLoading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={24} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={25} className="px-3 py-6 text-center text-muted-foreground">
                     لا توجد بيانات — ارفع مصفوفة المؤشرات من قسم "رفع البيانات".
                   </td>
                 </tr>
               )}
               {rows.map((k) => {
                 const d = derive(k);
-                const st = computeKPIStatus(k, d.totalActual);
+                const res = computeRowAchievement(k);
                  const unit = k.unit ?? k.kpi_type ?? null;
                 const gw = k.goal_id ? num(k.goal_weight) : null;
                 return (
@@ -366,14 +372,25 @@ function MatrixView({
                     </td>
                     <td className="px-3 py-2 min-w-[120px]">
                       <div className="flex items-center gap-2">
-                        <Progress
-                          value={Math.max(0, Math.min(100, Number(fmtPct(d.achievement, 2).replace("%", "")) || 0))}
-                        />
-                        <span className="text-xs tabular-nums w-12">{fmtPct(d.achievement)}</span>
+                        <Progress value={res.cappedPct ?? 0} />
+                        <span className="text-xs tabular-nums w-12">
+                          {res.rawPct !== null ? `${res.rawPct}%` : "—"}
+                        </span>
                       </div>
                     </td>
+                    <td className="px-3 py-2 tabular-nums text-xs text-center">
+                      {res.exceeded !== null ? (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600">
+                          +{res.exceeded}%
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="px-3 py-2 whitespace-nowrap text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[st.color]}`}>{st.label}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[res.status]}`}>
+                        {res.statusLabel}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-xs max-w-[240px]">{k.final_output ?? "—"}</td>
                   </tr>
@@ -430,14 +447,40 @@ function CardsView({ rows }: { rows: any[] }) {
   );
 }
 
-const FIELD_SECTIONS: { title: string; fields: { key: string; label: string; type?: "textarea" | "select"; options?: string[] }[] }[] = [
+type FieldDef = {
+  key: string;
+  label: string;
+  type?: "textarea" | "select";
+  options?: string[];
+  optionPairs?: { value: string; label: string }[];
+};
+
+const FIELD_SECTIONS: { title: string; fields: FieldDef[] }[] = [
   {
     title: "تعريف المؤشر",
     fields: [
       { key: "description", label: "وصف المؤشر", type: "textarea" },
       { key: "related_goal", label: "الهدف المرتبط" },
       { key: "department", label: "الإدارة المسؤولة" },
-      { key: "indicator_type", label: "نوع المؤشر", type: "select", options: ["كمي", "نوعي", "قيادي", "تابع"] },
+      {
+        key: "measurement_nature",
+        label: "طبيعة القياس *",
+        type: "select",
+        optionPairs: [
+          { value: "quantitative_ratio", label: "كمي نسبي (%)" },
+          { value: "quantitative_number", label: "كمي عددي" },
+          { value: "qualitative", label: "نوعي (ليكرت 1-5)" },
+        ],
+      },
+      {
+        key: "indicator_role",
+        label: "دور المؤشر *",
+        type: "select",
+        optionPairs: [
+          { value: "lagging", label: "تابع (Lagging)" },
+          { value: "leading", label: "قائد (Leading)" },
+        ],
+      },
       { key: "unit", label: "وحدة القياس" },
       { key: "polarity", label: "القطبية", type: "select", options: ["تصاعدي", "تنازلي"] },
     ],
@@ -468,6 +511,8 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
   const [form, setForm] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     FIELD_SECTIONS.forEach((s) => s.fields.forEach((f) => (init[f.key] = kpi[f.key] ?? "")));
+    if (!init.measurement_nature) init.measurement_nature = natureOf(kpi);
+    if (!init.indicator_role) init.indicator_role = "lagging";
     return init;
   });
   const [saving, setSaving] = useState(false);
@@ -522,15 +567,29 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
                     ) : f.type === "select" ? (
                       <select
                         value={form[f.key]}
-                        onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            [f.key]: e.target.value,
+                            ...(f.key === "measurement_nature" && e.target.value === "qualitative"
+                              ? { unit: "ليكرت 1-5" }
+                              : {}),
+                          })
+                        }
                         className="w-full text-sm bg-muted rounded-md border border-border px-3 py-2"
                       >
-                        <option value="">—</option>
-                        {f.options?.map((o) => (
-                          <option key={o} value={o}>
-                            {o}
-                          </option>
-                        ))}
+                        {!f.optionPairs && <option value="">—</option>}
+                        {f.optionPairs
+                          ? f.optionPairs.map((o) => (
+                              <option key={o.value} value={o.value}>
+                                {o.label}
+                              </option>
+                            ))
+                          : f.options?.map((o) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
                       </select>
                     ) : (
                       <input
@@ -542,6 +601,26 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
                   </div>
                 ))}
               </div>
+              {section.title === "تعريف المؤشر" && form.measurement_nature === "qualitative" && (
+                <div className="p-3 bg-sky-500/10 border border-sky-500/30 rounded-lg text-xs text-sky-700">
+                  <p className="font-medium mb-1">مقياس ليكرت الخماسي:</p>
+                  <div className="grid grid-cols-5 gap-1 text-center">
+                    {[
+                      { val: 1, label: "ضعيف" },
+                      { val: 2, label: "مقبول" },
+                      { val: 3, label: "جيد" },
+                      { val: 4, label: "جيد جداً" },
+                      { val: 5, label: "ممتاز" },
+                    ].map((l) => (
+                      <div key={l.val} className="bg-background rounded border border-sky-500/30 p-1">
+                        <div className="font-bold">{l.val}</div>
+                        <div className="text-[10px]">{l.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 opacity-70">نسبة الإنجاز = (الدرجة ÷ 5) × 100</p>
+                </div>
+              )}
             </div>
           ))}
           {msg && <div className="text-xs text-amber-600">{msg}</div>}
@@ -648,32 +727,45 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
             {rows.map((k) => {
               const target = num(k[plannedKey]) ?? num(k.annual_target);
               const current = edits[k.id] !== undefined ? edits[k.id] : k[actualKey] ?? "";
-              const achievedNum = current === "" ? null : Number(current);
-              const pct = target && achievedNum !== null ? (achievedNum / target) * 100 : null;
-              const st = computeKPIStatus({ ...k, annual_target: target }, achievedNum);
-              const unit = k.unit ?? k.kpi_type ?? null;
-              const check = validateKPIValue(current as string, unit, k.kpi_name ?? "");
+              const nature = natureOf(k);
+              const unit = nature === "qualitative" ? "ليكرت 1-5" : k.unit ?? k.kpi_type ?? null;
+              const res = computeKPIAchievement(
+                {
+                  measurement_nature: nature,
+                  polarity: polarityOf(k),
+                  threshold_red: k.threshold_red,
+                  threshold_green: k.threshold_green,
+                  unit,
+                },
+                target,
+                current === "" ? null : current,
+              );
+              const check =
+                nature === "qualitative" ? { warning: null } : validateKPIValue(current as string, unit, k.kpi_name ?? "");
               return (
                 <tr key={k.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{k.kpi_code}</td>
                   <td className="px-3 py-2 max-w-[320px]">{k.kpi_name}</td>
                   <td className="px-3 py-2 tabular-nums text-xs">{formatKPIValue(target, unit)}</td>
                   <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      step="any"
-                      value={current as string}
-                      onChange={(e) => setEdits({ ...edits, [k.id]: e.target.value })}
-                      placeholder={unit && unit.includes("%") ? "مثال: 65" : "مثال: 11"}
-                      className={`w-28 text-sm bg-muted rounded-md border px-2 py-1 tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                        check.warning ? "border-red-400" : "border-border"
-                      }`}
+                    <AchievedInput
+                      nature={nature}
+                      value={String(current ?? "")}
+                      warning={!!check.warning}
+                      onChange={(v) => setEdits({ ...edits, [k.id]: v })}
                     />
                     {check.warning && <div className="mt-1 text-[10px] text-red-600">⚠️ {check.warning}</div>}
                   </td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{pct === null ? "—" : `${pct.toFixed(0)}%`}</td>
+                  <td className="px-3 py-2 tabular-nums text-xs">
+                    {res.rawPct === null ? "—" : `${res.rawPct}%`}
+                    {res.exceeded !== null && (
+                      <span className="mr-1 text-[10px] text-emerald-600 font-bold">+{res.exceeded}%</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[st.color]}`}>{st.label}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[res.status]}`}>
+                      {res.statusLabel}
+                    </span>
                   </td>
                 </tr>
               );
@@ -689,5 +781,78 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
         </table>
       </ScrollableTable>
     </Card>
+  );
+}
+
+/* إدخال المنجز حسب طبيعة القياس */
+function AchievedInput({
+  nature,
+  value,
+  warning,
+  onChange,
+}: {
+  nature: MeasurementNature;
+  value: string;
+  warning?: boolean;
+  onChange: (v: string) => void;
+}) {
+  const border = warning ? "border-red-400" : "border-border";
+
+  if (nature === "qualitative") {
+    const labels = ["ضعيف", "مقبول", "جيد", "جيد جداً", "ممتاز"];
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((score) => {
+          const active = value === String(score);
+          return (
+            <button
+              key={score}
+              type="button"
+              title={labels[score - 1]}
+              onClick={() => onChange(active ? "" : String(score))}
+              className={`w-8 h-8 rounded-full border-2 text-[13px] font-bold transition-colors ${
+                active
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted"
+              }`}
+            >
+              {score}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (nature === "quantitative_ratio") {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          min={0}
+          max={200}
+          step={0.1}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="65"
+          dir="ltr"
+          className={`w-20 text-center text-sm bg-muted rounded-md border px-2 py-1 tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30 ${border}`}
+        />
+        <span className="text-sm text-muted-foreground">%</span>
+      </div>
+    );
+  }
+
+  return (
+    <input
+      type="number"
+      min={0}
+      step="any"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="11"
+      dir="ltr"
+      className={`w-24 text-center text-sm bg-muted rounded-md border px-2 py-1 tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30 ${border}`}
+    />
   );
 }
