@@ -565,12 +565,12 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
                   <div key={q} className="bg-background border border-border rounded-lg p-2 text-center">
                     <div className="text-[11px] font-bold text-primary mb-1">{q}</div>
                     <div className="text-[11px] text-muted-foreground">
-                      مخطط: <strong>{formatKPIValue(planned ?? null, kpi.unit)}</strong>
+                      مخطط: <strong>{formatKPIValue(num(planned), kpi.unit)}</strong>
                     </div>
                     <div className="text-[11px] text-muted-foreground">
                       منجز:{" "}
                       <strong className={actual !== null && actual !== undefined && actual !== "" ? "text-primary" : ""}>
-                        {formatKPIValue(actual ?? null, kpi.unit)}
+                        {formatKPIValue(num(actual), kpi.unit)}
                       </strong>
                     </div>
                   </div>
