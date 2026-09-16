@@ -483,7 +483,13 @@ export const computeKPIStatus = (
 
 /* ============ عرض القيم حسب وحدة المؤشر ============ */
 export const isPercentUnit = (unit?: string | null): boolean =>
-  !!unit && (unit.trim() === "%" || unit.includes("%") || unit.includes("نسبة") || unit.toLowerCase().includes("percent"));
+  !!unit &&
+  (unit.trim() === "%" ||
+    unit.includes("%") ||
+    unit.includes("نسب") ||
+    unit.includes("مئو") ||
+    unit.toLowerCase().includes("percent") ||
+    unit.toLowerCase().trim() === "pct");
 
 const smartNumber = (n: number): string =>
   Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
