@@ -442,14 +442,40 @@ function CardsView({ rows }: { rows: any[] }) {
   );
 }
 
-const FIELD_SECTIONS: { title: string; fields: { key: string; label: string; type?: "textarea" | "select"; options?: string[] }[] }[] = [
+type FieldDef = {
+  key: string;
+  label: string;
+  type?: "textarea" | "select";
+  options?: string[];
+  optionPairs?: { value: string; label: string }[];
+};
+
+const FIELD_SECTIONS: { title: string; fields: FieldDef[] }[] = [
   {
     title: "تعريف المؤشر",
     fields: [
       { key: "description", label: "وصف المؤشر", type: "textarea" },
       { key: "related_goal", label: "الهدف المرتبط" },
       { key: "department", label: "الإدارة المسؤولة" },
-      { key: "indicator_type", label: "نوع المؤشر", type: "select", options: ["كمي", "نوعي", "قيادي", "تابع"] },
+      {
+        key: "measurement_nature",
+        label: "طبيعة القياس *",
+        type: "select",
+        optionPairs: [
+          { value: "quantitative_ratio", label: "كمي نسبي (%)" },
+          { value: "quantitative_number", label: "كمي عددي" },
+          { value: "qualitative", label: "نوعي (ليكرت 1-5)" },
+        ],
+      },
+      {
+        key: "indicator_role",
+        label: "دور المؤشر *",
+        type: "select",
+        optionPairs: [
+          { value: "lagging", label: "تابع (Lagging)" },
+          { value: "leading", label: "قائد (Leading)" },
+        ],
+      },
       { key: "unit", label: "وحدة القياس" },
       { key: "polarity", label: "القطبية", type: "select", options: ["تصاعدي", "تنازلي"] },
     ],
@@ -480,6 +506,8 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
   const [form, setForm] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     FIELD_SECTIONS.forEach((s) => s.fields.forEach((f) => (init[f.key] = kpi[f.key] ?? "")));
+    if (!init.measurement_nature) init.measurement_nature = natureOf(kpi);
+    if (!init.indicator_role) init.indicator_role = "lagging";
     return init;
   });
   const [saving, setSaving] = useState(false);
@@ -534,15 +562,29 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
                     ) : f.type === "select" ? (
                       <select
                         value={form[f.key]}
-                        onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            [f.key]: e.target.value,
+                            ...(f.key === "measurement_nature" && e.target.value === "qualitative"
+                              ? { unit: "ليكرت 1-5" }
+                              : {}),
+                          })
+                        }
                         className="w-full text-sm bg-muted rounded-md border border-border px-3 py-2"
                       >
-                        <option value="">—</option>
-                        {f.options?.map((o) => (
-                          <option key={o} value={o}>
-                            {o}
-                          </option>
-                        ))}
+                        {!f.optionPairs && <option value="">—</option>}
+                        {f.optionPairs
+                          ? f.optionPairs.map((o) => (
+                              <option key={o.value} value={o.value}>
+                                {o.label}
+                              </option>
+                            ))
+                          : f.options?.map((o) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
                       </select>
                     ) : (
                       <input
@@ -554,6 +596,26 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
                   </div>
                 ))}
               </div>
+              {section.title === "تعريف المؤشر" && form.measurement_nature === "qualitative" && (
+                <div className="p-3 bg-sky-500/10 border border-sky-500/30 rounded-lg text-xs text-sky-700">
+                  <p className="font-medium mb-1">مقياس ليكرت الخماسي:</p>
+                  <div className="grid grid-cols-5 gap-1 text-center">
+                    {[
+                      { val: 1, label: "ضعيف" },
+                      { val: 2, label: "مقبول" },
+                      { val: 3, label: "جيد" },
+                      { val: 4, label: "جيد جداً" },
+                      { val: 5, label: "ممتاز" },
+                    ].map((l) => (
+                      <div key={l.val} className="bg-background rounded border border-sky-500/30 p-1">
+                        <div className="font-bold">{l.val}</div>
+                        <div className="text-[10px]">{l.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 opacity-70">نسبة الإنجاز = (الدرجة ÷ 5) × 100</p>
+                </div>
+              )}
             </div>
           ))}
           {msg && <div className="text-xs text-amber-600">{msg}</div>}
