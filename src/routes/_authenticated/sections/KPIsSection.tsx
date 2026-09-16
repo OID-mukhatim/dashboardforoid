@@ -328,7 +328,7 @@ function MatrixView({
               {rows.map((k) => {
                 const d = derive(k);
                 const st = computeKPIStatus(k, d.totalActual);
-                const unit = k.unit ?? null;
+                 const unit = k.unit ?? k.kpi_type ?? null;
                 const gw = goalWeights.get(`${k.entity_code}|${k.objective ?? ""}`) ?? null;
                 return (
                   <tr key={k.id} className="border-t border-border hover:bg-muted/20">
@@ -653,7 +653,7 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
               const achievedNum = current === "" ? null : Number(current);
               const pct = target && achievedNum !== null ? (achievedNum / target) * 100 : null;
               const st = computeKPIStatus({ ...k, annual_target: target }, achievedNum);
-              const unit = k.unit ?? null;
+              const unit = k.unit ?? k.kpi_type ?? null;
               const check = validateKPIValue(current as string, unit, k.kpi_name ?? "");
               return (
                 <tr key={k.id} className="border-t border-border hover:bg-muted/20">
