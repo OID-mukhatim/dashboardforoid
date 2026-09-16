@@ -12,11 +12,33 @@ import { MATURITY_SCALE } from "@/lib/oid-maturity";
 import { BSC_PERSPECTIVES, matchPerspective } from "@/lib/oid-bsc";
 import { computeProfileFromLive } from "@/lib/oid-composite";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { loadActiveKPIs } from "@/lib/dashboard.functions";
+import { computeOrgKPIPerformance } from "@/lib/oid-kpi-engine";
+import { perspectiveLabelOf } from "@/lib/oid-bsc";
 import { Card, CardHeader, StatCard, EmptyData, Progress, MATURITY_OF_LEVEL, extractBeneficiaries, fmtBudget, fmtNum, useDashboardSnapshotQuery, getLiveGapValue, SectionTitle } from "./_shared";
 
 export function DashboardSection() {
   const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
   const { data: snap } = useDashboardSnapshotQuery();
+  const activeKpisFn = useServerFn(loadActiveKPIs);
+
+  // الأداء الهرمي الحي: مؤشر → هدف → منظور (25%) → الأداء العام.
+  const { data: kpiPerf } = useQuery({
+    queryKey: ["org-kpi-performance"],
+    queryFn: async () => {
+      const rows = await activeKpisFn();
+      const out: Record<string, ReturnType<typeof computeOrgKPIPerformance>> = {};
+      for (const o of ORGS) {
+        const orgRows = (rows as any[])
+          .filter((r) => r.entity_code === o.id)
+          .map((r) => ({ ...r, perspective: perspectiveLabelOf(r.sector) ?? "غير مصنّف" }));
+        if (orgRows.length) out[o.id] = computeOrgKPIPerformance(orgRows);
+      }
+      return out;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Live per-org profiles (DB-backed, with static fallback inside the helper).
   const liveProfiles = useMemo(() => {
@@ -130,7 +152,10 @@ export function DashboardSection() {
             {ORGS
               .filter((o) => orgFilter === "all" || o.id === orgFilter)
               .map((o) => (
-                <CompositeScoreCard key={o.id} orgId={o.id} profile={liveProfiles[o.id]} usingFallback={orgUsesFallback(o.id)} />
+                <div key={o.id} className="space-y-2">
+                  <CompositeScoreCard orgId={o.id} profile={liveProfiles[o.id]} usingFallback={orgUsesFallback(o.id)} />
+                  <KPIPerformanceBreakdown perf={kpiPerf?.[o.id]} />
+                </div>
               ))}
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-border flex-wrap gap-3">
@@ -259,6 +284,46 @@ export function DashboardSection() {
           </div>
         </Card>
       </div>
+    </div>
+  );
+}
+
+/* ============================ الأداء الهرمي للمؤشرات ============================ */
+function KPIPerformanceBreakdown({ perf }: { perf?: ReturnType<typeof computeOrgKPIPerformance> }) {
+  if (!perf) return null;
+  const overall = perf.overall;
+  const entries = Object.entries(perf.perspPerformance);
+  if (entries.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-border p-3 space-y-2 bg-card">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">الأداء العام (المؤشرات)</span>
+        <span
+          className="text-sm font-bold tabular-nums"
+          style={{ color: (overall ?? 0) >= 90 ? "#15803d" : (overall ?? 0) >= 70 ? "#d97706" : "#dc2626" }}
+        >
+          {overall !== null ? `${overall.toFixed(1)}%` : "—"}
+        </span>
+      </div>
+      {entries.map(([persp, val]) => (
+        <div key={persp} className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground w-24 truncate" title={persp}>
+            {persp}
+          </span>
+          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${Math.min(((val ?? 0) / 25) * 100, 100)}%`,
+                background: (val ?? 0) >= 22.5 ? "#16a34a" : (val ?? 0) >= 17.5 ? "#d97706" : "#dc2626",
+              }}
+            />
+          </div>
+          <span className="text-[11px] font-medium w-12 text-left tabular-nums" dir="ltr">
+            {val !== null ? `${val.toFixed(1)}%` : "—"}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
