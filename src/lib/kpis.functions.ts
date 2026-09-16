@@ -106,6 +106,8 @@ export type KPICardInput = {
   related_goal?: string | null;
   department?: string | null;
   indicator_type?: string | null;
+  measurement_nature?: string | null;
+  indicator_role?: string | null;
   unit?: string | null;
   polarity?: string | null;
   calculation?: string | null;
