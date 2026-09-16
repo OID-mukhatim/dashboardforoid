@@ -327,7 +327,7 @@ function MatrixView({
                 const d = derive(k);
                 const st = computeKPIStatus(k, d.totalActual);
                  const unit = k.unit ?? k.kpi_type ?? null;
-                const gw = goalWeights.get(`${k.entity_code}|${k.objective ?? ""}`) ?? null;
+                const gw = k.goal_id ? num(k.goal_weight) : null;
                 return (
                   <tr key={k.id} className="border-t border-border hover:bg-muted/20">
                     <td className="px-3 py-2 whitespace-nowrap">{k.entity_code}</td>
