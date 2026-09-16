@@ -227,12 +227,10 @@ function MatrixView({
   orgF: string;
   sectorStats: { name: string; color: string; count: number; avg: number }[];
 }) {
-  // وزن الهدف = مجموع أوزان مؤشراته
-  const goalWeights = new Map<string, number>();
-  rows.forEach((k) => {
-    const key = `${k.entity_code}|${k.objective ?? ""}`;
-    goalWeights.set(key, (goalWeights.get(key) ?? 0) + (num(k.weight) ?? 0));
-  });
+  // وزن الهدف يأتي من تعريف الهدف نفسه (kpi_goals) — لا يُشتق من مجموع أوزان المؤشرات.
+  // المؤشرات القديمة غير المرتبطة بهدف معرّف تبقى بدون وزن هدف.
+
+
 
   const HEAD = "px-3 py-2 text-right font-medium whitespace-nowrap";
   const GROUPS = ["Q1", "Q2", "Q3", "Q4", "الإجمالي"];
@@ -329,7 +327,7 @@ function MatrixView({
                 const d = derive(k);
                 const st = computeKPIStatus(k, d.totalActual);
                  const unit = k.unit ?? k.kpi_type ?? null;
-                const gw = goalWeights.get(`${k.entity_code}|${k.objective ?? ""}`) ?? null;
+                const gw = k.goal_id ? num(k.goal_weight) : null;
                 return (
                   <tr key={k.id} className="border-t border-border hover:bg-muted/20">
                     <td className="px-3 py-2 whitespace-nowrap">{k.entity_code}</td>
