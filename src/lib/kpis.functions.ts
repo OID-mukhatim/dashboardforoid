@@ -4,7 +4,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ORG_FISCAL_YEAR, validateWeights, type OrgId } from "@/lib/oid-data";
+import { ORG_FISCAL_YEAR, validateWeights, isPercentUnit, type OrgId } from "@/lib/oid-data";
 
 type Row = Record<string, unknown>;
 
@@ -19,6 +19,18 @@ const pick = (row: Row, keys: string[]): string => {
 const numOrNull = (v: string): number | null => {
   const n = parseFloat(v.replace("%", "").replace(",", "."));
   return Number.isFinite(n) ? n : null;
+};
+
+/**
+ * تصحيح قيمة مقروءة من Excel: النِسَب تُخزَّن في Excel ككسر (0.65)
+ * فتُعاد إلى 65، والأعداد تبقى كما هي بدون أصفار زائدة.
+ */
+const fixExcelValue = (raw: string, unit: string | null): number | null => {
+  const n = numOrNull(raw);
+  if (n === null) return null;
+  const percent = isPercentUnit(unit) || raw.includes("%");
+  const value = percent && n > 0 && n < 1 ? n * 100 : n;
+  return Math.round(value * 100) / 100;
 };
 
 /** استيراد مصفوفة المؤشرات لمؤسسة وسنة خطة. */
