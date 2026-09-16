@@ -6,6 +6,8 @@ import { formatKPIValue } from "./oid-data";
 
 export type MeasurementNature = "quantitative_ratio" | "quantitative_number" | "qualitative";
 export type Polarity = "ascending" | "descending";
+// driving = موجهات (Leading) — output = مخرجات (Lagging)
+export type IndicatorRole = "driving" | "output";
 
 export type KPICalcResult = {
   rawPct: number | null; // نسبة الإنجاز الفعلية (قد تتجاوز 100%)

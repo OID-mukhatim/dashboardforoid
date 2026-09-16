@@ -457,12 +457,12 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
   const saveFn = useServerFn(updateKPICard);
   const [form, setForm] = useState<Record<string, string>>(() => ({
     measurement_nature: kpi.measurement_nature ?? natureOf(kpi),
-    indicator_role: kpi.indicator_role ?? "lagging",
+    indicator_role: kpi.indicator_role ?? "output",
     description: kpi.description ?? "",
     related_goal: kpi.related_goal ?? "",
     department: kpi.department ?? "",
     unit: kpi.unit ?? "",
-    polarity: kpi.polarity ?? "تصاعدي",
+    polarity: kpi.polarity ?? "ascending",
     calculation: kpi.calculation ?? "",
     data_sources: kpi.data_sources ?? "",
     frequency: kpi.frequency ?? "",
@@ -561,20 +561,30 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
             <div className="mt-3">
               <div className="text-[10px] text-muted-foreground font-semibold mb-1.5">المستهدفات الربعية</div>
               <div className="grid grid-cols-4 gap-1.5">
-                {quarters.map(({ q, planned, actual }) => (
-                  <div key={q} className="bg-background border border-border rounded-lg p-2 text-center">
-                    <div className="text-[11px] font-bold text-primary mb-1">{q}</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      مخطط: <strong>{formatKPIValue(num(planned), kpi.unit)}</strong>
+                {quarters.map(({ q, planned, actual }) => {
+                  const actualVal = num(actual);
+                  return (
+                    <div key={q} className="bg-background border border-border rounded-lg p-2 text-center">
+                      <div className="text-[11px] font-bold text-primary mb-1">{q}</div>
+                      <div style={{ fontSize: "15px", fontWeight: 700, color: "#1a2332", margin: "2px 0" }}>
+                        {formatKPIValue(num(planned), kpi.unit)}
+                      </div>
+                      {actualVal !== null && (
+                        <div style={{
+                          fontSize: "11px",
+                          color: "#0e4d2e",
+                          fontWeight: 600,
+                          background: "#f0fdf4",
+                          borderRadius: "4px",
+                          padding: "1px 4px",
+                          marginTop: "2px",
+                        }}>
+                          {formatKPIValue(actualVal, kpi.unit)}
+                        </div>
+                      )}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      منجز:{" "}
-                      <strong className={actual !== null && actual !== undefined && actual !== "" ? "text-primary" : ""}>
-                        {formatKPIValue(num(actual), kpi.unit)}
-                      </strong>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -611,8 +621,8 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
                 <div>
                   <label className={FIELD_LABEL}>دور المؤشر *</label>
                   <select value={form.indicator_role} onChange={(e) => set("indicator_role", e.target.value)} className={INPUT}>
-                    <option value="lagging">تابع (Lagging)</option>
-                    <option value="leading">قائد (Leading)</option>
+                    <option value="output">مخرجات</option>
+                    <option value="driving">موجهات</option>
                   </select>
                 </div>
               </div>
@@ -678,10 +688,8 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
                 <div>
                   <label className={FIELD_LABEL}>القطبية *</label>
                   <select value={form.polarity} onChange={(e) => set("polarity", e.target.value)} className={INPUT}>
-                    <option value="تصاعدي">تصاعدي (الأعلى أفضل) ↑</option>
-                    <option value="ascending">تصاعدي (الأعلى أفضل) ↑</option>
-                    <option value="تنازلي">تنازلي (الأقل أفضل) ↓</option>
-                    <option value="descending">تنازلي (الأقل أفضل) ↓</option>
+                    <option value="ascending">تصاعدي — الأعلى أفضل ↑</option>
+                    <option value="descending">تنازلي — الأقل أفضل ↓</option>
                   </select>
                 </div>
               </div>
@@ -717,7 +725,8 @@ function CardModal({ kpi, onClose }: { kpi: any; onClose: () => void }) {
                       <option value="">اختر...</option>
                       <option value="ربع سنوي - تراكمي">ربع سنوي - تراكمي</option>
                       <option value="ربع سنوي - مستقل">ربع سنوي - مستقل</option>
-                      <option value="نصف سنوي">نصف سنوي</option>
+                      <option value="نصف سنوي - تراكمي">نصف سنوي - تراكمي</option>
+                      <option value="نصف سنوي - مستقل">نصف سنوي - مستقل</option>
                       <option value="سنوي">سنوي</option>
                     </select>
                   </div>
