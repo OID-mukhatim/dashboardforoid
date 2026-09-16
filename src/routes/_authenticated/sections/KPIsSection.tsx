@@ -1,6 +1,14 @@
 import { useMemo, useState } from "react";
 import { Search, AlertTriangle, CheckCircle2, X } from "lucide-react";
-import { ORGS, ORG_FISCAL_YEAR, FISCAL_QUARTERS, computeKPIStatus, type OrgId } from "@/lib/oid-data";
+import {
+  ORGS,
+  ORG_FISCAL_YEAR,
+  FISCAL_QUARTERS,
+  computeKPIStatus,
+  formatKPIValue,
+  validateKPIValue,
+  type OrgId,
+} from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { YearSelector } from "@/components/oid/YearSelector";
 import { BSC_PERSPECTIVES, BSC_LABELS, perspectiveLabelOf } from "@/lib/oid-bsc";
@@ -219,6 +227,29 @@ function MatrixView({
   orgF: string;
   sectorStats: { name: string; color: string; count: number; avg: number }[];
 }) {
+  // وزن الهدف = مجموع أوزان مؤشراته
+  const goalWeights = new Map<string, number>();
+  rows.forEach((k) => {
+    const key = `${k.entity_code}|${k.objective ?? ""}`;
+    goalWeights.set(key, (goalWeights.get(key) ?? 0) + (num(k.weight) ?? 0));
+  });
+
+  const HEAD = "px-3 py-2 text-right font-medium whitespace-nowrap";
+  const GROUPS = ["Q1", "Q2", "Q3", "Q4", "الإجمالي"];
+  const baseCols = [
+    "المؤسسة",
+    "المنظور",
+    "الهدف الاستراتيجي",
+    "وزن الهدف %",
+    "مؤشر الأداء",
+    "الكود",
+    "وزن المؤشر %",
+    "النوع",
+    "الوحدة",
+    "خط الأساس",
+    "المستهدف السنوي",
+  ];
+
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -239,55 +270,44 @@ function MatrixView({
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
-                <th colSpan={9} className="px-3 py-1.5 text-right font-medium border-b border-border">
-                  العوامل الأساسية
-                </th>
-                <th colSpan={5} className="px-3 py-1.5 text-center font-medium border-b border-r border-border bg-sky-500/5">
-                  المخطط Planned
-                </th>
-                <th colSpan={5} className="px-3 py-1.5 text-center font-medium border-b border-r border-border bg-emerald-500/5">
-                  المنجز Achieved
-                </th>
-                <th colSpan={5} className="px-3 py-1.5 text-center font-medium border-b border-r border-border">
-                  النتائج
-                </th>
+                {baseCols.map((h) => (
+                  <th key={h} rowSpan={2} className={`${HEAD} align-bottom border-b border-border`}>
+                    {h}
+                  </th>
+                ))}
+                {GROUPS.map((g) => (
+                  <th
+                    key={g}
+                    colSpan={2}
+                    className={`px-3 py-1.5 text-center font-semibold border-b border-r border-border ${
+                      g === "الإجمالي" ? "bg-emerald-500/10" : "bg-sky-500/5"
+                    }`}
+                  >
+                    <span>{g}</span>
+                    {g !== "الإجمالي" && orgF !== "الكل" && (
+                      <QuarterBadge orgId={orgF} quarter={g} className="block text-[10px] font-normal" />
+                    )}
+                  </th>
+                ))}
+                {["نسبة الإنجاز %", "الحالة", "المخرجات والنتائج"].map((h) => (
+                  <th key={h} rowSpan={2} className={`${HEAD} align-bottom border-b border-border`}>
+                    {h}
+                  </th>
+                ))}
               </tr>
               <tr>
-                {["الكود", "المؤسسة", "المنظور", "الهدف", "المؤشر", "النوع", "الوزن", "خط الأساس", "المستهدف السنوي"].map((h) => (
-                  <th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-                {["Q1", "Q2", "Q3", "Q4"].map((qq) => (
-                  <th key={`p-${qq}`} className="px-3 py-2 text-right font-medium whitespace-nowrap">
-                    {orgF === "الكل" ? (
-                      `${qq} مخطط`
-                    ) : (
-                      <span className="inline-flex flex-col items-start">
-                        <span>{qq} مخطط</span>
-                        <QuarterBadge orgId={orgF} quarter={qq} className="text-[10px]" />
-                      </span>
-                    )}
-                  </th>
-                ))}
-                <th className="px-3 py-2 text-right font-medium whitespace-nowrap">إجمالي المخطط</th>
-                {["Q1", "Q2", "Q3", "Q4"].map((qq) => (
-                  <th key={`a-${qq}`} className="px-3 py-2 text-right font-medium whitespace-nowrap">
-                    {orgF === "الكل" ? (
-                      `${qq} منجز`
-                    ) : (
-                      <span className="inline-flex flex-col items-start">
-                        <span>{qq} منجز</span>
-                        <QuarterBadge orgId={orgF} quarter={qq} className="text-[10px]" />
-                      </span>
-                    )}
-                  </th>
-                ))}
-                {["مجموع المنجز", "الإجمالي التراكمي", "% الإنجاز", "النسبة العامة", "الحالة", "المخرجات"].map((h) => (
-                  <th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
+                {GROUPS.flatMap((g) =>
+                  ["مخطط", "منجز"].map((lbl) => (
+                    <th
+                      key={`${g}-${lbl}`}
+                      className={`px-3 py-1.5 text-center font-normal text-[11px] border-b border-border ${
+                        lbl === "منجز" ? "bg-emerald-500/5" : "bg-sky-500/5"
+                      }`}
+                    >
+                      {lbl}
+                    </th>
+                  )),
+                )}
               </tr>
             </thead>
             <tbody>
@@ -308,39 +328,44 @@ function MatrixView({
               {rows.map((k) => {
                 const d = derive(k);
                 const st = computeKPIStatus(k, d.totalActual);
+                const unit = k.unit ?? null;
+                const gw = goalWeights.get(`${k.entity_code}|${k.objective ?? ""}`) ?? null;
                 return (
                   <tr key={k.id} className="border-t border-border hover:bg-muted/20">
-                    <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">
-                      {!k.card_completed && (
-                        <span title="البطاقة غير مكتملة" className="ml-1">
-                          ⚠️
-                        </span>
-                      )}
-                      {k.kpi_code}
-                    </td>
                     <td className="px-3 py-2 whitespace-nowrap">{k.entity_code}</td>
                     <td className="px-3 py-2 whitespace-nowrap" title={k.sector ?? ""}>
                       {k.perspective}
                     </td>
                     <td className="px-3 py-2 max-w-[220px]">{k.objective ?? "—"}</td>
-                    <td className="px-3 py-2 max-w-[280px]">{k.kpi_name}</td>
-                    <td className="px-3 py-2 text-xs whitespace-nowrap">{k.kpi_type ?? "—"}</td>
+                    <td className="px-3 py-2 tabular-nums text-xs">{fmtPct(gw, 2)}</td>
+                    <td className="px-3 py-2 max-w-[280px]">
+                      {!k.card_completed && (
+                        <span title="البطاقة غير مكتملة" className="ml-1">
+                          ⚠️
+                        </span>
+                      )}
+                      {k.kpi_name}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{k.kpi_code}</td>
                     <td className="px-3 py-2 tabular-nums text-xs">{fmtPct(d.weight, 2)}</td>
-                    <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(d.baseline)}</td>
-                    <td className="px-3 py-2 tabular-nums text-xs font-medium">{fmtNum(d.target)}</td>
-                    {d.qp.map((v, i) => (
+                    <td className="px-3 py-2 text-xs whitespace-nowrap">{k.kpi_type ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs whitespace-nowrap">{unit ?? "—"}</td>
+                    <td className="px-3 py-2 tabular-nums text-xs">{formatKPIValue(d.baseline, unit)}</td>
+                    <td className="px-3 py-2 tabular-nums text-xs font-medium">{formatKPIValue(d.target, unit)}</td>
+                    {[0, 1, 2, 3].flatMap((i) => [
                       <td key={`p${i}`} className="px-3 py-2 tabular-nums text-xs bg-sky-500/5">
-                        {fmtNum(v)}
-                      </td>
-                    ))}
-                    <td className="px-3 py-2 tabular-nums text-xs font-medium bg-sky-500/5">{fmtNum(d.totalPlanned)}</td>
-                    {d.qa.map((v, i) => (
+                        {formatKPIValue(d.qp[i], unit)}
+                      </td>,
                       <td key={`a${i}`} className="px-3 py-2 tabular-nums text-xs bg-emerald-500/5">
-                        {fmtNum(v)}
-                      </td>
-                    ))}
-                    <td className="px-3 py-2 tabular-nums text-xs font-medium bg-emerald-500/5">{fmtNum(d.totalActual)}</td>
-                    <td className="px-3 py-2 tabular-nums text-xs">{fmtNum(d.cumulative)}</td>
+                        {formatKPIValue(d.qa[i], unit)}
+                      </td>,
+                    ])}
+                    <td className="px-3 py-2 tabular-nums text-xs font-medium bg-sky-500/5">
+                      {formatKPIValue(d.totalPlanned ?? d.target, unit)}
+                    </td>
+                    <td className="px-3 py-2 tabular-nums text-xs font-medium bg-emerald-500/5">
+                      {formatKPIValue(d.totalActual, unit)}
+                    </td>
                     <td className="px-3 py-2 min-w-[120px]">
                       <div className="flex items-center gap-2">
                         <Progress
@@ -349,8 +374,7 @@ function MatrixView({
                         <span className="text-xs tabular-nums w-12">{fmtPct(d.achievement)}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2 tabular-nums text-xs">{fmtPct(d.overall, 2)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap text-center">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[st.color]}`}>{st.label}</span>
                     </td>
                     <td className="px-3 py-2 text-xs max-w-[240px]">{k.final_output ?? "—"}</td>
