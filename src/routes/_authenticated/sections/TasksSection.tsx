@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Card, CardHeader } from "./_shared";
+import { Card } from "./_shared";
 import { useTaskRequest, consumeTaskRequest, type TaskPrefill } from "@/lib/tasks-store";
 
 type Task = {

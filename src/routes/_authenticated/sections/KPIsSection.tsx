@@ -858,8 +858,8 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
       </div>
 
       <ScrollableTable>
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-xs text-muted-foreground">
+        <table className="oid-table">
+          <thead>
             <tr>
               {["الكود", "المؤشر", "المستهدف", "المنجز", "نسبة الإنجاز", "الحالة"].map((h) => (
                 <th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">
@@ -891,7 +891,7 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
                 <tr key={k.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{k.kpi_code}</td>
                   <td className="px-3 py-2 max-w-[320px]">{k.kpi_name}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{formatKPIValue(target, unit)}</td>
+                  <td className="numeric">{formatKPIValue(target, unit)}</td>
                   <td className="px-3 py-2">
                     <AchievedInput
                       nature={nature}
@@ -901,16 +901,14 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
                     />
                     {check.warning && <div className="mt-1 text-[10px] text-red-600">⚠️ {check.warning}</div>}
                   </td>
-                  <td className="px-3 py-2 tabular-nums text-xs">
+                  <td className="numeric">
                     {res.rawPct === null ? "—" : `${res.rawPct}%`}
                     {res.exceeded !== null && (
                       <span className="mr-1 text-[10px] text-emerald-600 font-bold">+{res.exceeded}%</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[res.status]}`}>
-                      {res.statusLabel}
-                    </span>
+                  <td className={`status-${res.status} text-center whitespace-nowrap`}>
+                    {res.statusLabel}
                   </td>
                 </tr>
               );

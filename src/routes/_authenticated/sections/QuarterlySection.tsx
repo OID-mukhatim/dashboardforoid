@@ -5,7 +5,7 @@ import { loadQuarterlyActivities, loadActiveYears, setActiveYear } from "@/lib/d
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { YearSelector } from "@/components/oid/YearSelector";
-import { Card, EmptyData, Progress, SectionTitle, OrgChip, FilterSelect, QuarterBadge } from "./_shared";
+import { Card, EmptyData, SectionTitle, OrgChip, FilterSelect, QuarterBadge } from "./_shared";
 import { formatNumber } from "@/lib/oid-formatting";
 
 /* ============================ QUARTERLY ============================ */
@@ -28,10 +28,11 @@ function AchievementCell({ pct }: { pct: number | null }) {
   if (pct === null) return <span className="text-muted-foreground">—</span>;
   const rounded = Math.round(pct);
   const tone = rounded >= 90 ? "green" : rounded >= 70 ? "yellow" : "red";
+  const valueClass = tone === "green" ? "text-success" : tone === "yellow" ? "text-warning" : "text-danger";
   return (
     <div className="flex items-center justify-center gap-1.5" dir="ltr">
       <div className="oid-progress"><span className={`oid-progress-${tone}`} style={{ width: `${Math.min(Math.max(rounded, 0), 100)}%` }} /></div>
-      <span className={`min-w-8 text-[11px] font-bold text-${tone === "green" ? "success" : tone === "yellow" ? "warning" : "danger"}`}>{rounded}%</span>
+      <span className={`min-w-8 text-[11px] font-bold ${valueClass}`}>{rounded}%</span>
     </div>
   );
 }
