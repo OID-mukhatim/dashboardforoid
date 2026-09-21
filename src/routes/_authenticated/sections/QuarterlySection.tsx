@@ -5,7 +5,8 @@ import { loadQuarterlyActivities, loadActiveYears, setActiveYear } from "@/lib/d
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { YearSelector } from "@/components/oid/YearSelector";
-import { Card, EmptyData, Progress, SectionTitle, OrgChip, FilterSelect, QuarterBadge } from "./_shared";
+import { Card, EmptyData, SectionTitle, OrgChip, FilterSelect, QuarterBadge } from "./_shared";
+import { formatNumber } from "@/lib/oid-formatting";
 
 /* ============================ QUARTERLY ============================ */
 type QAch = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; beneficiaries: number|null; location: string|null; budget: number|null; cost: number|null; variance: number|null; outcomes: string|null };
@@ -21,6 +22,19 @@ function effPct(a: { target: number|null; achieved: number|null; pct: number|nul
     return Math.round((ac / t) * 1000) / 10;
   }
   return a.pct;
+}
+
+function AchievementCell({ pct }: { pct: number | null }) {
+  if (pct === null) return <span className="text-muted-foreground">—</span>;
+  const rounded = Math.round(pct);
+  const tone = rounded >= 90 ? "green" : rounded >= 70 ? "yellow" : "red";
+  const valueClass = tone === "green" ? "text-success" : tone === "yellow" ? "text-warning" : "text-danger";
+  return (
+    <div className="flex items-center justify-center gap-1.5" dir="ltr">
+      <div className="oid-progress"><span className={`oid-progress-${tone}`} style={{ width: `${Math.min(Math.max(rounded, 0), 100)}%` }} /></div>
+      <span className={`min-w-8 text-[11px] font-bold ${valueClass}`}>{rounded}%</span>
+    </div>
+  );
 }
 
 export function QuarterlySection() {
@@ -154,28 +168,25 @@ export function QuarterlySection() {
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">بيانات تجريبية — تُستبدل فور رفع التقارير</span>
           </div>
           <ScrollableTable>
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground">
+            <table className="oid-table">
+              <thead>
                 <tr>{["م","النشاط","كود المؤشر","المؤسسة","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
               </thead>
               <tbody>
                 {q1Data.map((r, i) => (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/20 align-top">
-                    <td className="px-3 py-2 tabular-nums">{i + 1}</td>
+                    <td className="numeric">{i + 1}</td>
                     <td className="px-3 py-2 min-w-[240px]">{r.title}</td>
                     <td className="px-3 py-2 font-mono text-xs text-primary">{r.kpiCode}</td>
                     <td className="px-3 py-2"><OrgChip id={r.org as OrgId} /></td>
-                    <td className="px-3 py-2 text-xs tabular-nums">{r.target}</td>
-                    <td className="px-3 py-2 text-xs tabular-nums">{r.done}</td>
-                    <td className="px-3 py-2 min-w-[120px]">
-                      <div className="flex items-center gap-2"><Progress value={Math.min(100, Math.max(0, r.pct))} /><span className="text-xs tabular-nums">{r.pct}%</span></div>
-                    </td>
-                    <td className="px-3 py-2 text-xs tabular-nums">{r.beneficiaries}</td>
-                    <td className="px-3 py-2 tabular-nums text-xs">{r.budget ? `$${r.budget}` : "—"}</td>
-                    <td className="px-3 py-2 tabular-nums text-xs">{r.cost ? `$${r.cost}` : "—"}</td>
-                    <td className="px-3 py-2">
-                      {!r.deviation ? <span className="text-xs text-gray-500">—</span>
-                        : <span className={`text-xs px-2 py-0.5 rounded-full ${r.deviation > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{r.deviation > 0 ? `+$${r.deviation}` : `-$${Math.abs(r.deviation)}`}</span>}
+                    <td className="numeric">{r.target}</td>
+                    <td className="numeric">{r.done}</td>
+                    <td className="numeric min-w-[120px]"><AchievementCell pct={r.pct} /></td>
+                    <td className="numeric">{r.beneficiaries}</td>
+                    <td className="numeric">{formatNumber(r.budget, { prefix: "$", decimals: 0 })}</td>
+                    <td className="numeric">{formatNumber(r.cost, { prefix: "$", decimals: 0 })}</td>
+                    <td className={`numeric ${r.deviation > 0 ? "status-green" : r.deviation < 0 ? "status-red" : ""}`}>
+                      {r.deviation > 0 ? `+$${r.deviation}` : r.deviation < 0 ? `-$${Math.abs(r.deviation)}` : "—"}
                     </td>
                   </tr>
                 ))}
@@ -195,14 +206,14 @@ export function QuarterlySection() {
         ) : (
         <Card>
           <ScrollableTable>
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground">
+            <table className="oid-table">
+              <thead>
                 <tr>{["م","الإنجاز/المشروع","كود المؤشر","المؤسسة","الربع","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموقع","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
               </thead>
               <tbody>
                 {achievements.map((r, i) => (
                   <tr key={r._k} className="border-t border-border hover:bg-muted/20 align-top">
-                    <td className="px-3 py-2 tabular-nums">{i + 1}</td>
+                    <td className="numeric">{i + 1}</td>
                     <td className="px-3 py-2 min-w-[240px]">
                       <div>{r.title}</div>
                       {r.outcomes && (
@@ -217,20 +228,15 @@ export function QuarterlySection() {
                     <td className="px-3 py-2"><span className="font-mono text-xs text-primary">{r.code ?? "—"}</span></td>
                     <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
                     <td className="px-3 py-2 text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} />{r.year ? <span className="mr-1 text-muted-foreground">{r.year}</span> : null}</td>
-                    <td className="px-3 py-2 text-xs tabular-nums">{r.target ?? "—"}</td>
-                    <td className="px-3 py-2 text-xs tabular-nums">{r.achieved ?? "—"}</td>
-                    <td className="px-3 py-2 min-w-[120px]">
-                      {r.pct === null ? <span className="text-xs text-muted-foreground">—</span> : (
-                        <div className="flex items-center gap-2"><Progress value={Math.min(100, Math.max(0, r.pct))} /><span className="text-xs tabular-nums">{Math.round(r.pct)}%</span></div>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-xs tabular-nums">{r.beneficiaries ?? "—"}</td>
+                    <td className="numeric">{r.target ?? "—"}</td>
+                    <td className="numeric">{r.achieved ?? "—"}</td>
+                    <td className="numeric min-w-[120px]"><AchievementCell pct={r.pct} /></td>
+                    <td className="numeric">{r.beneficiaries ?? "—"}</td>
                     <td className="px-3 py-2 text-xs">{r.location ?? "—"}</td>
-                    <td className="px-3 py-2 tabular-nums text-xs">{r.budget ? `$${r.budget}` : "—"}</td>
-                    <td className="px-3 py-2 tabular-nums text-xs">{r.cost ? `$${r.cost}` : "—"}</td>
-                    <td className="px-3 py-2">
-                      {!r.variance ? <span className="text-xs text-gray-500">—</span>
-                        : <span className={`text-xs px-2 py-0.5 rounded-full ${r.variance > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{r.variance > 0 ? `+$${r.variance}` : `-$${Math.abs(r.variance)}`}</span>}
+                    <td className="numeric">{formatNumber(r.budget, { prefix: "$", decimals: 0 })}</td>
+                    <td className="numeric">{formatNumber(r.cost, { prefix: "$", decimals: 0 })}</td>
+                    <td className={`numeric ${r.variance && r.variance > 0 ? "status-green" : r.variance && r.variance < 0 ? "status-red" : ""}`}>
+                      {r.variance && r.variance > 0 ? `+$${r.variance}` : r.variance && r.variance < 0 ? `-$${Math.abs(r.variance)}` : "—"}
                     </td>
                   </tr>
                 ))}
@@ -252,26 +258,22 @@ export function QuarterlySection() {
           <Card>
             <div className="px-4 py-3 text-sm font-medium border-b border-border">المشاركات والفعاليات والبرامج التدريبية</div>
             <ScrollableTable>
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-xs text-muted-foreground">
+              <table className="oid-table">
+                <thead>
                   <tr>{["م","الفعالية","الكود","المؤسسة","الربع","المستهدف","المنفذ","% الإنجاز","المشاركون","الموقع","التقييم"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {events.map((r, i) => (
                     <tr key={r._k} className="border-t border-border hover:bg-muted/20 align-top">
-                      <td className="px-3 py-2 tabular-nums">{i + 1}</td>
+                      <td className="numeric">{i + 1}</td>
                       <td className="px-3 py-2 min-w-[200px]">{r.title}</td>
                       <td className="px-3 py-2 font-mono text-xs text-primary">{r.code ?? "—"}</td>
                       <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
                       <td className="px-3 py-2 text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>
-                      <td className="px-3 py-2 text-xs tabular-nums">{r.target ?? "—"}</td>
-                      <td className="px-3 py-2 text-xs tabular-nums">{r.achieved ?? "—"}</td>
-                      <td className="px-3 py-2 min-w-[120px]">
-                        {r.pct === null ? <span className="text-xs text-muted-foreground">—</span> : (
-                          <div className="flex items-center gap-2"><Progress value={Math.min(100, Math.max(0, r.pct))} /><span className="text-xs tabular-nums">{Math.round(r.pct)}%</span></div>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-xs tabular-nums">{r.participants ?? "—"}</td>
+                      <td className="numeric">{r.target ?? "—"}</td>
+                      <td className="numeric">{r.achieved ?? "—"}</td>
+                      <td className="numeric min-w-[120px]"><AchievementCell pct={r.pct} /></td>
+                      <td className="numeric">{r.participants ?? "—"}</td>
                       <td className="px-3 py-2 text-xs">{r.location ?? "—"}</td>
                       <td className="px-3 py-2 text-xs">{r.evaluation ?? "—"}</td>
                     </tr>
@@ -293,14 +295,14 @@ export function QuarterlySection() {
         ) : (
           <Card>
             <ScrollableTable>
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-xs text-muted-foreground">
+              <table className="oid-table">
+                <thead>
                   <tr>{["م","التحدي/العائق","المؤسسة","الربع","الأسباب","الإجراءات المتخذة","الوضع الحالي","المساهمة المطلوبة"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {challenges.map((r, i) => (
                     <tr key={r._k} className="border-t border-border hover:bg-muted/20 align-top">
-                      <td className="px-3 py-2 tabular-nums">{i + 1}</td>
+                      <td className="numeric">{i + 1}</td>
                       <td className="px-3 py-2 min-w-[200px]">{r.title}</td>
                       <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
                       <td className="px-3 py-2 text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>

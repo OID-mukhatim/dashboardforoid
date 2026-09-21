@@ -60,13 +60,6 @@ const fmtPct = (v: number | null | undefined, decimals = 0) => {
 const fmtNum = (v: number | null | undefined) =>
   v === null || v === undefined ? "—" : String(Math.round(Number(v) * 100) / 100);
 
-const statusClass: Record<string, string> = {
-  green: "bg-emerald-500/10 text-emerald-600",
-  yellow: "bg-amber-500/10 text-amber-600",
-  red: "bg-red-500/10 text-red-600",
-  gray: "bg-muted text-muted-foreground",
-};
-
 export function KPIsSection() {
   const [view, setView] = useState<"matrix" | "card" | "update">("matrix");
   const [orgF, setOrgF] = useState<string>("الكل");
@@ -271,8 +264,8 @@ function MatrixView({
       <Card className="mt-6">
         <CardHeader title={`جدول المؤشرات (${rows.length})`} />
         <ScrollableTable>
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs text-muted-foreground">
+          <table className="oid-table">
+            <thead>
               <tr>
                 {baseCols.map((h) => (
                   <th key={h} rowSpan={2} className={`${HEAD} align-bottom border-b border-border`}>
@@ -304,9 +297,7 @@ function MatrixView({
                   ["مخطط", "منجز"].map((lbl) => (
                     <th
                       key={`${g}-${lbl}`}
-                      className={`px-3 py-1.5 text-center font-normal text-[11px] border-b border-border ${
-                        lbl === "منجز" ? "bg-emerald-500/5" : "bg-sky-500/5"
-                      }`}
+                      className={lbl === "مخطط" ? "quarter-start" : ""}
                     >
                       {lbl}
                     </th>
@@ -341,7 +332,7 @@ function MatrixView({
                       {k.perspective}
                     </td>
                     <td className="px-3 py-2 max-w-[220px]">{k.objective ?? "—"}</td>
-                    <td className="px-3 py-2 tabular-nums text-xs">{fmtPct(gw, 2)}</td>
+                    <td className="numeric">{fmtPct(gw, 2)}</td>
                     <td className="px-3 py-2 max-w-[280px]">
                       {!k.card_completed && (
                         <span title="البطاقة غير مكتملة" className="ml-1">
@@ -351,26 +342,26 @@ function MatrixView({
                       {k.kpi_name}
                     </td>
                     <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{k.kpi_code}</td>
-                    <td className="px-3 py-2 tabular-nums text-xs">{fmtPct(d.weight, 2)}</td>
+                    <td className="numeric">{fmtPct(d.weight, 2)}</td>
                     <td className="px-3 py-2 text-xs whitespace-nowrap">{k.kpi_type ?? "—"}</td>
                     <td className="px-3 py-2 text-xs whitespace-nowrap">{unit ?? "—"}</td>
-                    <td className="px-3 py-2 tabular-nums text-xs">{formatKPIValue(d.baseline, unit)}</td>
-                    <td className="px-3 py-2 tabular-nums text-xs font-medium">{formatKPIValue(d.target, unit)}</td>
+                    <td className="numeric">{formatKPIValue(d.baseline, unit)}</td>
+                    <td className="numeric">{formatKPIValue(d.target, unit)}</td>
                     {[0, 1, 2, 3].flatMap((i) => [
-                      <td key={`p${i}`} className="px-3 py-2 tabular-nums text-xs bg-sky-500/5">
+                      <td key={`p${i}`} className="quarter-start numeric">
                         {formatKPIValue(d.qp[i], unit)}
                       </td>,
-                      <td key={`a${i}`} className="px-3 py-2 tabular-nums text-xs bg-emerald-500/5">
+                      <td key={`a${i}`} className="numeric">
                         {formatKPIValue(d.qa[i], unit)}
                       </td>,
                     ])}
-                    <td className="px-3 py-2 tabular-nums text-xs font-medium bg-sky-500/5">
+                    <td className="quarter-start numeric">
                       {formatKPIValue(d.totalPlanned ?? d.target, unit)}
                     </td>
-                    <td className="px-3 py-2 tabular-nums text-xs font-medium bg-emerald-500/5">
+                    <td className="numeric">
                       {formatKPIValue(d.totalActual, unit)}
                     </td>
-                    <td className="px-3 py-2 min-w-[120px]">
+                    <td className="numeric min-w-[120px]">
                       <div className="flex items-center gap-2">
                         <Progress value={res.cappedPct ?? 0} />
                         <span className="text-xs tabular-nums w-12">
@@ -378,19 +369,11 @@ function MatrixView({
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2 tabular-nums text-xs text-center">
-                      {res.exceeded !== null ? (
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600">
-                          +{res.exceeded}%
-                        </span>
-                      ) : (
-                        "—"
-                      )}
+                    <td className="exceeded-cell">
+                      {res.exceeded !== null ? `+${res.exceeded}%` : "—"}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[res.status]}`}>
-                        {res.statusLabel}
-                      </span>
+                    <td className={`status-${res.status} text-center whitespace-nowrap`}>
+                      {res.statusLabel}
                     </td>
                     <td className="px-3 py-2 text-xs max-w-[240px]">{k.final_output ?? "—"}</td>
                   </tr>
@@ -868,8 +851,8 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
       </div>
 
       <ScrollableTable>
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-xs text-muted-foreground">
+        <table className="oid-table">
+          <thead>
             <tr>
               {["الكود", "المؤشر", "المستهدف", "المنجز", "نسبة الإنجاز", "الحالة"].map((h) => (
                 <th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">
@@ -901,7 +884,7 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
                 <tr key={k.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{k.kpi_code}</td>
                   <td className="px-3 py-2 max-w-[320px]">{k.kpi_name}</td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{formatKPIValue(target, unit)}</td>
+                  <td className="numeric">{formatKPIValue(target, unit)}</td>
                   <td className="px-3 py-2">
                     <AchievedInput
                       nature={nature}
@@ -911,16 +894,14 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
                     />
                     {check.warning && <div className="mt-1 text-[10px] text-red-600">⚠️ {check.warning}</div>}
                   </td>
-                  <td className="px-3 py-2 tabular-nums text-xs">
+                  <td className="numeric">
                     {res.rawPct === null ? "—" : `${res.rawPct}%`}
                     {res.exceeded !== null && (
                       <span className="mr-1 text-[10px] text-emerald-600 font-bold">+{res.exceeded}%</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${statusClass[res.status]}`}>
-                      {res.statusLabel}
-                    </span>
+                  <td className={`status-${res.status} text-center whitespace-nowrap`}>
+                    {res.statusLabel}
                   </td>
                 </tr>
               );

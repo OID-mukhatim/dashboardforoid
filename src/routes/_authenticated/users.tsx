@@ -92,8 +92,8 @@ function UsersPage() {
             <div className="p-8 text-center text-muted-foreground">جاري التحميل…</div>
           ) : (
             <ScrollableTable>
-            <table className="w-full text-sm min-w-[640px]">
-              <thead className="bg-muted/50 text-xs">
+            <table className="oid-table min-w-[640px]">
+              <thead>
                 <tr>
                   <th className="text-right p-3">البريد</th>
                   <th className="text-right p-3">الأدوار</th>

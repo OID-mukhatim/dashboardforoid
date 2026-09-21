@@ -16,6 +16,15 @@ const STATUS_OPTIONS: { value: PolicyStatus; label: string }[] = [
   { value: "pending", label: "⏳ بيانات ناقصة" },
 ];
 
+const STATUS_SELECT_CLASS: Record<PolicyStatus, string> = {
+  active: "status-green border-success/30",
+  inactive: "bg-info/10 text-info border-info/30",
+  review: "status-yellow border-warning/30",
+  inDev: "bg-warning/10 text-warning border-warning/30",
+  missing: "status-red border-danger/30",
+  pending: "status-gray border-border",
+};
+
 const ALL_POLICIES = [...generalPolicies, ...universityPolicies, ...humanitarianPolicies, ...educationPolicies];
 
 /* ============================ GOVERNANCE ============================ */
@@ -144,12 +153,16 @@ export function GovernanceSection() {
           </div>
         } />
         <ScrollableTable>
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs text-muted-foreground">
+          <table className="oid-table">
+            <thead>
               <tr>
                 <th className="px-3 py-2 text-right font-medium">الكود</th>
                 <th className="px-3 py-2 text-right font-medium">السياسة</th>
-                {ORGS.map(o => <th key={o.id} className="px-3 py-2 font-medium">{o.abbr}</th>)}
+                {ORGS.map(o => (
+                  <th key={o.id} className="text-center min-w-[90px]" style={{ background: `linear-gradient(135deg, ${o.color}dd, ${o.color}99)` }}>
+                    {o.abbr}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -161,12 +174,12 @@ export function GovernanceSection() {
                     const s = effectivePolicyStatus(p.id, o.id, p.values[o.id]) ?? "pending";
                     const meta = POLICY_STATUS_META[s];
                     return (
-                      <td key={o.id} className="px-2 py-2 text-center">
+                      <td key={o.id} className="text-center py-1 px-2">
                         <select
                           value={s}
                           onChange={(e) => void handleStatusChange(p.id, o.id, e.target.value as PolicyStatus)}
                           title={meta?.label}
-                          className={`text-[11px] font-semibold rounded-md border border-border/60 px-1.5 py-1 cursor-pointer ${meta?.bg ?? ""} ${meta?.fg ?? ""}`}
+                          className={`w-full cursor-pointer rounded-md border px-1.5 py-1 text-[11px] font-semibold font-sans ${STATUS_SELECT_CLASS[s]}`}
                         >
                           {STATUS_OPTIONS.map(op => (
                             <option key={op.value} value={op.value}>{op.label}</option>

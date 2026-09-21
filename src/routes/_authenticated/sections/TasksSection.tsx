@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ORGS, orgName, type OrgId } from "@/lib/oid-data";
 import { OrgLogo } from "@/components/oid/OrgLogo";
+import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { Plus, Trash2, Pencil, ClipboardList, CalendarDays } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Card, CardHeader } from "./_shared";
+import { Card } from "./_shared";
 import { useTaskRequest, consumeTaskRequest, type TaskPrefill } from "@/lib/tasks-store";
 
 type Task = {
@@ -232,104 +233,37 @@ export function TasksSection() {
       {isLoading ? (
         <Card className="p-6 text-sm text-muted-foreground">جارٍ التحميل…</Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {(fStatus === "cancelled"
-            ? STATUSES.filter((s) => s.id === "cancelled")
-            : STATUSES.filter((s) => s.id !== "cancelled")
-          ).map((s) => {
-            const list = filtered.filter((t) => t.status === s.id);
-            return (
-              <Card key={s.id}>
-                <CardHeader
-                  title={s.label}
-                  subtitle={`${list.length} مهمة`}
-                  action={<span className="w-3 h-3 rounded-full" style={{ background: s.color }} />}
-                />
-                <div className="p-3 space-y-2">
-                  {list.length === 0 && (
-                    <p className="text-xs text-muted-foreground px-1 py-3">لا توجد مهام.</p>
-                  )}
-                  {list.map((t) => {
-                    const p = metaOf(PRIORITIES, t.priority);
-                    return (
-                      <div
-                        key={t.id}
-                        className="border border-border rounded-lg p-3 bg-white hover:shadow-sm transition"
-                        style={{ borderInlineStartWidth: 4, borderInlineStartColor: p.color }}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <span className={`font-semibold text-sm leading-snug ${t.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>{t.title}</span>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => { setPrefill(null); setEditing(t); setOpen(true); }}
-                              className="text-muted-foreground hover:text-primary"
-                              title="تعديل"
-                            >
-                              <Pencil size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => remove(t.id)}
-                              className="text-muted-foreground hover:text-danger"
-                              title="حذف"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                        {t.description && (
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t.description}</p>
-                        )}
-                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                          {t.org_id && (
-                            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                              <OrgLogo orgId={t.org_id as OrgId} size={20} shape="circle" />
-                              {orgName(t.org_id as OrgId)}
-                            </span>
-                          )}
-                          <span
-                            className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-                            style={{ background: p.color + "22", color: p.color }}
-                          >
-                            {p.label}
-                          </span>
-                          <span
-                            className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-                            style={{ background: s.color + "22", color: s.color }}
-                          >
-                            {s.label}
-                          </span>
-                          {t.due_date && (
-                            <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 ${isOverdue(t) ? "bg-red-50 text-red-700 font-semibold" : "bg-slate-100 text-slate-600"}`}
-                            >
-                              <CalendarDays size={10} /> {t.due_date}{isOverdue(t) ? " — متأخرة" : ""}
-                            </span>
-                          )}
-                          {t.source_type && t.source_type !== "manual" && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
-                              {SOURCE_LABELS[t.source_type] ?? t.source_type}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-2">
-                          <select
-                            className={SELECT_CLS + " text-[11px] w-full"}
-                            value={t.status}
-                            onChange={(e) => changeStatus(t.id, e.target.value)}
-                          >
-                            {STATUSES.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+        <Card>
+          <ScrollableTable>
+            <table className="oid-table">
+              <thead><tr>{["المهمة", "المؤسسة", "الأولوية", "الحالة", "الاستحقاق", "المصدر", "الإجراءات"].map((h) => <th key={h}>{h}</th>)}</tr></thead>
+              <tbody>
+                {filtered.map((t) => {
+                  const p = metaOf(PRIORITIES, t.priority);
+                  const status = metaOf(STATUSES, t.status);
+                  const statusTone = t.status === "done" ? "status-green" : t.status === "in_progress" ? "status-yellow" : t.status === "open" ? "status-gray" : "status-red";
+                  return (
+                    <tr key={t.id}>
+                      <td className="min-w-[260px]"><div className="font-semibold">{t.title}</div>{t.description && <div className="mt-1 text-[11px] text-muted-foreground">{t.description}</div>}</td>
+                      <td>{t.org_id ? <span className="inline-flex items-center gap-1"><OrgLogo orgId={t.org_id as OrgId} size={20} shape="circle" />{orgName(t.org_id as OrgId)}</span> : "—"}</td>
+                      <td><span className="inline-flex items-center gap-1.5"><span className="size-2 shrink-0 rounded-full" style={{ background: p.color }} />{p.label}</span></td>
+                      <td>
+                        <span className={`${statusTone} inline-block rounded-full px-2.5 py-1 text-[11px]`}>{status.label}</span>
+                        <select aria-label={`تغيير حالة ${t.title}`} className="mr-2 rounded border border-border bg-card px-1 py-0.5 text-[10px]" value={t.status} onChange={(e) => changeStatus(t.id, e.target.value)}>
+                          {STATUSES.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+                        </select>
+                      </td>
+                      <td className={`numeric ${isOverdue(t) ? "status-red" : ""}`}>{t.due_date ? <span className="inline-flex items-center gap-1"><CalendarDays size={11} />{t.due_date}</span> : "—"}</td>
+                      <td>{SOURCE_LABELS[t.source_type ?? "manual"] ?? t.source_type ?? "يدوي"}</td>
+                      <td><div className="flex justify-center gap-2"><Button size="icon" variant="ghost" title="تعديل" onClick={() => { setPrefill(null); setEditing(t); setOpen(true); }}><Pencil size={14} /></Button><Button size="icon" variant="ghost" title="حذف" onClick={() => remove(t.id)}><Trash2 size={14} /></Button></div></td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && <tr><td colSpan={7} className="text-center text-muted-foreground">لا توجد مهام مطابقة.</td></tr>}
+              </tbody>
+            </table>
+          </ScrollableTable>
+        </Card>
       )}
 
       <TaskDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setPrefill(null); setEditing(null); } }} prefill={prefill} editing={editing} onSave={handleSave} />

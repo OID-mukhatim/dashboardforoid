@@ -114,6 +114,113 @@
   background: linear-gradient(135deg, #0e4d2e 0%, #0d3a6e 100%);
 }
 
+/* ══ نظام الجداول الموحّد ══ */
+.oid-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: "Tajawal", sans-serif;
+  font-size: 12px;
+  direction: rtl;
+}
+
+.oid-table thead th {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: var(--primary-foreground);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 10px 12px;
+  text-align: right;
+  white-space: nowrap;
+  border-left: 1px solid color-mix(in oklab, var(--primary-foreground) 15%, transparent);
+  border-bottom: 3px solid var(--primary-light);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.oid-table thead tr:first-child:not(:last-child) th {
+  border-bottom-width: 2px;
+}
+
+.oid-table thead tr:last-child:not(:first-child) th {
+  background: var(--secondary-mid);
+  color: color-mix(in oklab, var(--secondary-foreground) 85%, transparent);
+  font-weight: 600;
+  font-size: 11px;
+  padding: 7px 10px;
+  text-align: center;
+  border-left-color: color-mix(in oklab, var(--secondary-foreground) 10%, transparent);
+  border-bottom: 3px solid var(--primary-light);
+  top: 38px;
+}
+
+.oid-table tbody tr:nth-child(odd) td { background: var(--card); }
+.oid-table tbody tr:nth-child(even) td { background: color-mix(in oklab, var(--background) 55%, var(--card)); }
+.oid-table tbody tr:hover td {
+  background: color-mix(in oklab, var(--success) 7%, var(--card)) !important;
+  transition: background 0.15s ease;
+}
+
+.oid-table tbody td {
+  padding: 9px 12px;
+  color: var(--foreground);
+  vertical-align: middle;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+}
+
+.oid-table tbody td:last-child,
+.oid-table thead th:last-child { border-left: none; }
+.oid-table th.quarter-start,
+.oid-table td.quarter-start { border-right: 2px solid var(--primary-light) !important; }
+
+.oid-table td.numeric {
+  text-align: center;
+  direction: ltr;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.oid-table tbody td:first-child {
+  font-weight: 600;
+  color: var(--primary);
+  border-right: 3px solid var(--primary-light);
+}
+
+.oid-table tfoot td {
+  background: color-mix(in oklab, var(--success) 7%, var(--card));
+  font-weight: 700;
+  color: var(--primary);
+  padding: 10px 12px;
+  border-top: 2px solid var(--primary-light);
+  border-left: 1px solid var(--border);
+}
+
+.status-green { background: color-mix(in oklab, var(--success) 14%, var(--card)) !important; color: var(--success); font-weight: 700; }
+.status-yellow { background: color-mix(in oklab, var(--warning) 10%, var(--card)) !important; color: var(--warning); font-weight: 700; }
+.status-red { background: color-mix(in oklab, var(--danger) 12%, var(--card)) !important; color: var(--danger); font-weight: 700; }
+.status-gray { background: var(--muted) !important; color: var(--muted-foreground); }
+.exceeded-cell {
+  background: color-mix(in oklab, var(--success) 7%, var(--card)) !important;
+  color: var(--success);
+  font-weight: 700;
+  text-align: center;
+  direction: ltr;
+}
+
+.oid-progress {
+  width: 60px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.oid-progress > span { display: block; height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.oid-progress-green { background: var(--success); }
+.oid-progress-yellow { background: var(--warning); }
+.oid-progress-red { background: var(--danger); }
+
 /* طباعة محتوى Drawer فقط — يُخفي باقي الصفحة */
 @media print {
   body * {
