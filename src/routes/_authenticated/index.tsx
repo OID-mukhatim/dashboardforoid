@@ -112,6 +112,7 @@ function LanguageToggle() {
 /* ============================== Header ============================== */
 function Header({ onNavigate }: { onNavigate: (s: SectionId) => void }) {
   const { isAdmin } = useAuth();
+  const { t } = useLang();
   const navigate = useNavigate();
   // بروفايلات حيّة من Supabase (نفس مصدر لوحة القيادة) لتقرير مطابق تماماً.
   const { data: snap } = useDashboardSnapshotQuery();
@@ -194,10 +195,10 @@ function Sidebar({ current, onChange }: { current: SectionId; onChange: (s: Sect
                   <button
                     key={it.id}
                     onClick={() => onChange(it.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition text-right ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition ${isRTL ? "text-right" : "text-left"} ${
                       active ? "text-white font-medium" : "text-white/75 hover:bg-white/5"
                     }`}
-                    style={ active ? { background: "var(--sidebar-active)", borderRight: "3px solid #a8d5b5" } : undefined }
+                    style={ active ? { background: "var(--sidebar-active)", ...(isRTL ? { borderRight: "3px solid #a8d5b5" } : { borderLeft: "3px solid #a8d5b5" }) } : undefined }
                   >
                     <it.icon size={16} />
                     <span className="flex-1">{it.label}</span>
