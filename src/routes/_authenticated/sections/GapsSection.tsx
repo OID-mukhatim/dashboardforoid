@@ -85,7 +85,7 @@ export function GapsSection() {
       <Card>
         <CardHeader title="خريطة الحرارة (Heatmap)" subtitle="اضغط على أي رقم لتعديله — يُحفظ تلقائياً" />
         <div className="p-4"><ScrollableTable>
-          <table className="w-full text-sm">
+          <table className="oid-table">
             <thead><tr><th className="px-3 py-2 text-right text-xs text-muted-foreground">المؤسسة</th>
               {GAP_AXES.map(a => <th key={a} className="px-3 py-2 text-xs text-muted-foreground">{a}</th>)}
             </tr></thead>
@@ -96,7 +96,7 @@ export function GapsSection() {
                   {GAP_AXES.map((axis, i) => {
                     const v = liveGapScores[o.id]?.[i] ?? null;
                     return (
-                      <td key={axis} className="px-2 py-2 text-center">
+                      <td key={axis} className="numeric">
                         <input
                           type="number"
                           min={0}

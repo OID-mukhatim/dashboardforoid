@@ -303,8 +303,8 @@ export function PartnershipsSection() {
         <Card>
           <CardHeader title="جدول الشراكات" />
           <ScrollableTable>
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground">
+            <table className="oid-table">
+              <thead>
                 <tr>{["الشريك", "النوع", "الحالة", "الجغرافيا", "المؤسسات المرتبطة"].map(h => <th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
               </thead>
               <tbody>

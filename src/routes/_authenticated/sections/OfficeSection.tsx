@@ -344,8 +344,8 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
               </Button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs border border-border rounded-md">
-                <thead className="bg-slate-50">
+              <table className="oid-table">
+                <thead>
                   <tr>
                     <th className="p-2 text-right">القرار</th>
                     <th className="p-2 text-right w-32">المكلف</th>
@@ -655,8 +655,8 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
               </Button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs border border-border rounded-md">
-                <thead className="bg-slate-50">
+              <table className="oid-table">
+                <thead>
                   <tr>
                     <th className="p-2 text-right">الفجوة</th>
                     <th className="p-2 text-right">الإجراء التصحيحي</th>

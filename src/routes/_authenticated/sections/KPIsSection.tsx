@@ -60,13 +60,6 @@ const fmtPct = (v: number | null | undefined, decimals = 0) => {
 const fmtNum = (v: number | null | undefined) =>
   v === null || v === undefined ? "—" : String(Math.round(Number(v) * 100) / 100);
 
-const statusClass: Record<string, string> = {
-  green: "bg-emerald-500/10 text-emerald-600",
-  yellow: "bg-amber-500/10 text-amber-600",
-  red: "bg-red-500/10 text-red-600",
-  gray: "bg-muted text-muted-foreground",
-};
-
 export function KPIsSection() {
   const [view, setView] = useState<"matrix" | "card" | "update">("matrix");
   const [orgF, setOrgF] = useState<string>("الكل");

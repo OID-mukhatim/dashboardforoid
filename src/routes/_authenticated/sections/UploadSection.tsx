@@ -461,7 +461,7 @@ export function UploadSection() {
         <div className="p-5">
           {rows.length === 0 ? <EmptyData msg="لا توجد ملفات مرفوعة بعد" /> : (
             <ScrollableTable>
-              <table className="w-full text-sm">
+              <table className="oid-table">
                 <thead>
                   <tr className="text-right border-b">
                     <th className="p-2 w-8">
@@ -620,8 +620,8 @@ export function UploadSection() {
                       <div className="font-semibold text-sm mb-2">تفاصيل المؤشرات المُحدَّثة ({preview.result.updated.length}):</div>
                       <div className="border border-border rounded-lg">
                         <ScrollableTable maxHeight={300}>
-                        <table className="w-full text-xs min-w-[520px]">
-                          <thead className="bg-muted/50 sticky top-0">
+                        <table className="oid-table min-w-[520px]">
+                          <thead>
                             <tr className="text-right">
                               <th className="p-2">الكود</th><th className="p-2">الحقل</th>
                               <th className="p-2">القديم</th><th className="p-2">الجديد</th>
