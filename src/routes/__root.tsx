@@ -10,6 +10,7 @@ import {
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
+import { LangProvider } from "@/lib/lang-context";
 
 function NotFoundComponent() {
   return (
@@ -120,8 +121,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster richColors position="top-center" />
+      <LangProvider>
+        <Outlet />
+        <Toaster richColors position="top-center" />
+      </LangProvider>
     </QueryClientProvider>
   );
 }
