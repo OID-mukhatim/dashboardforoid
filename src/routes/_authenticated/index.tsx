@@ -28,37 +28,41 @@ export const Route = createFileRoute("/_authenticated/")({ component: Page });
 
 type SectionId =
   | "dashboard" | "kpis" | "quarterly" | "gaps" | "governance"
-  | "financial" | "partnerships" | "profiles" | "initiatives" | "office" | "upload";
+  | "financial" | "partnerships" | "profiles" | "initiatives" | "office" | "upload" | "terminology";
 
-const NAV: { group: string; items: { id: SectionId; label: string; icon: any }[] }[] = [
-  { group: "القيادة", items: [
-    { id: "dashboard", label: "لوحة القيادة الرئيسية", icon: Home },
-    { id: "kpis", label: "مؤشرات الأداء KPIs", icon: Target },
-    { id: "quarterly", label: "التقارير الربعية", icon: FileText },
+type NavItem = { id: SectionId; label: string; icon: any; adminOnly?: boolean };
+
+const buildNav = (t: (p: string) => string): { group: string; items: NavItem[] }[] => [
+  { group: t("nav.groupLeadership"), items: [
+    { id: "dashboard", label: t("nav.dashboard"), icon: Home },
+    { id: "kpis", label: t("nav.kpis"), icon: Target },
+    { id: "quarterly", label: t("nav.quarterly"), icon: FileText },
   ]},
-  { group: "التقييم", items: [
-    { id: "gaps", label: "تحليل الفجوات المؤسسية", icon: RadarIcon },
-    { id: "governance", label: "الحوكمة والامتثال", icon: Landmark },
-    { id: "financial", label: "المستشار المالي", icon: Wallet },
-    { id: "partnerships", label: "الشراكات الاستراتيجية", icon: Handshake },
+  { group: t("nav.groupAssessment"), items: [
+    { id: "gaps", label: t("nav.gaps"), icon: RadarIcon },
+    { id: "governance", label: t("nav.governance"), icon: Landmark },
+    { id: "financial", label: t("nav.financial"), icon: Wallet },
+    { id: "partnerships", label: t("nav.partnerships"), icon: Handshake },
   ]},
-  { group: "المؤسسات", items: [
-    { id: "profiles", label: "البيانات المؤسسية", icon: Building },
-    { id: "initiatives", label: "المبادرات التطويرية", icon: Rocket },
-    { id: "office", label: "أعمال المكتب", icon: Building2 },
+  { group: t("nav.groupOrgs"), items: [
+    { id: "profiles", label: t("nav.profiles"), icon: Building },
+    { id: "initiatives", label: t("nav.initiatives"), icon: Rocket },
+    { id: "office", label: t("nav.office"), icon: Building2 },
   ]},
-  { group: "الأدوات", items: [
-    { id: "upload", label: "رفع البيانات وتحديثها", icon: Upload },
+  { group: t("nav.groupTools"), items: [
+    { id: "upload", label: t("nav.upload"), icon: Upload },
+    { id: "terminology", label: t("nav.terminology"), icon: Languages, adminOnly: true },
   ]},
 ];
 
 function Page() {
   const [section, setSection] = useState<SectionId>("dashboard");
+  const { dir } = useLang();
   useLiveTimeline();
   const { pending } = useTaskRequest();
   useEffect(() => { if (pending) setSection("office"); }, [pending]);
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col" dir={dir}>
       <Header onNavigate={setSection} />
       <div className="flex flex-1">
         <Sidebar current={section} onChange={setSection} />
@@ -74,9 +78,30 @@ function Page() {
           {section === "initiatives" && <InitiativesSection />}
           {section === "office" && <OfficeSection />}
           {section === "upload" && <UploadSection />}
+          {section === "terminology" && <TerminologySection />}
         </main>
       </div>
       <InstitutionProfileDrawer />
+    </div>
+  );
+}
+
+/* ========================= Language toggle ========================= */
+function LanguageToggle() {
+  const { lang, setLang } = useLang();
+  return (
+    <div className="flex items-center gap-1 p-0.5 rounded-lg bg-white/10 border border-white/20">
+      {(["ar", "en"] as Lang[]).map((l) => (
+        <button
+          key={l}
+          onClick={() => setLang(l)}
+          className={`px-2.5 py-1 rounded-md text-xs transition ${
+            lang === l ? "bg-white text-primary font-bold" : "text-white/70 hover:text-white"
+          }`}
+        >
+          {l === "ar" ? "عربي" : "English"}
+        </button>
+      ))}
     </div>
   );
 }
