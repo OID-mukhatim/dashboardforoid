@@ -370,6 +370,7 @@ export type Database = {
           id: string
           indicator_role: string | null
           indicator_type: string | null
+          input_lang: string | null
           is_baseline: boolean | null
           kpi_code: string
           kpi_name: string | null
@@ -423,6 +424,7 @@ export type Database = {
           id?: string
           indicator_role?: string | null
           indicator_type?: string | null
+          input_lang?: string | null
           is_baseline?: boolean | null
           kpi_code: string
           kpi_name?: string | null
@@ -476,6 +478,7 @@ export type Database = {
           id?: string
           indicator_role?: string | null
           indicator_type?: string | null
+          input_lang?: string | null
           is_baseline?: boolean | null
           kpi_code?: string
           kpi_name?: string | null
@@ -929,6 +932,42 @@ export type Database = {
           },
         ]
       }
+      terminology: {
+        Row: {
+          ar: string
+          category: string
+          created_at: string
+          en: string
+          id: string
+          key: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ar: string
+          category?: string
+          created_at?: string
+          en: string
+          id?: string
+          key: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ar?: string
+          category?: string
+          created_at?: string
+          en?: string
+          id?: string
+          key?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       timeline_entries: {
         Row: {
           domain: string
@@ -962,6 +1001,42 @@ export type Database = {
           period_order?: number
           recorded_at?: string | null
           value?: number
+        }
+        Relationships: []
+      }
+      translations_cache: {
+        Row: {
+          created_at: string
+          field_name: string | null
+          id: string
+          record_id: string | null
+          source_lang: string
+          source_text: string
+          table_name: string | null
+          target_lang: string
+          translated: string
+        }
+        Insert: {
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          record_id?: string | null
+          source_lang: string
+          source_text: string
+          table_name?: string | null
+          target_lang: string
+          translated: string
+        }
+        Update: {
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          record_id?: string | null
+          source_lang?: string
+          source_text?: string
+          table_name?: string | null
+          target_lang?: string
+          translated?: string
         }
         Relationships: []
       }
@@ -1023,18 +1098,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          preferred_lang: string | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          preferred_lang?: string | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          preferred_lang?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
