@@ -2,7 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, Building, Rocket, Upload, Download, FileBarChart, LogOut, Shield, Building2 } from "lucide-react";
+import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, Building, Rocket, Upload, Download, FileBarChart, LogOut, Shield, Building2, Languages } from "lucide-react";
+import { useLang } from "@/lib/lang-context";
+import type { Lang } from "@/lib/i18n";
+import { TerminologySection } from "./sections/TerminologySection";
 import { generateExecutiveReport } from "@/lib/oid-report-generator";
 import { computeProfileFromLive, type InstitutionProfile } from "@/lib/oid-composite";
 import { ORGS, type OrgId } from "@/lib/oid-data";
@@ -135,28 +138,28 @@ function Header({ onNavigate }: { onNavigate: (s: SectionId) => void }) {
     <header className="header-grad text-white shadow-lg">
       <div className="flex items-center justify-between px-6 py-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">مكتب الإشراف والتطوير المؤسسي</h1>
-          <p className="text-lg text-white/80 font-serif mt-0.5">Oversight & Institutional Development — OID</p>
+          <h1 className="text-xl font-bold tracking-tight">{t("header.office")}</h1>
+          <p className="text-lg text-white/80 font-serif mt-0.5">{t("header.officeEn")}</p>
         </div>
         <div className="flex items-center gap-3">
-
+          <LanguageToggle />
           {isAdmin && (
-            <Link to="/users" className="p-2 rounded-lg hover:bg-white/15 transition" title="إدارة المستخدمين">
+            <Link to="/users" className="p-2 rounded-lg hover:bg-white/15 transition" title={t("header.users")}>
               <Shield size={18} />
             </Link>
           )}
           <span className="text-xs px-2 py-1 rounded-md bg-white/15 border border-white/20">v1.0 — 2026</span>
-          <IconBtn icon={Download} label="تصدير PDF" onClick={() => window.print()} />
+          <IconBtn icon={Download} label={t("header.exportPDF")} onClick={() => window.print()} />
           <button
             onClick={() => generateExecutiveReport("Q2", 2026, liveProfiles)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition"
-            title="تقرير تنفيذي"
+            title={t("header.execReport")}
           >
             <FileBarChart size={16} />
-            <span>تقرير تنفيذي</span>
+            <span>{t("header.execReport")}</span>
           </button>
           <NotificationsPanel onNavigate={onNavigate} />
-          <button onClick={signOut} className="p-2 rounded-lg hover:bg-white/15 transition" title="خروج">
+          <button onClick={signOut} className="p-2 rounded-lg hover:bg-white/15 transition" title={t("header.signOut")}>
             <LogOut size={18} />
           </button>
         </div>
@@ -175,14 +178,17 @@ function IconBtn({ icon: Icon, label, badge, onClick }: any) {
 
 /* ============================== Sidebar ============================== */
 function Sidebar({ current, onChange }: { current: SectionId; onChange: (s: SectionId)=>void }) {
+  const { t, isRTL } = useLang();
+  const { isAdmin } = useAuth();
+  const nav = buildNav(t);
   return (
     <aside className="w-[248px] shrink-0 text-white" style={{ background: "var(--sidebar-bg)" }}>
       <div className="p-4 space-y-5">
-        {NAV.map((g) => (
+        {nav.map((g) => (
           <div key={g.group}>
             <div className="text-[11px] uppercase tracking-wider text-white/50 mb-2 px-2">{g.group}</div>
             <nav className="space-y-1">
-              {g.items.map((it) => {
+              {g.items.filter((it) => !it.adminOnly || isAdmin).map((it) => {
                 const active = current === it.id;
                 return (
                   <button
