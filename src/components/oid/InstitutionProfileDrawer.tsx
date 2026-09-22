@@ -369,26 +369,6 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                 )}
               </Block>
 
-              {/* KPIs summary */}
-              <Block title={`مؤشرات الأداء (${orgKPIs.length})`}>
-                {orgKPIs.length === 0 ? (
-                  <EmptyMini msg="لا توجد KPIs مرتبطة" />
-                ) : (
-                  <ul className="space-y-1.5">
-                    {orgKPIs.map((k) => (
-                      <li key={k.code} className="flex items-center gap-3 text-sm border border-border rounded-lg p-2.5">
-                        <span className="font-mono text-[10px] text-muted-foreground w-20 shrink-0">{k.code}</span>
-                        <span className="flex-1 whitespace-normal break-words">{k.kpi}</span>
-                        <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${k.progress}%`, background: org.color }} />
-                        </div>
-                        <span className="text-xs w-10 text-left tabular-nums" dir="ltr">{k.progress}%</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Block>
-
               {/* Financial */}
               {(fin || finProg) && (
                 <Block title="الوضع المالي">
