@@ -30,6 +30,8 @@ import { quarterMonths } from "@/lib/oid-data";
 import { formatScore, formatBudget, formatPct, formatCount } from "@/lib/oid-formatting";
 import { TrendBadge } from "./TrendBadge";
 import { useDashboardSnapshotQuery } from "@/routes/_authenticated/sections/_shared";
+import { loadInstitutionalProfiles } from "@/lib/dashboard.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 const TABS = ["نظرة عامة", "الفجوات", "الحوكمة", "الشراكات", "المبادرات", "السجل الزمني"] as const;
 type TabKey = (typeof TABS)[number];
@@ -59,11 +61,26 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
   const { data: dbInst } = useQuery({
     queryKey: ["institutions", orgId],
     queryFn: async () => {
-      const { data } = await supabase.from("institutions").select("*").eq("id", orgId).single();
+      const { data } = await supabase.from("institutions").select("*").eq("id", orgId).maybeSingle();
       return data;
     },
     enabled: !!orgId,
   });
+  // بيانات الاستمارات المرفوعة (نفس مصدر بطاقات «البيانات المؤسسية»)
+  const profilesFn = useServerFn(loadInstitutionalProfiles);
+  const { data: liveProfiles = {} as Record<string, any> } = useQuery({
+    queryKey: ["institutional-profiles"],
+    queryFn: () => profilesFn(),
+  });
+  const pick = (...patterns: RegExp[]) => {
+    const fields = (liveProfiles as any)?.[orgId]?.fields ?? {};
+    for (const re of patterns) {
+      for (const [k, v] of Object.entries(fields)) {
+        if (re.test(k) && v) return v as string;
+      }
+    }
+    return null;
+  };
   const { data: dbPartnerships } = useQuery({
     queryKey: ["partnerships", orgId],
     queryFn: async () => {
@@ -148,19 +165,19 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
 
   // بيانات الهوية مدمجة (DB يغلب على الثابت)
   const identity = {
-    founded: dbInst?.founded ?? inst?.founded,
-    license: dbInst?.license_number ?? inst?.license,
-    licenseExpiry: dbInst?.license_expiry ?? inst?.licenseExpiry,
-    execAr: dbInst?.exec_name_ar ?? inst?.execAr,
-    deputyName: dbInst?.deputy_name_ar,
+    founded: dbInst?.founded ?? pick(/تاريخ\s*التأسيس/) ?? inst?.founded,
+    license: dbInst?.license_number ?? pick(/رقم\s*الترخيص/) ?? inst?.license,
+    licenseExpiry: dbInst?.license_expiry ?? pick(/تاريخ\s*الصلاحية/) ?? inst?.licenseExpiry,
+    execAr: dbInst?.exec_name_ar ?? pick(/المدير\s*التنفيذي.*العرب/, /المدير\s*التنفيذي/) ?? inst?.execAr,
+    deputyName: dbInst?.deputy_name_ar ?? pick(/نائب\s*المدير/),
     staffTotal: dbInst?.staff_total ?? inst?.staff?.total,
     budget: dbInst?.budget ?? inst?.budget,
     sector: dbInst?.sector ?? inst?.sector,
     branches: dbInst?.branches ?? inst?.branches,
-    address: dbInst?.address,
-    website: dbInst?.website,
-    phone: dbInst?.exec_phone ?? inst?.phone,
-    email: dbInst?.exec_email ?? inst?.email,
+    address: dbInst?.address ?? pick(/عنوان\s*المقر|address/i),
+    website: dbInst?.website ?? pick(/الموقع\s*الالكتروني|website/i),
+    phone: dbInst?.exec_phone ?? pick(/رقم\s*التواصل/, /phone/i) ?? inst?.phone,
+    email: dbInst?.exec_email ?? pick(/الإيميل/, /email/i) ?? inst?.email,
   };
 
   // رادار الفجوات لهذه المؤسسة
