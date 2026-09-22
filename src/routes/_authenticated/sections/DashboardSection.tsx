@@ -76,6 +76,24 @@ export function DashboardSection() {
     return row;
   });
 
+  // الشراكات: من قاعدة البيانات مع الرجوع للبيانات الثابتة
+  const { data: partnershipRows } = useQuery({
+    queryKey: ["partnerships"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("partnerships").select("*").order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const partnershipList = useMemo(() => {
+    const rows = (partnershipRows ?? []) as any[];
+    const src = rows.length ? rows : (fallbackPartnerships as any[]);
+    return src.map((r) => ({
+      status: r.status as string,
+      linkedOrgs: (Array.isArray(r.linked_orgs) ? r.linked_orgs : Array.isArray(r.linkedOrgs) ? r.linkedOrgs : []) as string[],
+    }));
+  }, [partnershipRows]);
+
   const stats = useMemo(() => {
     const list = orgFilter === "all" ? institutions : institutions.filter((i) => i.id === orgFilter);
     const staff = list.reduce((sum, i) => sum + (i.staff?.total ?? 0), 0);
