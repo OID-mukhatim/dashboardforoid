@@ -37,36 +37,38 @@ function AchievementCell({ pct }: { pct: number | null }) {
   );
 }
 
+type QuarterlyColumn = { key: string; label: string; width: string; minWidth?: string };
+
 const QUARTERLY_COLUMNS = [
   { key: "seq", label: "م", width: "36px" },
-  { key: "title", label: "النشاط", width: "auto" },
-  { key: "kpi_code", label: "كود المؤشر", width: "80px" },
-  { key: "org", label: "المؤسسة", width: "65px" },
-  { key: "target", label: "المستهدف", width: "65px" },
-  { key: "done", label: "المنفذ", width: "65px" },
-  { key: "pct", label: "الإنجاز", width: "80px" },
-  { key: "beneficiaries", label: "المستفيدون", width: "70px" },
-  { key: "location", label: "الموقع", width: "70px" },
-  { key: "budget", label: "الموازنة", width: "70px" },
-  { key: "cost", label: "التكلفة", width: "70px" },
-  { key: "deviation", label: "الانحراف", width: "70px" },
-  { key: "outcomes", label: "المخرجات", width: "auto" },
-] as const;
+  { key: "title", label: "النشاط", width: "auto", minWidth: "180px" },
+  { key: "kpi_code", label: "كود المؤشر", width: "95px" },
+  { key: "org", label: "المؤسسة", width: "75px" },
+  { key: "target", label: "المستهدف", width: "78px" },
+  { key: "done", label: "المنفذ", width: "70px" },
+  { key: "pct", label: "نسبة الإنجاز", width: "100px" },
+  { key: "beneficiaries", label: "المستفيدون", width: "80px" },
+  { key: "location", label: "الموقع", width: "80px" },
+  { key: "budget", label: "الموازنة", width: "78px" },
+  { key: "cost", label: "التكلفة", width: "78px" },
+  { key: "deviation", label: "الانحراف", width: "78px" },
+  { key: "outcomes", label: "المخرجات والنتائج", width: "auto", minWidth: "130px" },
+] satisfies readonly QuarterlyColumn[];
 
-const quarterlyColumnStyle = (width: string) => ({
-  width: width === "auto" ? undefined : width,
-  minWidth: width === "auto" ? "120px" : width,
-  maxWidth: width === "auto" ? undefined : width,
+const quarterlyColumnStyle = (column: QuarterlyColumn, body = false) => ({
+  width: column.width === "auto" ? undefined : column.width,
+  minWidth: column.width === "auto" ? column.minWidth ?? "120px" : column.width,
+  maxWidth: column.width === "auto" ? undefined : column.width,
   overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  textOverflow: column.width === "auto" ? "clip" : "ellipsis",
+  whiteSpace: body && column.width === "auto" ? "normal" : "nowrap",
 } as const);
 
 function QuarterlyColgroup() {
   return (
     <colgroup>
       {QUARTERLY_COLUMNS.map((col) => (
-        <col key={col.key} style={{ width: col.width === "auto" ? undefined : col.width }} />
+        <col key={col.key} style={{ width: col.width === "auto" ? col.minWidth : col.width }} />
       ))}
     </colgroup>
   );
@@ -80,7 +82,7 @@ function QuarterlyHead() {
           <th
             key={col.key}
             className={col.key === "seq" ? "numeric" : ""}
-            style={{ ...quarterlyColumnStyle(col.width), textAlign: col.key === "seq" ? "center" : "right" }}
+            style={{ ...quarterlyColumnStyle(col), textAlign: col.key === "seq" ? "center" : "right" }}
           >
             {col.label}
           </th>
@@ -228,20 +230,20 @@ export function QuarterlySection() {
                 {q1Data.map((r, i) => (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/20 align-top">
                     <td className="seq-col">{i + 1}</td>
-                    <td className="text-ellipsis-cell" title={r.title}>{r.title}</td>
+                    <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(QUARTERLY_COLUMNS[1], true)}>{r.title}</td>
                     <td className="numeric font-mono text-xs text-primary" title={r.kpiCode}>{r.kpiCode}</td>
                     <td className="text-center"><OrgChip id={r.org as OrgId} /></td>
                     <td className="numeric">{r.target}</td>
                     <td className="numeric">{r.done}</td>
                     <td className="numeric"><AchievementCell pct={r.pct} /></td>
                     <td className="numeric" title={String(r.beneficiaries ?? "")}>{r.beneficiaries}</td>
-                    <td className="text-ellipsis-cell" title="">—</td>
+                    <td className="text-ellipsis-cell text-xs" title="">—</td>
                     <td className="numeric">{formatNumber(r.budget, { prefix: "$", decimals: 0 })}</td>
                     <td className="numeric">{formatNumber(r.cost, { prefix: "$", decimals: 0 })}</td>
                     <td className={`numeric ${r.deviation > 0 ? "status-green" : r.deviation < 0 ? "status-red" : ""}`}>
                       {r.deviation > 0 ? `+$${r.deviation}` : r.deviation < 0 ? `-$${Math.abs(r.deviation)}` : "—"}
                     </td>
-                    <td className="text-ellipsis-cell" title="">—</td>
+                    <td className="text-xs leading-relaxed text-muted-foreground" style={quarterlyColumnStyle(QUARTERLY_COLUMNS[12], true)}>—</td>
                   </tr>
                 ))}
               </tbody>
@@ -267,7 +269,7 @@ export function QuarterlySection() {
                 {achievements.map((r, i) => (
                   <tr key={r._k} className="border-t border-border hover:bg-muted/20 align-top">
                     <td className="seq-col">{i + 1}</td>
-                    <td className="text-ellipsis-cell" title={r.title}>{r.title}</td>
+                    <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(QUARTERLY_COLUMNS[1], true)}>{r.title}</td>
                     <td className="numeric font-mono text-xs text-primary" title={r.code ?? ""}>{r.code ?? "—"}</td>
                     <td className="text-center">{r.org ? <OrgChip id={r.org as OrgId} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
                     <td className="numeric">{r.target ?? "—"}</td>
@@ -280,7 +282,7 @@ export function QuarterlySection() {
                     <td className={`numeric ${r.variance && r.variance > 0 ? "status-green" : r.variance && r.variance < 0 ? "status-red" : ""}`}>
                       {r.variance && r.variance > 0 ? `+$${r.variance}` : r.variance && r.variance < 0 ? `-$${Math.abs(r.variance)}` : "—"}
                     </td>
-                    <td className="text-ellipsis-cell text-xs text-muted-foreground" title={r.outcomes ?? ""}>{r.outcomes ?? "—"}</td>
+                    <td className="text-xs leading-relaxed text-muted-foreground" style={quarterlyColumnStyle(QUARTERLY_COLUMNS[12], true)}>{r.outcomes ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

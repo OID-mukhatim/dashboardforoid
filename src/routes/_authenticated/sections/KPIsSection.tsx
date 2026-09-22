@@ -60,41 +60,48 @@ const fmtPct = (v: number | null | undefined, decimals = 0) => {
 const fmtNum = (v: number | null | undefined) =>
   v === null || v === undefined ? "—" : String(Math.round(Number(v) * 100) / 100);
 
-const MATRIX_COLUMNS = [
-  { key: "org_id", label: "المؤسسة", width: "70px" },
-  { key: "perspective", label: "المنظور", width: "90px" },
-  { key: "goal", label: "الهدف الاستراتيجي", width: "auto" },
-  { key: "goal_weight", label: "وزن الهدف %", width: "52px" },
-  { key: "kpi", label: "مؤشر الأداء", width: "auto" },
-  { key: "code", label: "الكود", width: "90px" },
-  { key: "weight", label: "وزن المؤشر %", width: "52px" },
-  { key: "kpi_type", label: "النوع", width: "70px" },
-  { key: "unit", label: "الوحدة", width: "50px" },
-  { key: "baseline", label: "خط الأساس", width: "60px" },
-  { key: "annual_target", label: "المستهدف السنوي", width: "65px" },
-  { key: "q1_target", label: "مخطط", width: "52px" },
-  { key: "q1_achieved", label: "منجز", width: "52px" },
-  { key: "q2_target", label: "مخطط", width: "52px" },
-  { key: "q2_achieved", label: "منجز", width: "52px" },
-  { key: "q3_target", label: "مخطط", width: "52px" },
-  { key: "q3_achieved", label: "منجز", width: "52px" },
-  { key: "q4_target", label: "مخطط", width: "52px" },
-  { key: "q4_achieved", label: "منجز", width: "52px" },
-  { key: "total_planned", label: "مخطط", width: "60px" },
-  { key: "total_achieved", label: "منجز", width: "60px" },
-  { key: "achievement_pct", label: "نسبة الإنجاز %", width: "65px" },
-  { key: "exceeded", label: "التجاوز", width: "55px" },
-  { key: "status", label: "الحالة", width: "60px" },
-  { key: "outcomes", label: "المخرجات والنتائج", width: "auto" },
-] as const;
+type MatrixColumn = {
+  key: string;
+  label: string;
+  width: string;
+  minWidth?: string;
+  group?: "Q1" | "Q2" | "Q3" | "Q4" | "الإجمالي";
+  whiteSpace?: "nowrap" | "normal";
+};
 
-const matrixColumnStyle = (width: string, body = false) => ({
-  width: width === "auto" ? undefined : width,
-  minWidth: width === "auto" ? "120px" : width,
-  maxWidth: width === "auto" ? undefined : width,
+const MATRIX_COLUMNS = [
+  { key: "org_id", label: "المؤسسة", width: "75px" },
+  { key: "perspective", label: "المنظور", width: "115px", whiteSpace: "nowrap" },
+  { key: "goal", label: "الهدف الاستراتيجي", width: "auto", minWidth: "160px" },
+  { key: "goal_weight", label: "وزن الهدف %", width: "80px" },
+  { key: "kpi", label: "مؤشر الأداء", width: "auto", minWidth: "180px" },
+  { key: "code", label: "الكود", width: "95px" },
+  { key: "weight", label: "وزن المؤشر %", width: "85px" },
+  { key: "baseline", label: "خط الأساس", width: "78px" },
+  { key: "annual_target", label: "المستهدف السنوي", width: "90px" },
+  { key: "q1_target", label: "مخطط", group: "Q1", width: "55px" },
+  { key: "q1_achieved", label: "منجز", group: "Q1", width: "55px" },
+  { key: "q2_target", label: "مخطط", group: "Q2", width: "55px" },
+  { key: "q2_achieved", label: "منجز", group: "Q2", width: "55px" },
+  { key: "q3_target", label: "مخطط", group: "Q3", width: "55px" },
+  { key: "q3_achieved", label: "منجز", group: "Q3", width: "55px" },
+  { key: "q4_target", label: "مخطط", group: "Q4", width: "55px" },
+  { key: "q4_achieved", label: "منجز", group: "Q4", width: "55px" },
+  { key: "total_planned", label: "مخطط", group: "الإجمالي", width: "65px" },
+  { key: "total_achieved", label: "منجز", group: "الإجمالي", width: "65px" },
+  { key: "achievement_pct", label: "نسبة الإنجاز", width: "80px" },
+  { key: "exceeded", label: "التجاوز", width: "65px" },
+  { key: "status", label: "الحالة", width: "65px" },
+  { key: "outcomes", label: "المخرجات والنتائج", width: "auto", minWidth: "130px" },
+] satisfies readonly MatrixColumn[];
+
+const matrixColumnStyle = (column: MatrixColumn, body = false) => ({
+  width: column.width === "auto" ? undefined : column.width,
+  minWidth: column.width === "auto" ? column.minWidth ?? "120px" : column.width,
+  maxWidth: column.width === "auto" ? undefined : column.width,
   overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: body && width === "auto" ? "normal" : "nowrap",
+  textOverflow: column.width === "auto" ? "clip" : "ellipsis",
+  whiteSpace: body && column.width === "auto" ? "normal" : column.whiteSpace ?? "nowrap",
 } as const);
 
 export function KPIsSection() {
@@ -270,9 +277,9 @@ function MatrixView({
 
   const HEAD = "px-3 py-2 text-right font-medium whitespace-nowrap";
   const GROUPS = ["Q1", "Q2", "Q3", "Q4", "الإجمالي"];
-  const baseCols = MATRIX_COLUMNS.slice(0, 11);
-  const quarterCols = MATRIX_COLUMNS.slice(11, 21);
-  const summaryCols = MATRIX_COLUMNS.slice(21);
+  const baseCols = MATRIX_COLUMNS.filter((col) => !col.group && !["achievement_pct", "exceeded", "status", "outcomes"].includes(col.key));
+  const quarterCols = MATRIX_COLUMNS.filter((col) => col.group);
+  const summaryCols = MATRIX_COLUMNS.filter((col) => ["achievement_pct", "exceeded", "status", "outcomes"].includes(col.key));
 
   return (
     <>
@@ -294,13 +301,13 @@ function MatrixView({
           <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
             <colgroup>
               {MATRIX_COLUMNS.map((col) => (
-                <col key={col.key} style={{ width: col.width === "auto" ? undefined : col.width }} />
+                <col key={col.key} style={{ width: col.width === "auto" ? col.minWidth : col.width }} />
               ))}
             </colgroup>
             <thead>
               <tr>
                 {baseCols.map((col) => (
-                  <th key={col.key} rowSpan={2} className={`${HEAD} align-bottom border-b border-border`} style={matrixColumnStyle(col.width)}>
+                  <th key={col.key} rowSpan={2} className={`${HEAD} align-bottom border-b border-border`} style={matrixColumnStyle(col)}>
                     {col.label}
                   </th>
                 ))}
@@ -319,7 +326,7 @@ function MatrixView({
                   </th>
                 ))}
                 {summaryCols.map((col) => (
-                  <th key={col.key} rowSpan={2} className={`${HEAD} align-bottom border-b border-border`} style={matrixColumnStyle(col.width)}>
+                  <th key={col.key} rowSpan={2} className={`${HEAD} align-bottom border-b border-border`} style={matrixColumnStyle(col)}>
                     {col.label}
                   </th>
                 ))}
@@ -330,7 +337,7 @@ function MatrixView({
                     <th
                       key={col.key}
                       className={colIndex === 0 ? "quarter-start numeric" : "numeric"}
-                      style={matrixColumnStyle(col.width)}
+                      style={matrixColumnStyle(col)}
                     >
                       {col.label}
                     </th>
@@ -341,14 +348,14 @@ function MatrixView({
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={25} className="px-3 py-6 text-center text-muted-foreground">
+                    <td colSpan={MATRIX_COLUMNS.length} className="px-3 py-6 text-center text-muted-foreground">
                     جاري التحميل…
                   </td>
                 </tr>
               )}
               {!isLoading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={25} className="px-3 py-6 text-center text-muted-foreground">
+                    <td colSpan={MATRIX_COLUMNS.length} className="px-3 py-6 text-center text-muted-foreground">
                     لا توجد بيانات — ارفع مصفوفة المؤشرات من قسم "رفع البيانات".
                   </td>
                 </tr>
@@ -360,13 +367,13 @@ function MatrixView({
                 const gw = k.goal_id ? num(k.goal_weight) : null;
                 return (
                   <tr key={k.id} className="border-t border-border hover:bg-muted/20">
-                    <td className="px-3 py-2" style={matrixColumnStyle(MATRIX_COLUMNS[0].width, true)}>{k.entity_code}</td>
-                    <td className="px-3 py-2" style={matrixColumnStyle(MATRIX_COLUMNS[1].width, true)} title={k.sector ?? ""}>
+                    <td className="px-3 py-2 text-xs font-semibold text-primary" style={matrixColumnStyle(MATRIX_COLUMNS[0], true)}>{k.entity_code}</td>
+                    <td className="px-3 py-2 text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[1], true)} title={k.perspective ?? ""}>
                       {k.perspective}
                     </td>
-                    <td className="px-3 py-2" style={matrixColumnStyle(MATRIX_COLUMNS[2].width, true)} title={k.objective ?? ""}>{k.objective ?? "—"}</td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[3].width, true)}>{fmtPct(gw, 2)}</td>
-                    <td className="px-3 py-2" style={matrixColumnStyle(MATRIX_COLUMNS[4].width, true)} title={k.kpi_name ?? ""}>
+                    <td className="px-3 py-2 text-xs leading-relaxed" style={matrixColumnStyle(MATRIX_COLUMNS[2], true)}>{k.objective ?? "—"}</td>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[3], true)}>{fmtPct(gw, 2)}</td>
+                    <td className="px-3 py-2 text-xs leading-relaxed" style={matrixColumnStyle(MATRIX_COLUMNS[4], true)}>
                       {!k.card_completed && (
                         <span title="البطاقة غير مكتملة" className="ml-1">
                           ⚠️
@@ -374,27 +381,25 @@ function MatrixView({
                       )}
                       {k.kpi_name}
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[5].width, true)} title={k.kpi_code ?? ""}>{k.kpi_code}</td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[6].width, true)}>{fmtPct(d.weight, 2)}</td>
-                    <td className="px-3 py-2 text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[7].width, true)} title={k.kpi_type ?? ""}>{k.kpi_type ?? "—"}</td>
-                    <td className="px-3 py-2 text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[8].width, true)} title={unit ?? ""}>{unit ?? "—"}</td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[9].width, true)}>{formatKPIValue(d.baseline, unit)}</td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[10].width, true)}>{formatKPIValue(d.target, unit)}</td>
+                    <td className="px-2 py-2 text-center" style={matrixColumnStyle(MATRIX_COLUMNS[5], true)} title={k.kpi_code ?? ""}><code className="inline-block whitespace-nowrap rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]" dir="ltr">{k.kpi_code}</code></td>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[6], true)}>{fmtPct(d.weight, 2)}</td>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[7], true)}>{formatKPIValue(d.baseline, unit)}</td>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[8], true)}>{formatKPIValue(d.target, unit)}</td>
                     {[0, 1, 2, 3].flatMap((i) => [
-                      <td key={`p${i}`} className="quarter-start numeric" style={matrixColumnStyle(MATRIX_COLUMNS[11 + i * 2].width, true)}>
+                      <td key={`p${i}`} className="quarter-start numeric" style={matrixColumnStyle(MATRIX_COLUMNS[9 + i * 2], true)}>
                         {formatKPIValue(d.qp[i], unit)}
                       </td>,
-                      <td key={`a${i}`} className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[12 + i * 2].width, true)}>
+                      <td key={`a${i}`} className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[10 + i * 2], true)}>
                         {formatKPIValue(d.qa[i], unit)}
                       </td>,
                     ])}
-                    <td className="quarter-start numeric" style={matrixColumnStyle(MATRIX_COLUMNS[19].width, true)}>
+                    <td className="quarter-start numeric" style={matrixColumnStyle(MATRIX_COLUMNS[17], true)}>
                       {formatKPIValue(d.totalPlanned ?? d.target, unit)}
                     </td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[20].width, true)}>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[18], true)}>
                       {formatKPIValue(d.totalActual, unit)}
                     </td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[21].width, true)}>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[19], true)}>
                       <div className="flex flex-col items-center gap-1">
                         <Progress value={res.cappedPct ?? 0} />
                         <span className="text-[11px] tabular-nums">
@@ -402,13 +407,13 @@ function MatrixView({
                         </span>
                       </div>
                     </td>
-                    <td className="exceeded-cell" style={matrixColumnStyle(MATRIX_COLUMNS[22].width, true)}>
+                    <td className="exceeded-cell numeric" style={matrixColumnStyle(MATRIX_COLUMNS[20], true)}>
                       {res.exceeded !== null ? `+${res.exceeded}%` : "—"}
                     </td>
-                    <td className={`status-${res.status} text-center`} style={matrixColumnStyle(MATRIX_COLUMNS[23].width, true)} title={res.statusLabel}>
+                    <td className={`status-${res.status} text-center`} style={matrixColumnStyle(MATRIX_COLUMNS[21], true)} title={res.statusLabel}>
                       {res.statusLabel}
                     </td>
-                    <td className="px-3 py-2 text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[24].width, true)} title={k.final_output ?? ""}>{k.final_output ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs leading-relaxed text-muted-foreground" style={matrixColumnStyle(MATRIX_COLUMNS[22], true)}>{k.final_output ?? "—"}</td>
                   </tr>
                 );
               })}
