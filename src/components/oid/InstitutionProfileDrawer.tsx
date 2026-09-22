@@ -30,6 +30,8 @@ import { quarterMonths } from "@/lib/oid-data";
 import { formatScore, formatBudget, formatPct, formatCount } from "@/lib/oid-formatting";
 import { TrendBadge } from "./TrendBadge";
 import { useDashboardSnapshotQuery } from "@/routes/_authenticated/sections/_shared";
+import { loadInstitutionalProfiles } from "@/lib/dashboard.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 const TABS = ["نظرة عامة", "الفجوات", "الحوكمة", "الشراكات", "المبادرات", "السجل الزمني"] as const;
 type TabKey = (typeof TABS)[number];
