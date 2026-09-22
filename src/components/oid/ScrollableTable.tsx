@@ -213,7 +213,9 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
          * أعمدته، وبذلك تدخل كل الأعمدة فعلياً في نطاق التمرير حتى آخر عمود.
          */
         .st-content { width: max-content; box-sizing: border-box; }
+        .st-content:has(> .oid-table-fixed) { width: 100%; }
         .st-wrap table { width: max-content; min-width: 100%; table-layout: auto; }
+        .st-wrap table.oid-table-fixed { width: 100%; table-layout: fixed; }
 
         /*
          * أعمدة النص تتسع لقراءة نحو ثلاث كلمات في السطر، ولا تُقسّم الكلمة نفسها.
