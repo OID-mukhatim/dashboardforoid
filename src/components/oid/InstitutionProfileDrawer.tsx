@@ -571,7 +571,13 @@ function Field({ icon: Icon, k, v, dir }: any) {
     </div>
   );
 }
-function EmptyMini({ msg }: { msg: string }) {
+function extractUrl(raw: any): string | null {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  const m = s.match(/https?:\/\/[^\s،,؛;)]+/i) || s.match(/www\.[^\s،,؛;)]+/i) || s.match(/[\w.-]+\.[a-z]{2,}(\/\S*)?/i);
+  return m ? m[0] : null;
+}
+
   return <div className="text-xs text-muted-foreground bg-muted/40 border border-dashed border-border rounded p-3 text-center">{msg}</div>;
 }
 function Mini({ label, value, sub, accent }: any) {
