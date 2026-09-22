@@ -55,6 +55,31 @@ const QUARTERLY_COLUMNS: readonly QuarterlyColumn[] = [
   { key: "outcomes", label: "المخرجات والنتائج", width: "auto", minWidth: "130px" },
 ];
 
+const EVENT_COLUMNS: readonly QuarterlyColumn[] = [
+  { key: "seq", label: "م", width: "36px" },
+  { key: "title", label: "الفعالية", width: "auto", minWidth: "180px" },
+  { key: "code", label: "الكود", width: "95px" },
+  { key: "org", label: "المؤسسة", width: "90px" },
+  { key: "quarter", label: "الربع", width: "80px" },
+  { key: "target", label: "المستهدف", width: "95px" },
+  { key: "done", label: "المنفذ", width: "70px" },
+  { key: "pct", label: "% الإنجاز", width: "100px" },
+  { key: "beneficiaries", label: "المشاركون", width: "100px" },
+  { key: "location", label: "الموقع", width: "80px" },
+  { key: "evaluation", label: "التقييم", width: "auto", minWidth: "130px" },
+];
+
+const CHALLENGE_COLUMNS: readonly QuarterlyColumn[] = [
+  { key: "seq", label: "م", width: "36px" },
+  { key: "title", label: "التحدي/العائق", width: "auto", minWidth: "180px" },
+  { key: "org", label: "المؤسسة", width: "90px" },
+  { key: "quarter", label: "الربع", width: "80px" },
+  { key: "reasons", label: "الأسباب", width: "auto", minWidth: "140px" },
+  { key: "actions", label: "الإجراءات المتخذة", width: "auto", minWidth: "160px" },
+  { key: "status", label: "الوضع الحالي", width: "auto", minWidth: "130px" },
+  { key: "support", label: "المساهمة المطلوبة", width: "auto", minWidth: "150px" },
+];
+
 const quarterlyColumnStyle = (column: QuarterlyColumn, body = false) => ({
   width: column.width === "auto" ? undefined : column.width,
   minWidth: column.width === "auto" ? column.minWidth ?? "120px" : column.width,
@@ -79,6 +104,34 @@ function QuarterlyHead() {
     <thead>
       <tr>
         {QUARTERLY_COLUMNS.map((col) => (
+          <th
+            key={col.key}
+            className={col.key === "seq" ? "numeric" : ""}
+            style={{ ...quarterlyColumnStyle(col), textAlign: col.key === "seq" ? "center" : "right" }}
+          >
+            {col.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+}
+
+function ReportColgroup({ columns }: { columns: readonly QuarterlyColumn[] }) {
+  return (
+    <colgroup>
+      {columns.map((col) => (
+        <col key={col.key} style={{ width: col.width === "auto" ? undefined : col.width }} />
+      ))}
+    </colgroup>
+  );
+}
+
+function ReportHead({ columns }: { columns: readonly QuarterlyColumn[] }) {
+  return (
+    <thead>
+      <tr>
+        {columns.map((col) => (
           <th
             key={col.key}
             className={col.key === "seq" ? "numeric" : ""}
@@ -302,25 +355,24 @@ export function QuarterlySection() {
         ) : (
           <Card>
             <div className="px-4 py-3 text-sm font-medium border-b border-border">المشاركات والفعاليات والبرامج التدريبية</div>
-            <ScrollableTable>
-              <table className="oid-table">
-                <thead>
-                  <tr>{["م","الفعالية","الكود","المؤسسة","الربع","المستهدف","المنفذ","% الإنجاز","المشاركون","الموقع","التقييم"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
-                </thead>
+            <ScrollableTable minWidth={1250} maxHeight="calc(100vh - 180px)">
+              <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
+                <ReportColgroup columns={EVENT_COLUMNS} />
+                <ReportHead columns={EVENT_COLUMNS} />
                 <tbody>
                   {events.map((r, i) => (
                     <tr key={r._k} className="border-t border-border hover:bg-muted/20 align-top">
-                      <td className="numeric">{i + 1}</td>
-                      <td className="px-3 py-2 min-w-[200px]">{r.title}</td>
-                      <td className="px-3 py-2 font-mono text-xs text-primary">{r.code ?? "—"}</td>
-                      <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
-                      <td className="px-3 py-2 text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>
+                      <td className="seq-col">{i + 1}</td>
+                      <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(EVENT_COLUMNS[1], true)}>{r.title}</td>
+                      <td className="text-ellipsis-cell font-mono text-xs text-primary" title={r.code ?? ""}>{r.code ?? "—"}</td>
+                      <td className="text-center">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
+                      <td className="text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>
                       <td className="numeric">{r.target ?? "—"}</td>
                       <td className="numeric">{r.achieved ?? "—"}</td>
-                      <td className="numeric min-w-[120px]"><AchievementCell pct={r.pct} /></td>
+                      <td className="numeric"><AchievementCell pct={r.pct} /></td>
                       <td className="numeric">{r.participants ?? "—"}</td>
-                      <td className="px-3 py-2 text-xs">{r.location ?? "—"}</td>
-                      <td className="px-3 py-2 text-xs">{r.evaluation ?? "—"}</td>
+                      <td className="text-ellipsis-cell text-xs" title={r.location ?? ""}>{r.location ?? "—"}</td>
+                      <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(EVENT_COLUMNS[10], true)}>{r.evaluation ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -339,22 +391,21 @@ export function QuarterlySection() {
           </Card>
         ) : (
           <Card>
-            <ScrollableTable>
-              <table className="oid-table">
-                <thead>
-                  <tr>{["م","التحدي/العائق","المؤسسة","الربع","الأسباب","الإجراءات المتخذة","الوضع الحالي","المساهمة المطلوبة"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
-                </thead>
+            <ScrollableTable minWidth={1250} maxHeight="calc(100vh - 180px)">
+              <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
+                <ReportColgroup columns={CHALLENGE_COLUMNS} />
+                <ReportHead columns={CHALLENGE_COLUMNS} />
                 <tbody>
                   {challenges.map((r, i) => (
                     <tr key={r._k} className="border-t border-border hover:bg-muted/20 align-top">
-                      <td className="numeric">{i + 1}</td>
-                      <td className="px-3 py-2 min-w-[200px]">{r.title}</td>
-                      <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
-                      <td className="px-3 py-2 text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>
-                      <td className="px-3 py-2 text-xs">{r.reasons ?? "—"}</td>
-                      <td className="px-3 py-2 text-xs">{r.actions ?? "—"}</td>
-                      <td className="px-3 py-2 text-xs">{r.status ?? "—"}</td>
-                      <td className="px-3 py-2 text-xs">{r.requiredSupport ?? "—"}</td>
+                      <td className="seq-col">{i + 1}</td>
+                      <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(CHALLENGE_COLUMNS[1], true)}>{r.title}</td>
+                      <td className="text-center">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
+                      <td className="text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>
+                      <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(CHALLENGE_COLUMNS[4], true)}>{r.reasons ?? "—"}</td>
+                      <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(CHALLENGE_COLUMNS[5], true)}>{r.actions ?? "—"}</td>
+                      <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(CHALLENGE_COLUMNS[6], true)}>{r.status ?? "—"}</td>
+                      <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(CHALLENGE_COLUMNS[7], true)}>{r.requiredSupport ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
