@@ -578,6 +578,7 @@ function extractUrl(raw: any): string | null {
   return m ? m[0] : null;
 }
 
+function EmptyMini({ msg }: { msg: string }) {
   return <div className="text-xs text-muted-foreground bg-muted/40 border border-dashed border-border rounded p-3 text-center">{msg}</div>;
 }
 function Mini({ label, value, sub, accent }: any) {
