@@ -198,7 +198,7 @@ export const UI_STRINGS = {
       quarterly: "Quarterly Reports",
       gaps: "Gap Analysis",
       governance: "Governance & Compliance",
-      financial: "Financial Advisor",
+      financial: "Financial Performance",
       partnerships: "Strategic Partnerships",
       profiles: "Institutional Profiles",
       initiatives: "Development Initiatives",
