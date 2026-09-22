@@ -16,7 +16,7 @@ import {
 import { X, Building2, Users, Coins, Calendar, ShieldCheck, Phone, Mail, AlertTriangle, Printer } from "lucide-react";
 import {
   ORGS, type OrgId, GAP_AXES, gapScores, institutions,
-  kpiData, partnerships, initiatives, financialAssessment, financialProgram,
+  partnerships, initiatives, financialAssessment, financialProgram,
   generalPolicies, humanitarianPolicies, universityPolicies, educationPolicies,
   POLICY_STATUS_META,
 } from "@/lib/oid-data";
