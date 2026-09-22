@@ -69,7 +69,7 @@ type MatrixColumn = {
   whiteSpace?: "nowrap" | "normal";
 };
 
-const MATRIX_COLUMNS = [
+const MATRIX_COLUMNS: readonly MatrixColumn[] = [
   { key: "org_id", label: "المؤسسة", width: "75px" },
   { key: "perspective", label: "المنظور", width: "115px", whiteSpace: "nowrap" },
   { key: "goal", label: "الهدف الاستراتيجي", width: "auto", minWidth: "160px" },
@@ -93,7 +93,7 @@ const MATRIX_COLUMNS = [
   { key: "exceeded", label: "التجاوز", width: "65px" },
   { key: "status", label: "الحالة", width: "65px" },
   { key: "outcomes", label: "المخرجات والنتائج", width: "auto", minWidth: "130px" },
-] satisfies readonly MatrixColumn[];
+];
 
 const matrixColumnStyle = (column: MatrixColumn, body = false) => ({
   width: column.width === "auto" ? undefined : column.width,
@@ -301,7 +301,7 @@ function MatrixView({
           <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
             <colgroup>
               {MATRIX_COLUMNS.map((col) => (
-                <col key={col.key} style={{ width: col.width === "auto" ? col.minWidth : col.width }} />
+                <col key={col.key} style={{ width: col.width === "auto" ? undefined : col.width }} />
               ))}
             </colgroup>
             <thead>

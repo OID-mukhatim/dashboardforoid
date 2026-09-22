@@ -39,7 +39,7 @@ function AchievementCell({ pct }: { pct: number | null }) {
 
 type QuarterlyColumn = { key: string; label: string; width: string; minWidth?: string };
 
-const QUARTERLY_COLUMNS = [
+const QUARTERLY_COLUMNS: readonly QuarterlyColumn[] = [
   { key: "seq", label: "م", width: "36px" },
   { key: "title", label: "النشاط", width: "auto", minWidth: "180px" },
   { key: "kpi_code", label: "كود المؤشر", width: "95px" },
@@ -53,7 +53,7 @@ const QUARTERLY_COLUMNS = [
   { key: "cost", label: "التكلفة", width: "78px" },
   { key: "deviation", label: "الانحراف", width: "78px" },
   { key: "outcomes", label: "المخرجات والنتائج", width: "auto", minWidth: "130px" },
-] satisfies readonly QuarterlyColumn[];
+];
 
 const quarterlyColumnStyle = (column: QuarterlyColumn, body = false) => ({
   width: column.width === "auto" ? undefined : column.width,
@@ -68,7 +68,7 @@ function QuarterlyColgroup() {
   return (
     <colgroup>
       {QUARTERLY_COLUMNS.map((col) => (
-        <col key={col.key} style={{ width: col.width === "auto" ? col.minWidth : col.width }} />
+        <col key={col.key} style={{ width: col.width === "auto" ? undefined : col.width }} />
       ))}
     </colgroup>
   );
