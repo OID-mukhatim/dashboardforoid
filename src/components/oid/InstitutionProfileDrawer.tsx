@@ -165,19 +165,19 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
 
   // بيانات الهوية مدمجة (DB يغلب على الثابت)
   const identity = {
-    founded: dbInst?.founded ?? inst?.founded,
-    license: dbInst?.license_number ?? inst?.license,
-    licenseExpiry: dbInst?.license_expiry ?? inst?.licenseExpiry,
-    execAr: dbInst?.exec_name_ar ?? inst?.execAr,
-    deputyName: dbInst?.deputy_name_ar,
+    founded: dbInst?.founded ?? pick(/تاريخ\s*التأسيس/) ?? inst?.founded,
+    license: dbInst?.license_number ?? pick(/رقم\s*الترخيص/) ?? inst?.license,
+    licenseExpiry: dbInst?.license_expiry ?? pick(/تاريخ\s*الصلاحية/) ?? inst?.licenseExpiry,
+    execAr: dbInst?.exec_name_ar ?? pick(/المدير\s*التنفيذي.*العرب/, /المدير\s*التنفيذي/) ?? inst?.execAr,
+    deputyName: dbInst?.deputy_name_ar ?? pick(/نائب\s*المدير/),
     staffTotal: dbInst?.staff_total ?? inst?.staff?.total,
     budget: dbInst?.budget ?? inst?.budget,
     sector: dbInst?.sector ?? inst?.sector,
     branches: dbInst?.branches ?? inst?.branches,
-    address: dbInst?.address,
-    website: dbInst?.website,
-    phone: dbInst?.exec_phone ?? inst?.phone,
-    email: dbInst?.exec_email ?? inst?.email,
+    address: dbInst?.address ?? pick(/عنوان\s*المقر|address/i),
+    website: dbInst?.website ?? pick(/الموقع\s*الالكتروني|website/i),
+    phone: dbInst?.exec_phone ?? pick(/رقم\s*التواصل/, /phone/i) ?? inst?.phone,
+    email: dbInst?.exec_email ?? pick(/الإيميل/, /email/i) ?? inst?.email,
   };
 
   // رادار الفجوات لهذه المؤسسة
