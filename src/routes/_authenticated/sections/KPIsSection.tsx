@@ -369,7 +369,7 @@ function MatrixView({
                   <tr key={k.id} className="border-t border-border hover:bg-muted/20">
                     <td className="px-3 py-2 text-xs font-semibold text-primary" style={matrixColumnStyle(MATRIX_COLUMNS[0], true)}>{k.entity_code}</td>
                     <td className="px-3 py-2 text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[1], true)} title={k.perspective ?? ""}>
-                      {k.perspective}
+                      {(k.perspective ?? "—").replace(/^منظور\s+/i, "").trim()}
                     </td>
                     <td className="px-3 py-2 text-xs leading-relaxed" style={matrixColumnStyle(MATRIX_COLUMNS[2], true)}>{k.objective ?? "—"}</td>
                     <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[3], true)}>{fmtPct(gw, 2)}</td>
