@@ -174,7 +174,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
     sector: dbInst?.sector ?? inst?.sector,
     branches: dbInst?.branches ?? inst?.branches,
     address: dbInst?.address ?? pick(/عنوان\s*المقر|address/i),
-    website: dbInst?.website ?? pick(/الموقع\s*الالكتروني|website/i),
+    website: extractUrl(dbInst?.website ?? pick(/الموقع\s*الالكتروني|website/i)),
     phone: dbInst?.exec_phone ?? pick(/رقم\s*التواصل/, /phone/i) ?? inst?.phone,
     email: dbInst?.exec_email ?? pick(/الإيميل/, /email/i) ?? inst?.email,
   };
@@ -571,6 +571,13 @@ function Field({ icon: Icon, k, v, dir }: any) {
     </div>
   );
 }
+function extractUrl(raw: any): string | null {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  const m = s.match(/https?:\/\/[^\s،,؛;)]+/i) || s.match(/www\.[^\s،,؛;)]+/i) || s.match(/[\w.-]+\.[a-z]{2,}(\/\S*)?/i);
+  return m ? m[0] : null;
+}
+
 function EmptyMini({ msg }: { msg: string }) {
   return <div className="text-xs text-muted-foreground bg-muted/40 border border-dashed border-border rounded p-3 text-center">{msg}</div>;
 }
