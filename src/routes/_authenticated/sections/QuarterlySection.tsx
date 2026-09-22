@@ -220,7 +220,7 @@ export function QuarterlySection() {
             <div className="text-sm font-medium">أنشطة الربع الأول (نموذج)</div>
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">بيانات تجريبية — تُستبدل فور رفع التقارير</span>
           </div>
-          <ScrollableTable>
+          <ScrollableTable minWidth={1000}>
             <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
               <QuarterlyColgroup />
               <QuarterlyHead />
@@ -259,7 +259,7 @@ export function QuarterlySection() {
           </Card>
         ) : (
         <Card>
-          <ScrollableTable>
+          <ScrollableTable minWidth={1000}>
             <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
               <QuarterlyColgroup />
               <QuarterlyHead />
