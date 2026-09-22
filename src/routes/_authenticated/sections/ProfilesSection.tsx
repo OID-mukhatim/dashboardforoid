@@ -100,7 +100,7 @@ export function ProfilesSection() {
           const exec = db?.exec_name_ar ?? pick(o.id, /المدير\s*التنفيذي.*العرب/, /المدير\s*التنفيذي/) ?? o.execAr;
           const email = db?.exec_email ?? pick(o.id, /الإيميل/, /email/i);
           const phone = db?.exec_phone ?? pick(o.id, /رقم\s*التواصل/, /phone/i);
-          const site = db?.website ?? pick(o.id, /الموقع\s*الالكتروني|website/i);
+          const site = extractUrl(db?.website ?? pick(o.id, /الموقع\s*الالكتروني|website/i));
           const address = db?.address ?? pick(o.id, /عنوان\s*المقر|address/i);
           const staffTotal = db?.staff_total ?? o.staff.total;
           const budget = db?.budget ?? o.budget;
@@ -198,4 +198,11 @@ function LogoWithUpload({
       />
     </div>
   );
+}
+
+function extractUrl(raw: any): string | null {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  const m = s.match(/https?:\/\/[^\s،,؛;)]+/i) || s.match(/www\.[^\s،,؛;)]+/i) || s.match(/[\w.-]+\.[a-z]{2,}(\/\S*)?/i);
+  return m ? m[0] : null;
 }
