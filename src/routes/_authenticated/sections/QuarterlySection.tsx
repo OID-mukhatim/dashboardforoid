@@ -37,6 +37,59 @@ function AchievementCell({ pct }: { pct: number | null }) {
   );
 }
 
+const QUARTERLY_COLUMNS = [
+  { key: "seq", label: "م", width: "36px" },
+  { key: "title", label: "النشاط", width: "auto" },
+  { key: "kpi_code", label: "كود المؤشر", width: "80px" },
+  { key: "org", label: "المؤسسة", width: "65px" },
+  { key: "target", label: "المستهدف", width: "65px" },
+  { key: "done", label: "المنفذ", width: "65px" },
+  { key: "pct", label: "الإنجاز", width: "80px" },
+  { key: "beneficiaries", label: "المستفيدون", width: "70px" },
+  { key: "location", label: "الموقع", width: "70px" },
+  { key: "budget", label: "الموازنة", width: "70px" },
+  { key: "cost", label: "التكلفة", width: "70px" },
+  { key: "deviation", label: "الانحراف", width: "70px" },
+  { key: "outcomes", label: "المخرجات", width: "auto" },
+] as const;
+
+const quarterlyColumnStyle = (width: string) => ({
+  width: width === "auto" ? undefined : width,
+  minWidth: width === "auto" ? "120px" : width,
+  maxWidth: width === "auto" ? undefined : width,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as const);
+
+function QuarterlyColgroup() {
+  return (
+    <colgroup>
+      {QUARTERLY_COLUMNS.map((col) => (
+        <col key={col.key} style={{ width: col.width === "auto" ? undefined : col.width }} />
+      ))}
+    </colgroup>
+  );
+}
+
+function QuarterlyHead() {
+  return (
+    <thead>
+      <tr>
+        {QUARTERLY_COLUMNS.map((col) => (
+          <th
+            key={col.key}
+            className={col.key === "seq" ? "numeric" : ""}
+            style={{ ...quarterlyColumnStyle(col.width), textAlign: col.key === "seq" ? "center" : "right" }}
+          >
+            {col.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+}
+
 export function QuarterlySection() {
   const [filters, setFilters] = useState({ org: "all", quarter: "all", year: "2026", type: "all" as FilterType });
   const qc = useQueryClient();
@@ -168,26 +221,27 @@ export function QuarterlySection() {
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">بيانات تجريبية — تُستبدل فور رفع التقارير</span>
           </div>
           <ScrollableTable>
-            <table className="oid-table">
-              <thead>
-                <tr>{["م","النشاط","كود المؤشر","المؤسسة","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
-              </thead>
+            <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
+              <QuarterlyColgroup />
+              <QuarterlyHead />
               <tbody>
                 {q1Data.map((r, i) => (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/20 align-top">
-                    <td className="numeric">{i + 1}</td>
-                    <td className="px-3 py-2 min-w-[240px]">{r.title}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-primary">{r.kpiCode}</td>
-                    <td className="px-3 py-2"><OrgChip id={r.org as OrgId} /></td>
+                    <td className="seq-col">{i + 1}</td>
+                    <td className="text-ellipsis-cell" title={r.title}>{r.title}</td>
+                    <td className="numeric font-mono text-xs text-primary" title={r.kpiCode}>{r.kpiCode}</td>
+                    <td className="text-center"><OrgChip id={r.org as OrgId} /></td>
                     <td className="numeric">{r.target}</td>
                     <td className="numeric">{r.done}</td>
-                    <td className="numeric min-w-[120px]"><AchievementCell pct={r.pct} /></td>
-                    <td className="numeric">{r.beneficiaries}</td>
+                    <td className="numeric"><AchievementCell pct={r.pct} /></td>
+                    <td className="numeric" title={String(r.beneficiaries ?? "")}>{r.beneficiaries}</td>
+                    <td className="text-ellipsis-cell" title="">—</td>
                     <td className="numeric">{formatNumber(r.budget, { prefix: "$", decimals: 0 })}</td>
                     <td className="numeric">{formatNumber(r.cost, { prefix: "$", decimals: 0 })}</td>
                     <td className={`numeric ${r.deviation > 0 ? "status-green" : r.deviation < 0 ? "status-red" : ""}`}>
                       {r.deviation > 0 ? `+$${r.deviation}` : r.deviation < 0 ? `-$${Math.abs(r.deviation)}` : "—"}
                     </td>
+                    <td className="text-ellipsis-cell" title="">—</td>
                   </tr>
                 ))}
               </tbody>
@@ -206,38 +260,27 @@ export function QuarterlySection() {
         ) : (
         <Card>
           <ScrollableTable>
-            <table className="oid-table">
-              <thead>
-                <tr>{["م","الإنجاز/المشروع","كود المؤشر","المؤسسة","الربع","المستهدف","المنفذ","% الإنجاز","المستفيدون","الموقع","الموازنة","التكلفة","الانحراف"].map(h=><th key={h} className="px-3 py-2 text-right font-medium whitespace-nowrap">{h}</th>)}</tr>
-              </thead>
+            <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
+              <QuarterlyColgroup />
+              <QuarterlyHead />
               <tbody>
                 {achievements.map((r, i) => (
                   <tr key={r._k} className="border-t border-border hover:bg-muted/20 align-top">
-                    <td className="numeric">{i + 1}</td>
-                    <td className="px-3 py-2 min-w-[240px]">
-                      <div>{r.title}</div>
-                      {r.outcomes && (
-                        <details className="mt-1 group">
-                          <summary className="text-[11px] text-primary cursor-pointer select-none inline-flex items-center gap-1 hover:underline list-none">
-                            <span className="inline-block transition-transform group-open:rotate-90">▸</span> النتائج/المخرجات
-                          </summary>
-                          <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed pr-4">{r.outcomes}</div>
-                        </details>
-                      )}
-                    </td>
-                    <td className="px-3 py-2"><span className="font-mono text-xs text-primary">{r.code ?? "—"}</span></td>
-                    <td className="px-3 py-2">{r.org ? <OrgChip id={r.org as OrgId} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
-                    <td className="px-3 py-2 text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} />{r.year ? <span className="mr-1 text-muted-foreground">{r.year}</span> : null}</td>
+                    <td className="seq-col">{i + 1}</td>
+                    <td className="text-ellipsis-cell" title={r.title}>{r.title}</td>
+                    <td className="numeric font-mono text-xs text-primary" title={r.code ?? ""}>{r.code ?? "—"}</td>
+                    <td className="text-center">{r.org ? <OrgChip id={r.org as OrgId} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
                     <td className="numeric">{r.target ?? "—"}</td>
                     <td className="numeric">{r.achieved ?? "—"}</td>
-                    <td className="numeric min-w-[120px]"><AchievementCell pct={r.pct} /></td>
-                    <td className="numeric">{r.beneficiaries ?? "—"}</td>
-                    <td className="px-3 py-2 text-xs">{r.location ?? "—"}</td>
+                    <td className="numeric"><AchievementCell pct={r.pct} /></td>
+                    <td className="numeric" title={String(r.beneficiaries ?? "")}>{r.beneficiaries ?? "—"}</td>
+                    <td className="text-ellipsis-cell text-xs" title={r.location ?? ""}>{r.location ?? "—"}</td>
                     <td className="numeric">{formatNumber(r.budget, { prefix: "$", decimals: 0 })}</td>
                     <td className="numeric">{formatNumber(r.cost, { prefix: "$", decimals: 0 })}</td>
                     <td className={`numeric ${r.variance && r.variance > 0 ? "status-green" : r.variance && r.variance < 0 ? "status-red" : ""}`}>
                       {r.variance && r.variance > 0 ? `+$${r.variance}` : r.variance && r.variance < 0 ? `-$${Math.abs(r.variance)}` : "—"}
                     </td>
+                    <td className="text-ellipsis-cell text-xs text-muted-foreground" title={r.outcomes ?? ""}>{r.outcomes ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

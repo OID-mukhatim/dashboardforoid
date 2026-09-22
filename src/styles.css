@@ -175,11 +175,32 @@
 .oid-table th.quarter-start,
 .oid-table td.quarter-start { border-right: 2px solid var(--primary-light) !important; }
 
-.oid-table td.numeric {
+.oid-table td.numeric,
+.oid-table th.numeric {
   text-align: center;
   direction: ltr;
   font-variant-numeric: tabular-nums;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.oid-table td[title] { cursor: help; }
+
+.oid-table td.seq-col {
+  width: 36px;
+  min-width: 36px;
+  max-width: 36px;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  padding: 9px 4px;
+}
+
+.oid-table td.text-ellipsis-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .oid-table tbody td:first-child {
