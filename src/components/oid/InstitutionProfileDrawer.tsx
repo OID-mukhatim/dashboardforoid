@@ -114,30 +114,6 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
   }, []);
   const anomalies = useMemo(() => detectAnomalies(orgId, allProfiles), [orgId, allProfiles]);
 
-  // المؤشرات: حية من قاعدة البيانات + fallback ثابت
-  const { data: dbKPIs } = useQuery({
-    queryKey: ["org-kpis", orgId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("kpis")
-        .select("kpi_code, kpi_name, achievement_pct, overall_pct, plan_year")
-        .eq("entity_code", orgId)
-        .order("plan_year", { ascending: false });
-      return data ?? [];
-    },
-    enabled: !!orgId,
-  });
-  const liveKPIs = (dbKPIs ?? []).map((k: any) => ({
-    code: k.kpi_code,
-    kpi: k.kpi_name ?? k.kpi_code,
-    progress: Math.max(0, Math.min(100, Math.round(Number(k.achievement_pct ?? k.overall_pct ?? 0)))),
-  }));
-  const orgKPIs =
-    liveKPIs.length > 0
-      ? liveKPIs
-      : kpiData
-          .filter((k) => k.org === orgId && (k as any).status !== "pending")
-          .map((k) => ({ code: k.code, kpi: k.kpi, progress: k.progress }));
   // الشراكات: حية من قاعدة البيانات + fallback ثابت
   const livePartnerships = (dbPartnerships ?? []).map((p: any) => ({
     id: p.id ?? p.name,
