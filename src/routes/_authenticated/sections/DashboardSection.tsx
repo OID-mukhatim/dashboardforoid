@@ -111,14 +111,24 @@ export function DashboardSection() {
       .filter((v): v is number => typeof v === "number");
     const avgMaturity = maturities.length ? Math.round(maturities.reduce((a, b) => a + b, 0) / maturities.length) : null;
 
-    const kpisLive = snap?.totals?.kpisCount ?? 0;
+    const kpisLive =
+      orgFilter === "all"
+        ? (snap?.totals?.kpisCount ?? 0)
+        : (snap?.kpi?.[orgFilter]?.count ?? 0);
+
+    const activePartners = partnershipList.filter(
+      (p) =>
+        (p.status ?? "").includes("فاعلة") &&
+        (orgFilter === "all" || p.linkedOrgs.includes(orgFilter)),
+    ).length;
+
     return {
       orgsCount: orgFilter === "all" ? ORGS.length : 1,
       orgsSub: orgFilter === "all" ? "مؤسسات رئيسية" : (ORGS.find((o) => o.id === orgFilter)?.nameAr ?? ""),
       staff, budget, beneficiaries, avgScore, avgMaturity,
-      kpisLive,
+      kpisLive, activePartners,
     };
-  }, [orgFilter, liveProfiles, snap]);
+  }, [orgFilter, liveProfiles, snap, partnershipList]);
 
   return (
     <div className="space-y-6">
