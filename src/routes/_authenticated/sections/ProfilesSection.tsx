@@ -100,7 +100,7 @@ export function ProfilesSection() {
           const exec = db?.exec_name_ar ?? pick(o.id, /المدير\s*التنفيذي.*العرب/, /المدير\s*التنفيذي/) ?? o.execAr;
           const email = db?.exec_email ?? pick(o.id, /الإيميل/, /email/i);
           const phone = db?.exec_phone ?? pick(o.id, /رقم\s*التواصل/, /phone/i);
-          const site = db?.website ?? pick(o.id, /الموقع\s*الالكتروني|website/i);
+          const site = extractUrl(db?.website ?? pick(o.id, /الموقع\s*الالكتروني|website/i));
           const address = db?.address ?? pick(o.id, /عنوان\s*المقر|address/i);
           const staffTotal = db?.staff_total ?? o.staff.total;
           const budget = db?.budget ?? o.budget;
