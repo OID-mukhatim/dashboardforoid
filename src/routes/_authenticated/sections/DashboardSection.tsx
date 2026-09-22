@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2, Users, Heart, Coins, TrendingUp, BarChart3, Target, Handshake, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend } from "recharts";
-import { ORGS, type OrgId, orgOverallScores, MATURITY_LABELS, GAP_AXES, gapScores, institutions, alerts } from "@/lib/oid-data";
+import { ORGS, type OrgId, orgOverallScores, MATURITY_LABELS, GAP_AXES, gapScores, institutions, alerts, partnerships as fallbackPartnerships } from "@/lib/oid-data";
 import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
 import { DataStateLegend } from "@/components/oid/DataStateCell";
 import { AnomaliesPanel } from "@/components/oid/AnomaliesPanel";
