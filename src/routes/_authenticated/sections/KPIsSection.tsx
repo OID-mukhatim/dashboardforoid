@@ -70,26 +70,26 @@ type MatrixColumn = {
 };
 
 const MATRIX_COLUMNS: readonly MatrixColumn[] = [
-  { key: "org_id", label: "المؤسسة", width: "75px" },
+  { key: "org_id", label: "المؤسسة", width: "90px" },
   { key: "perspective", label: "المنظور", width: "115px", whiteSpace: "nowrap" },
   { key: "goal", label: "الهدف الاستراتيجي", width: "auto", minWidth: "160px" },
-  { key: "goal_weight", label: "وزن الهدف %", width: "80px" },
+  { key: "goal_weight", label: "وزن الهدف %", width: "95px" },
   { key: "kpi", label: "مؤشر الأداء", width: "auto", minWidth: "180px" },
   { key: "code", label: "الكود", width: "95px" },
-  { key: "weight", label: "وزن المؤشر %", width: "85px" },
-  { key: "baseline", label: "خط الأساس", width: "78px" },
-  { key: "annual_target", label: "المستهدف السنوي", width: "90px" },
-  { key: "q1_target", label: "مخطط", group: "Q1", width: "55px" },
+  { key: "weight", label: "وزن المؤشر %", width: "100px" },
+  { key: "baseline", label: "خط الأساس", width: "92px" },
+  { key: "annual_target", label: "المستهدف السنوي", width: "105px" },
+  { key: "q1_target", label: "مخطط", group: "Q1", width: "62px" },
   { key: "q1_achieved", label: "منجز", group: "Q1", width: "55px" },
-  { key: "q2_target", label: "مخطط", group: "Q2", width: "55px" },
+  { key: "q2_target", label: "مخطط", group: "Q2", width: "62px" },
   { key: "q2_achieved", label: "منجز", group: "Q2", width: "55px" },
-  { key: "q3_target", label: "مخطط", group: "Q3", width: "55px" },
+  { key: "q3_target", label: "مخطط", group: "Q3", width: "62px" },
   { key: "q3_achieved", label: "منجز", group: "Q3", width: "55px" },
-  { key: "q4_target", label: "مخطط", group: "Q4", width: "55px" },
+  { key: "q4_target", label: "مخطط", group: "Q4", width: "62px" },
   { key: "q4_achieved", label: "منجز", group: "Q4", width: "55px" },
   { key: "total_planned", label: "مخطط", group: "الإجمالي", width: "65px" },
   { key: "total_achieved", label: "منجز", group: "الإجمالي", width: "65px" },
-  { key: "achievement_pct", label: "نسبة الإنجاز", width: "80px" },
+  { key: "achievement_pct", label: "نسبة الإنجاز", width: "95px" },
   { key: "exceeded", label: "التجاوز", width: "65px" },
   { key: "status", label: "الحالة", width: "65px" },
   { key: "outcomes", label: "المخرجات والنتائج", width: "auto", minWidth: "130px" },
@@ -297,7 +297,7 @@ function MatrixView({
 
       <Card className="mt-6">
         <CardHeader title={`جدول المؤشرات (${rows.length})`} />
-        <ScrollableTable minWidth={1870} maxHeight="calc(100vh - 180px)">
+        <ScrollableTable minWidth={2030} maxHeight="calc(100vh - 180px)">
           <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
             <colgroup>
               {MATRIX_COLUMNS.map((col) => (
