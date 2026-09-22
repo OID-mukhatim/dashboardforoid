@@ -8,7 +8,7 @@ export const UI_STRINGS = {
       quarterly: "التقارير الربعية",
       gaps: "تحليل الفجوات",
       governance: "الحوكمة والامتثال",
-      financial: "المستشار المالي",
+      financial: "الأداء المالي",
       partnerships: "الشراكات الاستراتيجية",
       profiles: "البيانات المؤسسية",
       initiatives: "المبادرات التطويرية",
