@@ -174,7 +174,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
     sector: dbInst?.sector ?? inst?.sector,
     branches: dbInst?.branches ?? inst?.branches,
     address: dbInst?.address ?? pick(/عنوان\s*المقر|address/i),
-    website: dbInst?.website ?? pick(/الموقع\s*الالكتروني|website/i),
+    website: extractUrl(dbInst?.website ?? pick(/الموقع\s*الالكتروني|website/i)),
     phone: dbInst?.exec_phone ?? pick(/رقم\s*التواصل/, /phone/i) ?? inst?.phone,
     email: dbInst?.exec_email ?? pick(/الإيميل/, /email/i) ?? inst?.email,
   };
