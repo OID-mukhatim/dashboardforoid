@@ -16,7 +16,7 @@ import {
 import { X, Building2, Users, Coins, Calendar, ShieldCheck, Phone, Mail, AlertTriangle, Printer } from "lucide-react";
 import {
   ORGS, type OrgId, GAP_AXES, gapScores, institutions,
-  kpiData, partnerships, initiatives, financialAssessment, financialProgram,
+  partnerships, initiatives, financialAssessment, financialProgram,
   generalPolicies, humanitarianPolicies, universityPolicies, educationPolicies,
   POLICY_STATUS_META,
 } from "@/lib/oid-data";
@@ -114,30 +114,6 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
   }, []);
   const anomalies = useMemo(() => detectAnomalies(orgId, allProfiles), [orgId, allProfiles]);
 
-  // المؤشرات: حية من قاعدة البيانات + fallback ثابت
-  const { data: dbKPIs } = useQuery({
-    queryKey: ["org-kpis", orgId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("kpis")
-        .select("kpi_code, kpi_name, achievement_pct, overall_pct, plan_year")
-        .eq("entity_code", orgId)
-        .order("plan_year", { ascending: false });
-      return data ?? [];
-    },
-    enabled: !!orgId,
-  });
-  const liveKPIs = (dbKPIs ?? []).map((k: any) => ({
-    code: k.kpi_code,
-    kpi: k.kpi_name ?? k.kpi_code,
-    progress: Math.max(0, Math.min(100, Math.round(Number(k.achievement_pct ?? k.overall_pct ?? 0)))),
-  }));
-  const orgKPIs =
-    liveKPIs.length > 0
-      ? liveKPIs
-      : kpiData
-          .filter((k) => k.org === orgId && (k as any).status !== "pending")
-          .map((k) => ({ code: k.code, kpi: k.kpi, progress: k.progress }));
   // الشراكات: حية من قاعدة البيانات + fallback ثابت
   const livePartnerships = (dbPartnerships ?? []).map((p: any) => ({
     id: p.id ?? p.name,
@@ -366,26 +342,6 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                       <div key={i} className="text-xs p-2 rounded bg-red-50 text-red-700 border border-red-200">{a}</div>
                     ))}
                   </div>
-                )}
-              </Block>
-
-              {/* KPIs summary */}
-              <Block title={`مؤشرات الأداء (${orgKPIs.length})`}>
-                {orgKPIs.length === 0 ? (
-                  <EmptyMini msg="لا توجد KPIs مرتبطة" />
-                ) : (
-                  <ul className="space-y-1.5">
-                    {orgKPIs.map((k) => (
-                      <li key={k.code} className="flex items-center gap-3 text-sm border border-border rounded-lg p-2.5">
-                        <span className="font-mono text-[10px] text-muted-foreground w-20 shrink-0">{k.code}</span>
-                        <span className="flex-1 whitespace-normal break-words">{k.kpi}</span>
-                        <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${k.progress}%`, background: org.color }} />
-                        </div>
-                        <span className="text-xs w-10 text-left tabular-nums" dir="ltr">{k.progress}%</span>
-                      </li>
-                    ))}
-                  </ul>
                 )}
               </Block>
 
