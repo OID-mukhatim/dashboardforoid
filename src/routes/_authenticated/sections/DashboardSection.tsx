@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2, Users, Heart, Coins, TrendingUp, BarChart3, Target, Handshake, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend } from "recharts";
-import { ORGS, type OrgId, orgOverallScores, MATURITY_LABELS, GAP_AXES, gapScores, institutions, alerts } from "@/lib/oid-data";
+import { ORGS, type OrgId, orgOverallScores, MATURITY_LABELS, GAP_AXES, gapScores, institutions, alerts, partnerships as fallbackPartnerships } from "@/lib/oid-data";
 import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
 import { DataStateLegend } from "@/components/oid/DataStateCell";
 import { AnomaliesPanel } from "@/components/oid/AnomaliesPanel";
@@ -76,6 +76,24 @@ export function DashboardSection() {
     return row;
   });
 
+  // الشراكات: من قاعدة البيانات مع الرجوع للبيانات الثابتة
+  const { data: partnershipRows } = useQuery({
+    queryKey: ["partnerships"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("partnerships").select("*").order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const partnershipList = useMemo(() => {
+    const rows = (partnershipRows ?? []) as any[];
+    const src = rows.length ? rows : (fallbackPartnerships as any[]);
+    return src.map((r) => ({
+      status: r.status as string,
+      linkedOrgs: (Array.isArray(r.linked_orgs) ? r.linked_orgs : Array.isArray(r.linkedOrgs) ? r.linkedOrgs : []) as string[],
+    }));
+  }, [partnershipRows]);
+
   const stats = useMemo(() => {
     const list = orgFilter === "all" ? institutions : institutions.filter((i) => i.id === orgFilter);
     const staff = list.reduce((sum, i) => sum + (i.staff?.total ?? 0), 0);
@@ -93,14 +111,24 @@ export function DashboardSection() {
       .filter((v): v is number => typeof v === "number");
     const avgMaturity = maturities.length ? Math.round(maturities.reduce((a, b) => a + b, 0) / maturities.length) : null;
 
-    const kpisLive = snap?.totals?.kpisCount ?? 0;
+    const kpisLive =
+      orgFilter === "all"
+        ? (snap?.totals?.kpisCount ?? 0)
+        : (snap?.kpi?.[orgFilter]?.count ?? 0);
+
+    const activePartners = partnershipList.filter(
+      (p) =>
+        (p.status ?? "").includes("فاعلة") &&
+        (orgFilter === "all" || p.linkedOrgs.includes(orgFilter)),
+    ).length;
+
     return {
       orgsCount: orgFilter === "all" ? ORGS.length : 1,
       orgsSub: orgFilter === "all" ? "مؤسسات رئيسية" : (ORGS.find((o) => o.id === orgFilter)?.nameAr ?? ""),
       staff, budget, beneficiaries, avgScore, avgMaturity,
-      kpisLive,
+      kpisLive, activePartners,
     };
-  }, [orgFilter, liveProfiles, snap]);
+  }, [orgFilter, liveProfiles, snap, partnershipList]);
 
   return (
     <div className="space-y-6">
@@ -136,7 +164,7 @@ export function DashboardSection() {
         <StatCard label="متوسط الأداء" value={stats.avgScore != null ? `${formatScore(stats.avgScore)} / 5` : "—"} sub={stats.avgMaturity ? `↑ ${MATURITY_OF_LEVEL[stats.avgMaturity]}` : "—"} icon={TrendingUp} accent="#d97706" />
         <StatCard label="مستوى النضج" value={stats.avgMaturity ? MATURITY_OF_LEVEL[stats.avgMaturity] : "—"} sub={stats.avgMaturity ? `المستوى ${stats.avgMaturity}` : "—"} icon={BarChart3} accent="#2e9bd4" />
         <StatCard label="مؤشرات الأداء الفاعلة" value={stats.kpisLive ? `${fmtNum(stats.kpisLive)}` : "—"} sub="من قاعدة البيانات" icon={Target} accent="#15803d" />
-        <StatCard label="الشراكات الفاعلة" value="13+" sub="شراكات استراتيجية" icon={Handshake} accent="#0e4d2e" />
+        <StatCard label="الشراكات الفاعلة" value={stats.activePartners ? `${fmtNum(stats.activePartners)}` : "—"} sub={orgFilter === "all" ? "شراكات استراتيجية" : "شراكات المؤسسة"} icon={Handshake} accent="#0e4d2e" />
       </div>
 
       <BSCPerformanceMap />
