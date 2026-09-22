@@ -888,8 +888,16 @@ function UpdateView({ rows, orgF }: { rows: any[]; orgF: string }) {
         {msg && <span className="text-xs text-muted-foreground">{msg}</span>}
       </div>
 
-      <ScrollableTable>
-        <table className="oid-table">
+      <ScrollableTable minWidth={860}>
+        <table className="oid-table oid-table-fixed">
+          <colgroup>
+            <col style={{ width: "95px" }} />
+            <col style={{ width: "auto" }} />
+            <col style={{ width: "90px" }} />
+            <col style={{ width: "185px" }} />
+            <col style={{ width: "100px" }} />
+            <col style={{ width: "90px" }} />
+          </colgroup>
           <thead>
             <tr>
               {["الكود", "المؤشر", "المستهدف", "المنجز", "نسبة الإنجاز", "الحالة"].map((h) => (
