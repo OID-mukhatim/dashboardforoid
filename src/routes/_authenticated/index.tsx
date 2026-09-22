@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, Building, Rocket, Upload, Download, FileBarChart, LogOut, Shield, Building2, Languages } from "lucide-react";
+import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, TrendingUp, Building, Rocket, Upload, Download, FileBarChart, LogOut, Shield, Building2, Languages } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import type { Lang } from "@/lib/i18n";
 import { TerminologySection } from "./sections/TerminologySection";
@@ -44,7 +44,7 @@ const buildNav = (t: (p: string) => string): { group: string; items: NavItem[] }
   { group: t("nav.groupAssessment"), items: [
     { id: "gaps", label: t("nav.gaps"), icon: RadarIcon },
     { id: "governance", label: t("nav.governance"), icon: Landmark },
-    { id: "financial", label: t("nav.financial"), icon: Wallet },
+    { id: "financial", label: t("nav.financial"), icon: TrendingUp },
     { id: "partnerships", label: t("nav.partnerships"), icon: Handshake },
   ]},
   { group: t("nav.groupOrgs"), items: [

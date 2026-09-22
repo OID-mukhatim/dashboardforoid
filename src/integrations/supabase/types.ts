@@ -73,6 +73,66 @@ export type Database = {
           },
         ]
       }
+      financial_reports: {
+        Row: {
+          actions: string | null
+          actual_spending: number | null
+          approved_budget: number | null
+          challenges: string | null
+          created_at: string
+          created_by: string | null
+          expenses: Json | null
+          fiscal_type: string | null
+          id: string
+          notes: string | null
+          org_id: string
+          plan_year: number
+          quarter: string
+          revenues: Json | null
+          status: string
+          surplus_deficit: number | null
+          updated_at: string
+        }
+        Insert: {
+          actions?: string | null
+          actual_spending?: number | null
+          approved_budget?: number | null
+          challenges?: string | null
+          created_at?: string
+          created_by?: string | null
+          expenses?: Json | null
+          fiscal_type?: string | null
+          id?: string
+          notes?: string | null
+          org_id: string
+          plan_year?: number
+          quarter: string
+          revenues?: Json | null
+          status?: string
+          surplus_deficit?: number | null
+          updated_at?: string
+        }
+        Update: {
+          actions?: string | null
+          actual_spending?: number | null
+          approved_budget?: number | null
+          challenges?: string | null
+          created_at?: string
+          created_by?: string | null
+          expenses?: Json | null
+          fiscal_type?: string | null
+          id?: string
+          notes?: string | null
+          org_id?: string
+          plan_year?: number
+          quarter?: string
+          revenues?: Json | null
+          status?: string
+          surplus_deficit?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gap_scores: {
         Row: {
           created_at: string
