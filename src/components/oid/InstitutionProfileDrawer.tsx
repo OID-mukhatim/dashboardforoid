@@ -61,11 +61,26 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
   const { data: dbInst } = useQuery({
     queryKey: ["institutions", orgId],
     queryFn: async () => {
-      const { data } = await supabase.from("institutions").select("*").eq("id", orgId).single();
+      const { data } = await supabase.from("institutions").select("*").eq("id", orgId).maybeSingle();
       return data;
     },
     enabled: !!orgId,
   });
+  // بيانات الاستمارات المرفوعة (نفس مصدر بطاقات «البيانات المؤسسية»)
+  const profilesFn = useServerFn(loadInstitutionalProfiles);
+  const { data: liveProfiles = {} as Record<string, any> } = useQuery({
+    queryKey: ["institutional-profiles"],
+    queryFn: () => profilesFn(),
+  });
+  const pick = (...patterns: RegExp[]) => {
+    const fields = (liveProfiles as any)?.[orgId]?.fields ?? {};
+    for (const re of patterns) {
+      for (const [k, v] of Object.entries(fields)) {
+        if (re.test(k) && v) return v as string;
+      }
+    }
+    return null;
+  };
   const { data: dbPartnerships } = useQuery({
     queryKey: ["partnerships", orgId],
     queryFn: async () => {
