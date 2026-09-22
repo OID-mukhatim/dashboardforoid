@@ -290,7 +290,7 @@ function MatrixView({
 
       <Card className="mt-6">
         <CardHeader title={`جدول المؤشرات (${rows.length})`} />
-        <ScrollableTable minWidth={1700}>
+        <ScrollableTable minWidth={1700} maxHeight="calc(100vh - 180px)">
           <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
             <colgroup>
               {MATRIX_COLUMNS.map((col) => (
