@@ -60,7 +60,7 @@ const EVENT_COLUMNS: readonly QuarterlyColumn[] = [
   { key: "title", label: "الفعالية", width: "auto", minWidth: "180px" },
   { key: "code", label: "الكود", width: "95px" },
   { key: "org", label: "المؤسسة", width: "90px" },
-  { key: "quarter", label: "الربع", width: "80px" },
+  { key: "quarter", label: "الربع", width: "150px" },
   { key: "target", label: "المستهدف", width: "95px" },
   { key: "done", label: "المنفذ", width: "70px" },
   { key: "pct", label: "% الإنجاز", width: "100px" },
@@ -73,7 +73,7 @@ const CHALLENGE_COLUMNS: readonly QuarterlyColumn[] = [
   { key: "seq", label: "م", width: "36px" },
   { key: "title", label: "التحدي/العائق", width: "auto", minWidth: "180px" },
   { key: "org", label: "المؤسسة", width: "90px" },
-  { key: "quarter", label: "الربع", width: "80px" },
+  { key: "quarter", label: "الربع", width: "150px" },
   { key: "reasons", label: "الأسباب", width: "auto", minWidth: "140px" },
   { key: "actions", label: "الإجراءات المتخذة", width: "auto", minWidth: "160px" },
   { key: "status", label: "الوضع الحالي", width: "auto", minWidth: "130px" },
@@ -355,7 +355,7 @@ export function QuarterlySection() {
         ) : (
           <Card>
             <div className="px-4 py-3 text-sm font-medium border-b border-border">المشاركات والفعاليات والبرامج التدريبية</div>
-            <ScrollableTable minWidth={1250} maxHeight="calc(100vh - 180px)">
+            <ScrollableTable minWidth={1320} maxHeight="calc(100vh - 180px)">
               <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
                 <ReportColgroup columns={EVENT_COLUMNS} />
                 <ReportHead columns={EVENT_COLUMNS} />
@@ -366,7 +366,7 @@ export function QuarterlySection() {
                       <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(EVENT_COLUMNS[1], true)}>{r.title}</td>
                       <td className="text-ellipsis-cell font-mono text-xs text-primary" title={r.code ?? ""}>{r.code ?? "—"}</td>
                       <td className="text-center">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
-                      <td className="text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>
+                      <td className="text-xs overflow-hidden whitespace-nowrap" style={quarterlyColumnStyle(EVENT_COLUMNS[4])}><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>
                       <td className="numeric">{r.target ?? "—"}</td>
                       <td className="numeric">{r.achieved ?? "—"}</td>
                       <td className="numeric"><AchievementCell pct={r.pct} /></td>
@@ -391,7 +391,7 @@ export function QuarterlySection() {
           </Card>
         ) : (
           <Card>
-            <ScrollableTable minWidth={1250} maxHeight="calc(100vh - 180px)">
+            <ScrollableTable minWidth={1320} maxHeight="calc(100vh - 180px)">
               <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
                 <ReportColgroup columns={CHALLENGE_COLUMNS} />
                 <ReportHead columns={CHALLENGE_COLUMNS} />
@@ -401,7 +401,7 @@ export function QuarterlySection() {
                       <td className="seq-col">{i + 1}</td>
                       <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(CHALLENGE_COLUMNS[1], true)}>{r.title}</td>
                       <td className="text-center">{r.org ? <OrgChip id={r.org as OrgId} /> : "—"}</td>
-                      <td className="text-xs whitespace-nowrap"><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>
+                      <td className="text-xs overflow-hidden whitespace-nowrap" style={quarterlyColumnStyle(CHALLENGE_COLUMNS[3])}><QuarterBadge orgId={r.org} quarter={r.quarter} /></td>
                       <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(CHALLENGE_COLUMNS[4], true)}>{r.reasons ?? "—"}</td>
                       <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(CHALLENGE_COLUMNS[5], true)}>{r.actions ?? "—"}</td>
                       <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(CHALLENGE_COLUMNS[6], true)}>{r.status ?? "—"}</td>
