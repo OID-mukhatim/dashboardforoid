@@ -26,6 +26,9 @@ import { UploadSection } from "./sections/UploadSection";
 import { OfficeSection } from "./sections/OfficeSection";
 import { useTaskRequest } from "@/lib/tasks-store";
 import { useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { loadSectionOrder, saveSectionOrder } from "@/lib/dashboard.functions";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Page });
 
@@ -178,28 +181,77 @@ function IconBtn({ icon: Icon, label, badge, onClick }: any) {
 }
 
 /* ============================== Sidebar ============================== */
+const DEFAULT_SECTION_ORDER: SectionId[] = ["dashboard","kpis","quarterly","gaps","governance","financial","partnerships","profiles","initiatives","office","upload","terminology"];
+
 function Sidebar({ current, onChange }: { current: SectionId; onChange: (s: SectionId)=>void }) {
   const { t, isRTL } = useLang();
   const { isAdmin } = useAuth();
   const nav = buildNav(t);
+  const [order, setOrder] = useState<string[]>(DEFAULT_SECTION_ORDER);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const loadFn = useServerFn(loadSectionOrder);
+  const saveFn = useServerFn(saveSectionOrder);
+
+  useEffect(() => {
+    if (!isAdmin) { setOrder(DEFAULT_SECTION_ORDER); return; }
+    loadFn().then((saved) => {
+      if (saved && saved.length > 0) {
+        setOrder([
+          ...saved.filter((s) => (DEFAULT_SECTION_ORDER as string[]).includes(s)),
+          ...DEFAULT_SECTION_ORDER.filter((s) => !saved.includes(s)),
+        ]);
+      }
+    }).catch(() => {});
+  }, [isAdmin]);
+
+  const idx = (id: string) => { const i = order.indexOf(id); return i === -1 ? 999 : i; };
+
+  const handleDrop = (targetId: string, groupIds: string[]) => {
+    const from = draggingId;
+    setDraggingId(null); setDragOverId(null);
+    if (!isAdmin || !from || from === targetId || !groupIds.includes(from)) return;
+    const next = order.filter((x) => x !== from);
+    const fromIdx = order.indexOf(from), toIdx = order.indexOf(targetId);
+    const insertAt = next.indexOf(targetId) + (fromIdx < toIdx ? 1 : 0);
+    next.splice(insertAt, 0, from);
+    setOrder(next);
+    saveFn({ data: { sections: next } }).catch(() => toast.error(t("common.error") || "Error"));
+  };
+
   return (
     <aside className="w-[248px] shrink-0 text-white" style={{ background: "var(--sidebar-bg)" }}>
       <div className="p-4 space-y-5">
-        {nav.map((g) => (
+        {nav.map((g) => {
+          const items = g.items.filter((it) => !it.adminOnly || isAdmin).sort((a, b) => idx(a.id) - idx(b.id));
+          const groupIds = items.map((i) => i.id as string);
+          return (
           <div key={g.group}>
             <div className="text-[11px] uppercase tracking-wider text-white/50 mb-2 px-2">{g.group}</div>
             <nav className="space-y-1">
-              {g.items.filter((it) => !it.adminOnly || isAdmin).map((it) => {
+              {items.map((it) => {
                 const active = current === it.id;
+                const isDragging = draggingId === it.id;
+                const isOver = dragOverId === it.id && draggingId !== it.id;
                 return (
                   <button
                     key={it.id}
+                    draggable={isAdmin}
+                    onDragStart={(e) => { if (!isAdmin) return; e.dataTransfer.effectAllowed = "move"; setDraggingId(it.id); }}
+                    onDragOver={(e) => { if (!isAdmin || !draggingId || !groupIds.includes(draggingId)) return; e.preventDefault(); if (it.id !== draggingId) setDragOverId(it.id); }}
+                    onDrop={(e) => { e.preventDefault(); handleDrop(it.id, groupIds); }}
+                    onDragEnd={() => { setDraggingId(null); setDragOverId(null); }}
                     onClick={() => onChange(it.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition ${isRTL ? "text-right" : "text-left"} ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition select-none ${isRTL ? "text-right" : "text-left"} ${
                       active ? "text-white font-medium" : "text-white/75 hover:bg-white/5"
-                    }`}
-                    style={ active ? { background: "var(--sidebar-active)", ...(isRTL ? { borderRight: "3px solid #a8d5b5" } : { borderLeft: "3px solid #a8d5b5" }) } : undefined }
+                    } ${isAdmin ? "cursor-grab active:cursor-grabbing" : ""}`}
+                    style={{
+                      ...(active ? { background: "var(--sidebar-active)", ...(isRTL ? { borderRight: "3px solid #a8d5b5" } : { borderLeft: "3px solid #a8d5b5" }) } : isOver ? { background: "rgba(168,213,181,0.15)" } : {}),
+                      borderTop: isOver ? "2px solid #a8d5b5" : "2px solid transparent",
+                      opacity: isDragging ? 0.4 : 1,
+                    }}
                   >
+                    {isAdmin && <span className="text-white/25 text-xs shrink-0" aria-hidden>⠿</span>}
                     <it.icon size={16} />
                     <span className="flex-1">{it.label}</span>
                   </button>
@@ -207,7 +259,7 @@ function Sidebar({ current, onChange }: { current: SectionId; onChange: (s: Sect
               })}
             </nav>
           </div>
-        ))}
+        );})}
       </div>
     </aside>
   );
