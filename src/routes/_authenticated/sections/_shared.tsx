@@ -5,6 +5,7 @@ import { formatBudget as fmtBudgetWestern, formatCount } from "@/lib/oid-formatt
 import { loadDashboardSnapshot } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+import { useLang } from "@/lib/lang-context";
 
 /* ============================ Reusable ============================ */
 export function Card({ children, className = "" }: any) {
@@ -147,6 +148,7 @@ export function getLiveGapValue(snap: any, orgId: OrgId, axis: string): number |
 }
 
 export function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+  const { t } = useLang();
   return (
     <div className="flex items-center justify-between border-b border-border pb-4">
       <div>
@@ -154,7 +156,7 @@ export function SectionTitle({ title, subtitle }: { title: string; subtitle?: st
         {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
       </div>
       <button className="text-xs flex items-center gap-1 text-primary hover:underline">
-        <Settings size={14} /> تعديل
+        <Settings size={14} /> {t("dashboard.edit")}
       </button>
     </div>
   );

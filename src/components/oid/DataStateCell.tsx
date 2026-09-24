@@ -3,6 +3,7 @@
  */
 import { DATA_STATES, type DataStateCode } from "@/lib/oid-data-states";
 import { formatNumber } from "@/lib/oid-formatting";
+import { useLang } from "@/lib/lang-context";
 
 type Props = {
   value: number | null | undefined;
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export function DataStateCell({ value, state, decimals = 2, suffix = "", prefix = "", className = "" }: Props) {
+  const { t } = useLang();
   const code: DataStateCode =
     state ??
     (value === null || value === undefined || Number.isNaN(value)
@@ -33,7 +35,7 @@ export function DataStateCell({ value, state, decimals = 2, suffix = "", prefix 
   const meta = DATA_STATES[code];
   return (
     <span
-      title={meta.tooltip}
+      title={t(`dashboard.dataStates.${code}Tip`)}
       className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${className}`}
       style={{ color: meta.color, background: meta.bg }}
     >
@@ -45,9 +47,10 @@ export function DataStateCell({ value, state, decimals = 2, suffix = "", prefix 
 
 /** Legend ثابت يُعرض أسفل الجداول. */
 export function DataStateLegend({ className = "" }: { className?: string }) {
+  const { t } = useLang();
   return (
     <div className={`flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground ${className}`}>
-      <span className="font-medium">مفتاح:</span>
+      <span className="font-medium">{t("dashboard.legend")}</span>
       {(["zero", "noData", "na"] as const).map((k) => {
         const m = DATA_STATES[k];
         return (
@@ -58,7 +61,7 @@ export function DataStateLegend({ className = "" }: { className?: string }) {
             >
               {m.icon}
             </span>
-            {m.label}
+            {t(`dashboard.dataStates.${k}`)}
           </span>
         );
       })}

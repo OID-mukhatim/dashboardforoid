@@ -17,8 +17,10 @@ import { loadActiveKPIs } from "@/lib/dashboard.functions";
 import { computeOrgKPIPerformance } from "@/lib/oid-kpi-engine";
 import { perspectiveLabelOf } from "@/lib/oid-bsc";
 import { Card, CardHeader, StatCard, EmptyData, Progress, MATURITY_OF_LEVEL, extractBeneficiaries, fmtBudget, fmtNum, useDashboardSnapshotQuery, getLiveGapValue, SectionTitle } from "./_shared";
+import { useLang } from "@/lib/lang-context";
 
 export function DashboardSection() {
+  const { lang, t, tFormat } = useLang();
   const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
   const { data: snap } = useDashboardSnapshotQuery();
   const activeKpisFn = useServerFn(loadActiveKPIs);
@@ -32,7 +34,7 @@ export function DashboardSection() {
       for (const o of ORGS) {
         const orgRows = (rows as any[])
           .filter((r) => r.entity_code === o.id)
-          .map((r) => ({ ...r, perspective: perspectiveLabelOf(r.sector) ?? "غير مصنّف" }));
+          .map((r) => ({ ...r, perspective: perspectiveLabelOf(r.sector) ?? t("dashboard.unclassified") }));
         if (orgRows.length) out[o.id] = computeOrgKPIPerformance(orgRows);
       }
       return out;
@@ -67,8 +69,9 @@ export function DashboardSection() {
   };
   const globalFallback = !snap || ORGS.every((o) => orgUsesFallback(o.id));
 
+  const axisKeys = ["strategy", "leadership", "performance", "operations", "finance", "infrastructure", "governance"];
   const radarData = GAP_AXES.map((axis, i) => {
-    const row: any = { axis };
+    const row: any = { axis: t(`dashboard.axes.${axisKeys[i]}`) };
     ORGS.forEach((o) => {
       const liveGap = getLiveGapValue(snap, o.id, axis);
       row[o.id] = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? 0);
@@ -124,26 +127,26 @@ export function DashboardSection() {
 
     return {
       orgsCount: orgFilter === "all" ? ORGS.length : 1,
-      orgsSub: orgFilter === "all" ? "مؤسسات رئيسية" : (ORGS.find((o) => o.id === orgFilter)?.nameAr ?? ""),
+      orgsSub: orgFilter === "all" ? t("dashboard.mainOrgs") : (ORGS.find((o) => o.id === orgFilter)?.[lang === "ar" ? "nameAr" : "nameEn"] ?? ""),
       staff, budget, beneficiaries, avgScore, avgMaturity,
       kpisLive, activePartners,
     };
-  }, [orgFilter, liveProfiles, snap, partnershipList]);
+  }, [orgFilter, liveProfiles, snap, partnershipList, lang, t]);
 
   return (
     <div className="space-y-6">
-      <SectionTitle title="لوحة القيادة الرئيسية" subtitle="نظرة استراتيجية فورية على حال الشبكة" />
+      <SectionTitle title={t("dashboard.title")} subtitle={t("dashboard.subtitle")} />
 
       <div className="flex items-center justify-end gap-2">
-        <span className="text-sm text-muted-foreground">فلترة حسب المؤسسة:</span>
+        <span className="text-sm text-muted-foreground">{t("dashboard.filterByOrg")}</span>
         <select
           value={orgFilter}
           onChange={(e) => setOrgFilter(e.target.value as "all" | OrgId)}
           className="border rounded-md px-3 py-1.5 text-sm bg-card"
         >
-          <option value="all">كل المؤسسات</option>
+          <option value="all">{t("dashboard.allOrgs")}</option>
           {ORGS.map((o) => (
-            <option key={o.id} value={o.id}>{o.nameAr}</option>
+            <option key={o.id} value={o.id}>{lang === "ar" ? o.nameAr : o.nameEn}</option>
           ))}
         </select>
       </div>
@@ -151,20 +154,20 @@ export function DashboardSection() {
       {globalFallback && (
         <div className="flex justify-end">
           <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
-            بيانات تجريبية — ارفع ملفاً لتحديثها
+            {t("dashboard.demoData")}
           </span>
         </div>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="مؤسسات الشبكة" value={String(stats.orgsCount)} sub={stats.orgsSub} icon={Building2} accent="#1d4ed8" />
-        <StatCard label="إجمالي الموظفين" value={stats.staff ? `${fmtNum(stats.staff)}+` : "—"} sub={orgFilter === "all" ? "عبر الشبكة" : "في المؤسسة"} icon={Users} accent="#15803d" />
-        <StatCard label="إجمالي المستفيدين" value={stats.beneficiaries ? `${fmtNum(stats.beneficiaries)}+` : "—"} sub="مستفيد مباشر" icon={Heart} accent="#10b986" />
-        <StatCard label="الميزانية الإجمالية" value={fmtBudget(stats.budget)} sub="إجمالي 2026" icon={Coins} accent="#7c3aed" />
-        <StatCard label="متوسط الأداء" value={stats.avgScore != null ? `${formatScore(stats.avgScore)} / 5` : "—"} sub={stats.avgMaturity ? `↑ ${MATURITY_OF_LEVEL[stats.avgMaturity]}` : "—"} icon={TrendingUp} accent="#d97706" />
-        <StatCard label="مستوى النضج" value={stats.avgMaturity ? MATURITY_OF_LEVEL[stats.avgMaturity] : "—"} sub={stats.avgMaturity ? `المستوى ${stats.avgMaturity}` : "—"} icon={BarChart3} accent="#2e9bd4" />
-        <StatCard label="مؤشرات الأداء الفاعلة" value={stats.kpisLive ? `${fmtNum(stats.kpisLive)}` : "—"} sub="من قاعدة البيانات" icon={Target} accent="#15803d" />
-        <StatCard label="الشراكات الفاعلة" value={stats.activePartners ? `${fmtNum(stats.activePartners)}` : "—"} sub={orgFilter === "all" ? "شراكات استراتيجية" : "شراكات المؤسسة"} icon={Handshake} accent="#0e4d2e" />
+        <StatCard label={t("dashboard.totalOrgs")} value={String(stats.orgsCount)} sub={stats.orgsSub} icon={Building2} accent="#1d4ed8" />
+        <StatCard label={t("dashboard.totalStaff")} value={stats.staff ? `${fmtNum(stats.staff)}+` : "—"} sub={orgFilter === "all" ? t("dashboard.acrossNetwork") : t("dashboard.inOrg")} icon={Users} accent="#15803d" />
+        <StatCard label={t("dashboard.totalBeneficiaries")} value={stats.beneficiaries ? `${fmtNum(stats.beneficiaries)}+` : "—"} sub={t("dashboard.directBeneficiary")} icon={Heart} accent="#10b986" />
+        <StatCard label={t("dashboard.totalBudget")} value={fmtBudget(stats.budget)} sub={tFormat("dashboard.totalYear", { year: 2026 })} icon={Coins} accent="#7c3aed" />
+        <StatCard label={t("dashboard.overallScore")} value={stats.avgScore != null ? `${formatScore(stats.avgScore)} / 5` : "—"} sub={stats.avgMaturity ? `↑ ${t(`dashboard.maturity.l${stats.avgMaturity}`)}` : "—"} icon={TrendingUp} accent="#d97706" />
+        <StatCard label={t("dashboard.maturityLevel")} value={stats.avgMaturity ? t(`dashboard.maturity.l${stats.avgMaturity}`) : "—"} sub={stats.avgMaturity ? tFormat("dashboard.level", { level: stats.avgMaturity }) : "—"} icon={BarChart3} accent="#2e9bd4" />
+        <StatCard label={t("dashboard.activeKPIs")} value={stats.kpisLive ? `${fmtNum(stats.kpisLive)}` : "—"} sub={t("dashboard.fromDatabase")} icon={Target} accent="#15803d" />
+        <StatCard label={t("dashboard.partnerships")} value={stats.activePartners ? `${fmtNum(stats.activePartners)}` : "—"} sub={orgFilter === "all" ? t("dashboard.strategicPartnerships") : t("dashboard.orgPartnerships")} icon={Handshake} accent="#0e4d2e" />
       </div>
 
       <BSCPerformanceMap />
@@ -172,8 +175,8 @@ export function DashboardSection() {
       {/* المحور 1: الدرجة المركّبة لكل مؤسسة (4 مصادر بأوزان) */}
       <Card>
         <CardHeader
-          title="الدرجة المركّبة للمؤسسات"
-          subtitle="تجمع 4 مصادر: الفجوات 35% • الحوكمة 25% • مؤشرات الأداء 25% • المالي 15%"
+          title={t("dashboard.compositeTitle")}
+          subtitle={t("dashboard.compositeSubtitle")}
         />
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -189,7 +192,7 @@ export function DashboardSection() {
           <div className="flex items-center justify-between pt-3 border-t border-border flex-wrap gap-3">
             <DataStateLegend />
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
-              <span className="font-medium">مقياس النضج:</span>
+              <span className="font-medium">{t("dashboard.maturityScale")}</span>
               {MATURITY_SCALE.map((m) => (
                 <span
                   key={m.level}
@@ -197,7 +200,7 @@ export function DashboardSection() {
                   style={{ background: m.bg, color: m.color }}
                   title={m.description}
                 >
-                  {m.level} — {m.labelAr}
+                  {m.level} — {t(`dashboard.maturity.l${m.level}`)}
                 </span>
               ))}
             </div>
@@ -208,8 +211,8 @@ export function DashboardSection() {
       {/* المحور 4: الشذوذات والتناقضات */}
       <Card>
         <CardHeader
-          title="الشذوذات والتنبيهات الذكية"
-          subtitle="كشف تلقائي للتناقضات والاختلالات بين المكوّنات الأربعة"
+          title={t("dashboard.smartAlertsTitle")}
+          subtitle={t("dashboard.smartAlertsSubtitle")}
         />
         <div className="p-5">
           <AnomaliesPanel orgFilter={orgFilter} />
@@ -220,7 +223,7 @@ export function DashboardSection() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader title="خريطة الأداء عبر المحاور السبعة" subtitle="مقارنة المؤسسات على Radar Chart" />
+          <CardHeader title={t("dashboard.radarTitle")} subtitle={t("dashboard.radarSubtitle")} />
           <div className="p-4 h-[380px]">
             <ResponsiveContainer>
               <RadarChart data={radarData}>
@@ -228,7 +231,7 @@ export function DashboardSection() {
                 <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11, fill: "#4a6070" }} />
                 <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 10 }} />
                 {ORGS.map((o) => (
-                  <Radar key={o.id} name={o.nameAr} dataKey={o.id} stroke={o.color} fill={o.color} fillOpacity={0.08}
+                  <Radar key={o.id} name={lang === "ar" ? o.nameAr : o.nameEn} dataKey={o.id} stroke={o.color} fill={o.color} fillOpacity={0.08}
                     strokeDasharray={o.id === "HAMDI" ? "4 4" : undefined} />
                 ))}
                 <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -239,7 +242,7 @@ export function DashboardSection() {
         </Card>
 
         <Card>
-          <CardHeader title="ترتيب المؤسسات حسب الأداء العام" subtitle="مرتّبة حسب الدرجة المركّبة الحيّة" />
+          <CardHeader title={t("dashboard.rankingTitle")} subtitle={t("dashboard.rankingSubtitle")} />
           <div className="p-5 space-y-4">
             {[...ORGS]
               .map((o) => ({ o, p: liveProfiles[o.id] }))
@@ -250,13 +253,13 @@ export function DashboardSection() {
                   type="button"
                   onClick={() => openOrgProfile(o.id)}
                   className="w-full text-right hover:bg-muted/30 rounded-md px-2 py-1 -mx-2 transition"
-                  title="افتح الملف التفصيلي"
+                  title={t("dashboard.openDetails")}
                 >
                   <div className="flex items-center justify-between mb-1.5 text-sm">
-                    <span className="font-medium">{o.nameAr}</span>
+                    <span className="font-medium">{lang === "ar" ? o.nameAr : o.nameEn}</span>
                     <span className="tabular-nums font-bold" style={{ color: o.color }}>
                       {p.compositeScore !== null ? p.compositeScore.toFixed(2) : "—"}
-                      {p.maturityLevel && <span className="text-xs text-muted-foreground font-normal mr-2">({MATURITY_LABELS[p.maturityLevel]})</span>}
+                      {p.maturityLevel && <span className="text-xs text-muted-foreground font-normal mr-2">({t(`dashboard.maturity.l${p.maturityLevel}`)})</span>}
                     </span>
                   </div>
                   <Progress value={p.compositeScore ? (p.compositeScore / 5) * 100 : 0} color={o.color} />
@@ -271,7 +274,7 @@ export function DashboardSection() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
-          <CardHeader title="لوحة التنبيهات" subtitle="أبرز الأحداث الحرجة عبر الشبكة" />
+          <CardHeader title={t("dashboard.alertsTitle")} subtitle={t("dashboard.alertsSubtitle")} />
           <div className="p-5 space-y-2">
             {alerts.map((a, i) => {
               const styles: any = {
@@ -284,8 +287,8 @@ export function DashboardSection() {
                 <div key={i} className={`flex items-start gap-3 p-3 rounded-lg border ${styles.bg} ${styles.border}`}>
                   <Ic size={18} className={styles.text} />
                   <div className="flex-1">
-                    <div className={`text-sm font-medium ${styles.text}`}>{a.title}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{a.action}</div>
+                     <div className={`text-sm font-medium ${styles.text}`}>{t(`dashboard.alertItems.${["hamdiLicense", "zadGovernance", "automation", "income", "zustAudit", "kafiGovernance"][i]}`)}</div>
+                     <div className="text-xs text-muted-foreground mt-0.5">{t(`dashboard.alertItems.${["renewNow", "urgent", "digitalProgram", "fundingFramework", "qualitativeStep", "roleModel"][i]}`)}</div>
                   </div>
                 </div>
               );
@@ -294,7 +297,7 @@ export function DashboardSection() {
         </Card>
 
         <Card>
-          <CardHeader title="ملخص الحوكمة السريع" subtitle="من ورقة الشبكات المؤسسية" />
+          <CardHeader title={t("dashboard.governanceSummary")} subtitle={t("dashboard.governanceSummarySubtitle")} />
           <div className="p-5 grid grid-cols-2 gap-3">
             {ORGS.map((o) => {
               const liveGov = snap?.matrix?.[o.id]?.govPct;
@@ -302,7 +305,7 @@ export function DashboardSection() {
               const pct = typeof liveGov === "number" ? liveGov : fallback;
               return (
                 <div key={o.id} className="border border-border rounded-lg p-3 text-center">
-                  <div className="text-xs text-muted-foreground mb-1 whitespace-normal break-words">{o.nameAr}</div>
+                  <div className="text-xs text-muted-foreground mb-1 whitespace-normal break-words">{lang === "ar" ? o.nameAr : o.nameEn}</div>
                   <div className="text-xl font-bold tabular-nums" style={{ color: o.color }}>
                     {pct !== null ? `${pct}%` : "—"}
                   </div>
@@ -318,6 +321,7 @@ export function DashboardSection() {
 
 /* ============================ الأداء الهرمي للمؤشرات ============================ */
 function KPIPerformanceBreakdown({ perf }: { perf?: ReturnType<typeof computeOrgKPIPerformance> }) {
+  const { t } = useLang();
   if (!perf) return null;
   const overall = perf.overall;
   const entries = Object.entries(perf.perspPerformance);
@@ -325,7 +329,7 @@ function KPIPerformanceBreakdown({ perf }: { perf?: ReturnType<typeof computeOrg
   return (
     <div className="rounded-lg border border-border p-3 space-y-2 bg-card">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">الأداء العام (المؤشرات)</span>
+        <span className="text-xs text-muted-foreground">{t("dashboard.kpiOverall")}</span>
         <span
           className="text-sm font-bold tabular-nums"
           style={{ color: (overall ?? 0) >= 90 ? "#15803d" : (overall ?? 0) >= 70 ? "#d97706" : "#dc2626" }}
@@ -361,6 +365,7 @@ function KPIPerformanceBreakdown({ perf }: { perf?: ReturnType<typeof computeOrg
 
 
 function BSCPerformanceMap() {
+  const { lang, t, tFormat } = useLang();
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["kpis"],
     queryFn: async () => {
@@ -375,7 +380,7 @@ function BSCPerformanceMap() {
   const VALID_ORG_IDS = new Set(ORGS.map(o => o.id) as string[]);
   const cleanRows = rows.filter(r => r.entity_code && VALID_ORG_IDS.has(r.entity_code));
 
-  const allOrgs = ORGS.map(o => ({ code: o.id as string, name: o.nameAr, color: o.color }));
+  const allOrgs = ORGS.map(o => ({ code: o.id as string, name: lang === "ar" ? o.nameAr : o.nameEn, color: o.color }));
 
   const [selected, setSelected] = useState<string[]>([]);
   const activeOrgs = selected.length ? selected : allOrgs.map(o => o.code);
@@ -401,14 +406,14 @@ function BSCPerformanceMap() {
   return (
     <Card>
       <CardHeader
-        title="خريطة الأداء — بطاقة الأداء المتوازن (BSC)"
-        subtitle="مقارنة المؤسسات عبر المناظير الأربعة لبطاقة الأداء المتوازن"
+        title={t("dashboard.bscTitle")}
+        subtitle={t("dashboard.bscSubtitle")}
         action={
           <div className="flex items-center gap-1.5 flex-wrap justify-end max-w-md">
             <button
               onClick={() => setSelected([])}
               className={`text-xs px-2.5 py-1 rounded-full border transition ${selected.length === 0 ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border hover:bg-muted/70"}`}
-            >الكل</button>
+            >{t("dashboard.all")}</button>
             {allOrgs.map(o => {
               const active = selected.includes(o.code);
               const c = colorFor(o.code);
@@ -432,9 +437,9 @@ function BSCPerformanceMap() {
       />
       <div className="p-5">
         {isLoading ? (
-          <div className="text-center text-sm text-muted-foreground py-8">جاري التحميل…</div>
+          <div className="text-center text-sm text-muted-foreground py-8">{t("dashboard.loading")}</div>
         ) : allOrgs.length === 0 ? (
-          <EmptyData msg="لا توجد بيانات KPIs بعد — ارفع ملفًا من قسم رفع البيانات." />
+          <EmptyData msg={t("dashboard.noKpiData")} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {matrix.map((p) => (
@@ -448,9 +453,9 @@ function BSCPerformanceMap() {
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{p.icon}</span>
                     <div>
-                      <div className="font-bold text-sm" style={{ color: p.color }}>{p.label}</div>
+                      <div className="font-bold text-sm" style={{ color: p.color }}>{t(`dashboard.perspectives.${p.key}`)}</div>
                       <div className="text-[11px] text-muted-foreground">
-                        {p.orgStats.reduce((a, b) => a + b.count, 0)} مؤشر · {p.orgStats.filter(s => s.count > 0).length} مؤسسة
+                        {tFormat("dashboard.indicatorCount", { count: p.orgStats.reduce((a, b) => a + b.count, 0), orgs: p.orgStats.filter(s => s.count > 0).length })}
                       </div>
                     </div>
                   </div>
@@ -479,7 +484,7 @@ function BSCPerformanceMap() {
                     );
                   })}
                   {p.orgStats.length === 0 && (
-                    <div className="text-xs text-muted-foreground text-center py-2">اختر مؤسسة على الأقل</div>
+                    <div className="text-xs text-muted-foreground text-center py-2">{t("dashboard.selectOrg")}</div>
                   )}
                 </div>
               </div>
@@ -489,7 +494,7 @@ function BSCPerformanceMap() {
 
         {!isLoading && allOrgs.length > 0 && (
           <div className="mt-5 pt-4 border-t border-border">
-            <div className="text-xs text-muted-foreground mb-2">مقارنة إجمالية (متوسط جميع المناظير)</div>
+            <div className="text-xs text-muted-foreground mb-2">{t("dashboard.overallComparison")}</div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {activeOrgs.map(code => {
                 const scores = matrix.map(p => p.orgStats.find(s => s.code === code)).filter((s): s is NonNullable<typeof s> => !!s && s.count > 0);

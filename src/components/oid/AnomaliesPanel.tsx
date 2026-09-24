@@ -12,6 +12,7 @@ import {
 } from "@/lib/oid-anomalies";
 import { openOrgProfile } from "@/lib/oid-drill";
 import { requestTaskCreate } from "@/lib/tasks-store";
+import { useLang } from "@/lib/lang-context";
 
 const SEVERITY_ICON: Record<AnomalySeverity, React.ComponentType<{ size?: number }>> = {
   high: ShieldAlert,
@@ -20,6 +21,7 @@ const SEVERITY_ICON: Record<AnomalySeverity, React.ComponentType<{ size?: number
 };
 
 export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilter?: "all" | OrgId }) {
+  const { lang, t, tFormat } = useLang();
   const [sevFilter, setSevFilter] = useState<"all" | AnomalySeverity>("all");
 
   const anomalies = useMemo(() => {
@@ -45,14 +47,14 @@ export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilt
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Filter size={13} /> تصفية:
+          <Filter size={13} /> {t("dashboard.anomalyFilter")}
         </div>
         {(["all", "high", "medium", "low"] as const).map((s) => {
           const active = sevFilter === s;
           const label =
             s === "all"
-              ? `الكل (${counts.total})`
-              : `${getSeverityMeta(s).label} (${counts[s]})`;
+              ? `${t("dashboard.all")} (${counts.total})`
+              : `${t(`dashboard.severity.${s}`)} (${counts[s]})`;
           const meta = s === "all" ? null : getSeverityMeta(s);
           return (
             <button
@@ -79,7 +81,7 @@ export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilt
       {anomalies.length === 0 ? (
         <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-4">
           <AlertCircle size={16} />
-          لا توجد شذوذات ضمن المرشّحات الحالية.
+          {t("dashboard.noAnomalies")}
         </div>
       ) : (
         <ul className="space-y-2">
@@ -96,7 +98,7 @@ export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilt
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openOrgProfile(a.orgId)}
-                title="افتح ملف المؤسسة"
+                title={t("dashboard.openOrg")}
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
@@ -111,21 +113,21 @@ export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilt
                       className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
                       style={{ background: meta.bg, color: meta.color }}
                     >
-                      {meta.label}
+                       {t(`dashboard.severity.${a.severity}`)}
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
-                      {getCategoryLabel(a.category)}
+                       {t(`dashboard.anomalyCategory.${a.category}`)}
                     </span>
                     <span
                       className="text-[10px] px-1.5 py-0.5 rounded font-medium"
                       style={{ background: (org?.color ?? "#64748b") + "22", color: org?.color ?? "#64748b" }}
                     >
-                      {orgName(a.orgId)}
+                       {org ? (lang === "ar" ? org.nameAr : org.nameEn) : orgName(a.orgId)}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">{a.message}</p>
                   <p className="text-xs mt-1.5 text-slate-700">
-                    <span className="font-medium">↳ مقترح:</span> {a.suggestion}
+                    <span className="font-medium">{t("dashboard.suggestion")}</span> {a.suggestion}
                   </p>
                   <button
                     type="button"
@@ -143,7 +145,7 @@ export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilt
                     }}
                     className="mt-2 inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border bg-white hover:bg-slate-50 font-medium"
                   >
-                    <ClipboardList size={12} /> إنشاء مهمة
+                    <ClipboardList size={12} /> {t("dashboard.createTask")}
                   </button>
                 </div>
               </li>

@@ -4,13 +4,15 @@
 import { ArrowUpRight, ArrowDownRight, Minus, Clock } from "lucide-react";
 import { formatScore } from "@/lib/oid-formatting";
 import type { TrendResult } from "@/lib/oid-timeline";
+import { useLang } from "@/lib/lang-context";
 
 export function TrendBadge({ trend, label }: { trend: TrendResult; label?: string }) {
+  const { t } = useLang();
   if (trend.direction === "noData") {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
         <Clock size={11} />
-        {label ?? "لا يوجد تاريخ"}
+        {label ?? t("dashboard.noHistory")}
       </span>
     );
   }
@@ -30,7 +32,7 @@ export function TrendBadge({ trend, label }: { trend: TrendResult; label?: strin
     >
       <Icon size={11} />
       {trend.delta !== null ? `${sign}${formatScore(trend.delta)}` : "—"}
-      {trend.previous && <span className="opacity-60"> · vs {trend.previous.period}</span>}
+      {trend.previous && <span className="opacity-60"> · {t("dashboard.versus")} {trend.previous.period}</span>}
     </span>
   );
 }
