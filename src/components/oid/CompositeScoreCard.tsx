@@ -64,13 +64,13 @@ export function CompositeScoreCard({
           const meta = c.state !== "achieved" ? DATA_STATES[c.state] : null;
           return (
             <div key={c.source} className="flex items-center gap-2 text-xs">
+              <span className="w-32 whitespace-normal break-words text-muted-foreground">{t(`dashboard.components.${c.source}`)}</span>
               <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
                 <div
                   className="h-full rounded-full"
                   style={{ width: `${filled}%`, background: org.color }}
                 />
               </div>
-              <span className="w-32 whitespace-normal break-words text-muted-foreground">{t(`dashboard.components.${c.source}`)}</span>
               <span className="w-14 text-left tabular-nums font-medium" dir="ltr">
                 {c.score !== null ? formatScore(c.score) : (
                   <span style={{ color: meta?.color }} title={meta?.tooltip}>
