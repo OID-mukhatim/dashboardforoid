@@ -41,7 +41,7 @@ export function CompositeScoreCard({
           </div>
           <div className="min-w-0">
             <div className="font-bold text-sm whitespace-normal break-words">{lang === "ar" ? org.nameAr : org.nameEn}</div>
-            <div className="text-[11px] text-muted-foreground whitespace-normal break-words">{lang === "ar" ? org.nameEn : org.nameAr}</div>
+            {lang === "ar" && <div className="text-[11px] text-muted-foreground whitespace-normal break-words" dir="ltr">{org.nameEn}</div>}
             {usingFallback && (
               <span className="mt-1 inline-block text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
                 {t("dashboard.demoData")}

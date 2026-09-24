@@ -27,7 +27,7 @@ export function DashboardSection() {
 
   // الأداء الهرمي الحي: مؤشر → هدف → منظور (25%) → الأداء العام.
   const { data: kpiPerf } = useQuery({
-    queryKey: ["org-kpi-performance"],
+    queryKey: ["org-kpi-performance", lang],
     queryFn: async () => {
       const rows = await activeKpisFn();
       const out: Record<string, ReturnType<typeof computeOrgKPIPerformance>> = {};
