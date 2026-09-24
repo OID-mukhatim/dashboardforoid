@@ -560,3 +560,25 @@ export const setActiveYear = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+export const saveSectionOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { sections: string[] }) => {
+    if (!Array.isArray(d?.sections) || d.sections.some((s) => typeof s !== "string") || d.sections.length > 50) throw new Error("invalid");
+    return { sections: d.sections };
+  })
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase as any)
+      .from("section_order")
+      .upsert({ user_id: context.userId, sections: data.sections, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const loadSectionOrder = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await (context.supabase as any)
+      .from("section_order").select("sections").eq("user_id", context.userId).maybeSingle();
+    return (data?.sections as string[] | undefined) ?? null;
+  });
