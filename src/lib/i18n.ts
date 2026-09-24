@@ -31,7 +31,7 @@ export const UI_STRINGS = {
     dashboard: {
       title: "لوحة القيادة الرئيسية",
       subtitle: "نظرة استراتيجية فورية على حال الشبكة",
-      totalOrgs: "كيانات الشبكة",
+      totalOrgs: "مؤسسات الشبكة",
       totalStaff: "إجمالي الموظفين",
       totalBeneficiaries: "المستفيدون",
       totalBudget: "الميزانية الإجمالية",
@@ -296,7 +296,7 @@ export const UI_STRINGS = {
     dashboard: {
       title: "Main Dashboard",
       subtitle: "An immediate strategic view of the network",
-      totalOrgs: "Network Entities",
+      totalOrgs: "Network Institutions",
       totalStaff: "Total Staff",
       totalBeneficiaries: "Beneficiaries",
       totalBudget: "Total Budget",
