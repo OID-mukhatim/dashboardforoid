@@ -992,6 +992,27 @@ export type Database = {
           },
         ]
       }
+      section_order: {
+        Row: {
+          id: string
+          sections: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          sections?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          sections?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       terminology: {
         Row: {
           ar: string
