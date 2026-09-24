@@ -21,27 +21,27 @@ const SEVERITY_ICON: Record<AnomalySeverity, React.ComponentType<{ size?: number
 };
 
 export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilter?: "all" | OrgId }) {
-  const { lang, t, tFormat } = useLang();
+  const { lang, t } = useLang();
   const [sevFilter, setSevFilter] = useState<"all" | AnomalySeverity>("all");
 
   const anomalies = useMemo(() => {
-    const all = detectAllAnomalies();
+    const all = detectAllAnomalies(lang);
     return all.filter(
       (a) =>
         (orgFilter === "all" || a.orgId === orgFilter) &&
         (sevFilter === "all" || a.severity === sevFilter),
     );
-  }, [orgFilter, sevFilter]);
+  }, [orgFilter, sevFilter, lang]);
 
   const counts = useMemo(() => {
-    const all = detectAllAnomalies().filter((a) => orgFilter === "all" || a.orgId === orgFilter);
+    const all = detectAllAnomalies(lang).filter((a) => orgFilter === "all" || a.orgId === orgFilter);
     return {
       high: all.filter((a) => a.severity === "high").length,
       medium: all.filter((a) => a.severity === "medium").length,
       low: all.filter((a) => a.severity === "low").length,
       total: all.length,
     };
-  }, [orgFilter]);
+  }, [orgFilter, lang]);
 
   return (
     <div className="space-y-4">
