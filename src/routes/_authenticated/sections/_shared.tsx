@@ -27,7 +27,7 @@ export function StatCard({ label, value, sub, icon: Icon, accent }: any) {
     <Card className="p-5 border-r-4 hover:shadow-md transition" >
       <div className="flex items-start justify-between" style={{ borderRightColor: accent }}>
         <div>
-          <div className="text-xs text-muted-foreground mb-1">{label}</div>
+          <div className="text-sm font-semibold text-foreground/80 mb-1">{label}</div>
           <div className="text-3xl font-bold tabular-nums" style={{ color: accent }}>{value}</div>
           {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
         </div>
