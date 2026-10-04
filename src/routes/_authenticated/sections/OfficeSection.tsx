@@ -299,7 +299,7 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
             <FieldBox label={t("office.المكان")}><Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("office.حضوري / عن بعد")} /></FieldBox>
             <FieldBox label={t("office.نوع الاجتماع")}>
               <select className={SELECT_CLS + " w-full"} value={type} onChange={(e) => setType(e.target.value)}>
-                {MEETING_TYPES.map((t) => <option key={t.id} value={t.id}>{t("office." + tabItem.label)}</option>)}
+                {MEETING_TYPES.map((item) => <option key={item.id} value={item.id}>{t("office." + item.label)}</option>)}
               </select>
             </FieldBox>
             {type === "with_institution" && (
@@ -614,7 +614,7 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
             <FieldBox label={t("office.التاريخ *")}><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></FieldBox>
             <FieldBox label={t("office.نوع الزيارة")}>
               <select className={SELECT_CLS + " w-full"} value={visitType} onChange={(e) => setVisitType(e.target.value)}>
-                {VISIT_TYPES.map((t) => <option key={t.id} value={t.id}>{t("office." + tabItem.label)}</option>)}
+                {VISIT_TYPES.map((item) => <option key={item.id} value={item.id}>{t("office." + item.label)}</option>)}
               </select>
             </FieldBox>
             <FieldBox label={t("office.الحالة")}>
