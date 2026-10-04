@@ -30,7 +30,17 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { loadSectionOrder, saveSectionOrder } from "@/lib/dashboard.functions";
 
-export const Route = createFileRoute("/_authenticated/")({ component: Page });
+export const Route = createFileRoute("/_authenticated/")({
+  head: () => ({ meta: [
+    { title: "لوحة مكتب الإشراف والتطوير المؤسسي | OID" },
+    { name: "description", content: "لوحة خاصة لمتابعة أداء المؤسسات وأعمال المكتب." },
+    { property: "og:title", content: "لوحة مكتب الإشراف والتطوير المؤسسي | OID" },
+    { property: "og:description", content: "لوحة خاصة لمتابعة أداء المؤسسات وأعمال المكتب." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: Page,
+});
 
 type SectionId =
   | "dashboard" | "kpis" | "quarterly" | "gaps" | "governance"

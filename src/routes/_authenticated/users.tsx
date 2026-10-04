@@ -8,6 +8,14 @@ import { ArrowRight, Plus, Trash2, Shield, Loader2, X, KeyRound, Eye, EyeOff } f
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 
 export const Route = createFileRoute("/_authenticated/users")({
+  head: () => ({ meta: [
+    { title: "إدارة المستخدمين | OID" },
+    { name: "description", content: "إدارة مستخدمي منصة مكتب الإشراف والتطوير المؤسسي." },
+    { property: "og:title", content: "إدارة المستخدمين | OID" },
+    { property: "og:description", content: "إدارة مستخدمي منصة مكتب الإشراف والتطوير المؤسسي." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   ssr: false,
   component: UsersPage,
 });

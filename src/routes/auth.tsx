@@ -4,6 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Lock, Mail, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
+  head: () => ({ meta: [
+    { title: "تسجيل الدخول | OID" },
+    { name: "description", content: "الدخول إلى منصة مكتب الإشراف والتطوير المؤسسي الخاصة." },
+    { property: "og:title", content: "تسجيل الدخول | OID" },
+    { property: "og:description", content: "الدخول إلى منصة مكتب الإشراف والتطوير المؤسسي الخاصة." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   ssr: false,
   component: AuthPage,
 });
