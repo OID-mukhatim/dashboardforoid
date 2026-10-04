@@ -84,7 +84,7 @@ function metaOf<T extends { id: string; label: string; color: string }>(list: re
 }
 
 export function TasksSection() {
-  const { t: tr , lang } = useLang();
+  const { t: tr, lang } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [prefill, setPrefill] = useState<TaskPrefill | null>(null);
@@ -178,7 +178,7 @@ export function TasksSection() {
           <span className="text-xs text-muted-foreground">({filtered.length} {tr("office.مهمة")})</span>
         </div>
         <Button size="sm" onClick={() => { setEditing(null); setPrefill(null); setOpen(true); }}>
-          <Plus size={15} className="ms-1" /> إضافة مهمة
+          <Plus size={15} className="ms-1" /> {tr("office.إضافة مهمة")}
         </Button>
       </div>
 
@@ -230,7 +230,7 @@ export function TasksSection() {
           className="text-xs px-3 py-2 rounded-md border border-border hover:bg-slate-50"
           onClick={() => { setFOrg("all"); setFPriority("all"); setFStatus("all"); setFSource("all"); }}
         >
-          إعادة تعيين
+          {tr("office.إعادة تعيين")}
         </button>
       </Card>
 
@@ -381,7 +381,7 @@ function TaskDialog({
               });
             }}
           >
-            حفظ
+            {tr("office.حفظ")}
           </Button>
         </DialogFooter>
       </DialogContent>

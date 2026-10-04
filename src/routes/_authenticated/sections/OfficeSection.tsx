@@ -129,7 +129,7 @@ function EmptyState({ text }: { text: string }) {
 /* ══════════════════════ تبويب الاجتماعات ══════════════════════ */
 
 function MeetingsTab() {
-  const { t , lang } = useLang();
+  const { t, lang } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
@@ -149,7 +149,7 @@ function MeetingsTab() {
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{rows.length} {t("office.اجتماع")}</span>
         <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
-          <Plus size={15} className="ms-1" /> اجتماع جديد
+          <Plus size={15} className="ms-1" /> {t("office.اجتماع جديد")}
         </Button>
       </div>
 
@@ -182,10 +182,10 @@ function MeetingsTab() {
                 </div>
                 <div className="flex gap-2 pt-1">
                   <Button size="sm" variant="outline" onClick={() => { setEditing(m); setOpen(true); }}>
-                    <Eye size={14} className="ms-1" /> عرض
+                    <Eye size={14} className="ms-1" /> {t("office.عرض")}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => exportMeetingPDF(m)}>
-                    <Printer size={14} className="ms-1" /> تصدير محضر
+                  <Button size="sm" variant="outline" onClick={() => exportMeetingPDF(m, lang)}>
+                    <Printer size={14} className="ms-1" /> {t("office.تصدير محضر")}
                   </Button>
                   <Button size="sm" variant="ghost" className="text-danger" onClick={() => remove(m.id)}>
                     <Trash2 size={14} />
@@ -323,7 +323,7 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
             <div className="flex items-center justify-between">
               <Label className="text-xs">{t("office.الحضور")}</Label>
               <Button size="sm" variant="outline" onClick={() => setAttendees([...attendees, { name: "", role: "" }])}>
-                <Plus size={13} className="ms-1" /> إضافة حاضر
+                <Plus size={13} className="ms-1" /> {t("office.إضافة حاضر")}
               </Button>
             </div>
             {attendees.map((a, i) => (
@@ -347,7 +347,7 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
             <div className="flex items-center justify-between">
               <Label className="text-xs">{t("office.القرارات")}</Label>
               <Button size="sm" variant="outline" onClick={() => setDecisions([...decisions, { decision: "", assigned_to: "", due_date: "" }])}>
-                <Plus size={13} className="ms-1" /> إضافة قرار
+                <Plus size={13} className="ms-1" /> {t("office.إضافة قرار")}
               </Button>
             </div>
             <div className="overflow-x-auto">
@@ -372,12 +372,12 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
                       <td className="p-1">
                         {d.converted ? (
                           <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                            <CheckCircle2 size={13} /> تم التحويل
+                            <CheckCircle2 size={13} /> {t("office.تم التحويل")}
                           </span>
                         ) : (
                           <div className="flex items-center gap-1">
                             <Button size="sm" variant="outline" onClick={() => convert(d)}>
-                              <ArrowLeft size={12} className="ms-1" /> مهمة
+                              <ArrowLeft size={12} className="ms-1" /> {t("office.مهمة")}
                             </Button>
                             <button type="button" className="text-muted-foreground hover:text-danger"
                               onClick={() => setDecisions(decisions.filter((_, ix) => ix !== i))}><X size={14} /></button>
@@ -394,8 +394,8 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
 
         <DialogFooter>
           {editing && (
-            <Button variant="outline" onClick={() => exportMeetingPDF({ ...editing, title, date, duration, location, meeting_type: type, org_id: orgId, objective, minutes, outputs, attendees, meeting_decisions: decisions })}>
-              <Printer size={14} className="ms-1" /> تصدير محضر
+            <Button variant="outline" onClick={() => exportMeetingPDF({ ...editing, title, date, duration, location, meeting_type: type, org_id: orgId, objective, minutes, outputs, attendees, meeting_decisions: decisions }, lang)}>
+              <Printer size={14} className="ms-1" /> {t("office.تصدير محضر")}
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("office.إغلاق")}</Button>
@@ -409,7 +409,7 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
 /* ══════════════════════ تبويب الزيارات ══════════════════════ */
 
 function VisitsTab() {
-  const { t , lang } = useLang();
+  const { t, lang } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
@@ -429,7 +429,7 @@ function VisitsTab() {
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{rows.length} {t("office.زيارة")}</span>
         <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
-          <Plus size={15} className="ms-1" /> زيارة جديدة
+          <Plus size={15} className="ms-1" /> {t("office.زيارة جديدة")}
         </Button>
       </div>
 
@@ -465,10 +465,10 @@ function VisitsTab() {
                 </div>
                 <div className="flex gap-2 pt-1">
                   <Button size="sm" variant="outline" onClick={() => { setEditing(v); setOpen(true); }}>
-                    <Eye size={14} className="ms-1" /> عرض
+                    <Eye size={14} className="ms-1" /> {t("office.عرض")}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => exportVisitPDF(v)}>
-                    <Printer size={14} className="ms-1" /> تصدير استمارة
+                  <Button size="sm" variant="outline" onClick={() => exportVisitPDF(v, lang)}>
+                    <Printer size={14} className="ms-1" /> {t("office.تصدير استمارة")}
                   </Button>
                   <Button size="sm" variant="ghost" className="text-danger" onClick={() => remove(v.id)}>
                     <Trash2 size={14} />
@@ -660,7 +660,7 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
             <div className="flex items-center justify-between">
               <Label className="text-xs">{t("office.الفجوات")}</Label>
               <Button size="sm" variant="outline" onClick={() => setGaps([...gaps, { gap: "", action: "", priority: "normal", due_date: "" }])}>
-                <Plus size={13} className="ms-1" /> إضافة فجوة
+                <Plus size={13} className="ms-1" /> {t("office.إضافة فجوة")}
               </Button>
             </div>
             <div className="overflow-x-auto">
@@ -692,12 +692,12 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
                       <td className="p-1">
                         {g.converted ? (
                           <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                            <CheckCircle2 size={13} /> تم التحويل
+                            <CheckCircle2 size={13} /> {t("office.تم التحويل")}
                           </span>
                         ) : (
                           <div className="flex items-center gap-1">
                             <Button size="sm" variant="outline" onClick={() => convert(g)}>
-                              <ArrowLeft size={12} className="ms-1" /> مهمة
+                              <ArrowLeft size={12} className="ms-1" /> {t("office.مهمة")}
                             </Button>
                             <button type="button" className="text-muted-foreground hover:text-danger"
                               onClick={() => setGaps(gaps.filter((_, ix) => ix !== i))}><X size={14} /></button>
@@ -736,8 +736,8 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
 
         <DialogFooter>
           {editing && (
-            <Button variant="outline" onClick={() => exportVisitPDF({ ...editing, org_id: orgId, date, objective, visit_type: visitType, oid_delegate: oidDelegate, org_delegate: orgDelegate, ...evals, outputs, challenges, performance, guidance, notes, visit_gaps: gaps })}>
-              <Printer size={14} className="ms-1" /> تصدير استمارة
+            <Button variant="outline" onClick={() => exportVisitPDF({ ...editing, org_id: orgId, date, objective, visit_type: visitType, oid_delegate: oidDelegate, org_delegate: orgDelegate, ...evals, outputs, challenges, performance, guidance, notes, visit_gaps: gaps }, lang)}>
+              <Printer size={14} className="ms-1" /> {t("office.تصدير استمارة")}
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("office.إغلاق")}</Button>
@@ -778,7 +778,7 @@ function PlansTab() {
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{rows.length} {t("office.خطة")}</span>
         <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
-          <Plus size={15} className="ms-1" /> خطة جديدة
+          <Plus size={15} className="ms-1" /> {t("office.خطة جديدة")}
         </Button>
       </div>
 
@@ -892,11 +892,11 @@ function PlanActivities({ plan }: { plan: any }) {
           </select>
           {a.task_id ? (
             <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-              <CheckCircle2 size={13} /> مهمة مرتبطة
+              <CheckCircle2 size={13} /> {t("office.مهمة مرتبطة")}
             </span>
           ) : (
             <Button size="sm" variant="outline" onClick={() => convert(a)}>
-              <ArrowLeft size={12} className="ms-1" /> تحويل لمهمة
+              <ArrowLeft size={12} className="ms-1" /> {t("office.تحويل لمهمة")}
             </Button>
           )}
           <button type="button" className="text-muted-foreground hover:text-danger" onClick={() => remove(a.id)}>
@@ -916,7 +916,7 @@ function PlanActivities({ plan }: { plan: any }) {
 }
 
 function PlanDialog({ open, onOpenChange, editing }: { open: boolean; onOpenChange: (v: boolean) => void; editing: any | null }) {
-  const { t , dir } = useLang();
+  const { t, dir } = useLang();
   const qc = useQueryClient();
   const [title, setTitle] = useState("");
   const [year, setYear] = useState(2026);
