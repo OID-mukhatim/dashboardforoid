@@ -139,7 +139,7 @@ export function exportVisitPDF(visit: any, lang: Lang = "ar") {
     <div class="field"><div class="field-label">${tx(lang, 'التاريخ:')}</div><div class="field-value">${esc(visit.date)}</div></div>
     <div class="field"><div class="field-label">${tx(lang, 'الهدف:')}</div><div class="field-value">${esc(visit.objective)}</div></div>
     <div class="field"><div class="field-label">${tx(lang, 'نوع الزيارة:')}</div><div class="field-value">${esc(tx(lang, VISIT_TYPE_LABELS[visit.visit_type] ?? visit.visit_type))}</div></div>
-    <div class="field"><div class="field-label">${tx(lang, 'وفد الزيارة:')}</div><div class="field-value">${tx(lang, 'رئيس المؤسسة:')} ${esc(visit.org_delegate)} / مندوب OID: ${esc(visit.oid_delegate)}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'وفد الزيارة:')}</div><div class="field-value">${tx(lang, 'رئيس المؤسسة:')} ${esc(visit.org_delegate)} / ${tx(lang, "مندوب OID:")} ${esc(visit.oid_delegate)}</div></div>
   </div>
 
   <div class="section">

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ORGS, type OrgId } from "@/lib/oid-data";
+import { TranslatableText } from "@/components/oid/TranslatableText";
 import { OrgLogo } from "@/components/oid/OrgLogo";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { Plus, Trash2, Pencil, ClipboardList, CalendarDays } from "lucide-react";
@@ -248,7 +249,7 @@ export function TasksSection() {
                   const statusTone = t.status === "done" ? "status-green" : t.status === "in_progress" ? "status-yellow" : t.status === "open" ? "status-gray" : "status-red";
                   return (
                     <tr key={t.id}>
-                      <td className="min-w-[260px]"><div className="font-semibold">{t.title}</div>{t.description && <div className="mt-1 text-[11px] text-muted-foreground">{t.description}</div>}</td>
+                      <td className="min-w-[260px]"><div className="font-semibold"><TranslatableText text={t.title} recordId={t.id} tableName="office_tasks" fieldName="title" /></div>{t.description && <div className="mt-1 text-[11px] text-muted-foreground"><TranslatableText text={t.description} recordId={t.id} tableName="office_tasks" fieldName="description" /></div>}</td>
                       <td>{t.org_id ? <span className="inline-flex items-center gap-1"><OrgLogo orgId={t.org_id as OrgId} size={20} shape="circle" />{orgLabel(lang, t.org_id)}</span> : "—"}</td>
                       <td><span className="inline-flex items-center gap-1.5"><span className="size-2 shrink-0 rounded-full" style={{ background: p.color }} />{tr("office." + p.label)}</span></td>
                       <td>

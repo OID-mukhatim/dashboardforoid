@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ORGS, type OrgId } from "@/lib/oid-data";
+import { TranslatableText } from "@/components/oid/TranslatableText";
 import { OrgLogo } from "@/components/oid/OrgLogo";
 import { useLang } from "@/lib/lang-context";
 import { Card, CardHeader } from "./_shared";
@@ -164,7 +165,7 @@ function MeetingsTab() {
               <Card key={m.id} className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="font-semibold text-sm">{m.title}</div>
+                    <div className="font-semibold text-sm"><TranslatableText text={m.title} recordId={m.id} tableName="meetings" fieldName="title" /></div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
                       {t("office." + labelOf(MEETING_TYPES, m.meeting_type))}
                       {m.org_id ? ` — ${orgLabel(lang, m.org_id)}` : ""}
@@ -796,8 +797,8 @@ function PlansTab() {
               return (
                 <Card key={p.id}>
                   <CardHeader
-                    title={`${p.title} — ${p.quarter ? p.quarter : t("office.خطة سنوية")}`}
-                    subtitle={p.objective ?? ""}
+                    title={<><TranslatableText text={p.title} recordId={p.id} tableName="office_plans" fieldName="title" /> — {p.quarter ? p.quarter : t("office.خطة سنوية")}</>}
+                    subtitle={p.objective ? <TranslatableText text={p.objective} recordId={p.id} tableName="office_plans" fieldName="objective" /> : null}
                     action={
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
@@ -881,8 +882,8 @@ function PlanActivities({ plan }: { plan: any }) {
       {acts.map((a) => (
         <div key={a.id} className="border border-border rounded-lg p-3 bg-white flex flex-wrap items-center gap-2">
           <div className="flex-1 min-w-[180px]">
-            <div className="text-sm font-medium">{a.title}</div>
-            {a.description && <div className="text-[11px] text-muted-foreground">{a.description}</div>}
+            <div className="text-sm font-medium"><TranslatableText text={a.title} recordId={a.id} tableName="plan_activities" fieldName="title" /></div>
+            {a.description && <div className="text-[11px] text-muted-foreground"><TranslatableText text={a.description} recordId={a.id} tableName="plan_activities" fieldName="description" /></div>}
             <div className="text-[11px] text-muted-foreground mt-0.5">
               {a.assigned_to ? `${t("office.المكلف:")} ${a.assigned_to}` : t("office.بدون مكلف")}{a.due_date ? ` — ${a.due_date}` : ""}
             </div>
