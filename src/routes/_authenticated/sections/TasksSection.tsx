@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ORGS, orgName, type OrgId } from "@/lib/oid-data";
+import { ORGS, type OrgId } from "@/lib/oid-data";
 import { OrgLogo } from "@/components/oid/OrgLogo";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { Plus, Trash2, Pencil, ClipboardList, CalendarDays } from "lucide-react";
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useLang } from "@/lib/lang-context";
 import { Card } from "./_shared";
 import { useTaskRequest, consumeTaskRequest, type TaskPrefill } from "@/lib/tasks-store";
 
@@ -73,6 +74,8 @@ const SOURCES = [
   { id: "overdue", label: "تأخير" },
 ] as const;
 
+const orgLabel = (lang: string, id: string) => { const org = ORGS.find(o => o.id === id); return org ? (lang === "en" ? org.nameEn : org.nameAr) : id; };
+
 const SELECT_CLS =
   "text-xs px-3 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30";
 
@@ -80,7 +83,8 @@ function metaOf<T extends { id: string; label: string; color: string }>(list: re
   return list.find((x) => x.id === id) ?? { id, label: id, color: "#64748b" };
 }
 
-export function TasksSection() {
+export function TasksSection()  const { t: tr, lang, dir } = useLang();
+ {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [prefill, setPrefill] = useState<TaskPrefill | null>(null);
@@ -130,11 +134,11 @@ export function TasksSection() {
     if (editing) {
       const { error } = await supabase.from("office_tasks").update(payload).eq("id", editing.id);
       if (error) return toast.error(error.message);
-      toast.success("تم تحديث المهمة");
+      toast.success(tr("office.تم تحديث المهمة"));
     } else {
       const { error } = await supabase.from("office_tasks").insert(payload);
       if (error) return toast.error(error.message);
-      toast.success("تمت إضافة المهمة");
+      toast.success(tr("office.تمت إضافة المهمة"));
     }
     setOpen(false);
     setPrefill(null);
@@ -149,10 +153,10 @@ export function TasksSection() {
   }
 
   async function remove(id: string) {
-    if (!confirm("حذف هذه المهمة؟")) return;
+    if (!confirm(tr("office.حذف هذه المهمة؟"))) return;
     const { error } = await supabase.from("office_tasks").delete().eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success("تم الحذف");
+    toast.success(tr("office.تم الحذف"));
     qc.invalidateQueries({ queryKey: ["office_tasks"] });
   }
 
@@ -170,8 +174,8 @@ export function TasksSection() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ClipboardList size={20} className="text-primary" />
-          <h2 className="text-lg font-bold">متابعة المكتب</h2>
-          <span className="text-xs text-muted-foreground">({filtered.length} مهمة)</span>
+          <h2 className="text-lg font-bold">{tr("office.متابعة المكتب")}</h2>
+          <span className="text-xs text-muted-foreground">({filtered.length} {tr("office.مهمة")})</span>
         </div>
         <Button size="sm" onClick={() => { setEditing(null); setPrefill(null); setOpen(true); }}>
           <Plus size={15} className="ms-1" /> إضافة مهمة
@@ -186,8 +190,8 @@ export function TasksSection() {
           { label: "مكتملة", value: stats.done, color: "#10b981" },
           { label: "متأخرة", value: stats.overdue, color: "#dc2626" },
         ].map((c) => (
-          <Card key={c.label} className="p-3 flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">{c.label}</span>
+          <Card key={tr("office." + c.label)} className="p-3 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">{tr("office." + c.label)}</span>
             <span className="text-xl font-bold" style={{ color: c.color }}>{c.value}</span>
           </Card>
         ))}
@@ -195,30 +199,30 @@ export function TasksSection() {
 
       {/* الفلاتر */}
       <Card className="p-4 flex flex-wrap gap-3 items-end">
-        <Field label="المؤسسة">
+        <Field label={tr("office.المؤسسة")}>
           <select className={SELECT_CLS} value={fOrg} onChange={(e) => setFOrg(e.target.value as any)}>
-            <option value="all">كل المؤسسات</option>
+            <option value="all">{tr("office.كل المؤسسات")}</option>
             {ORGS.map((o) => (
-              <option key={o.id} value={o.id}>{o.nameAr ?? o.id}</option>
+              <option key={o.id} value={o.id}>{lang === "en" ? o.nameEn : o.nameAr}</option>
             ))}
           </select>
         </Field>
-        <Field label="الأولوية">
+        <Field label={tr("office.الأولوية")}>
           <select className={SELECT_CLS} value={fPriority} onChange={(e) => setFPriority(e.target.value)}>
-            <option value="all">الكل</option>
-            {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+            <option value="all">{tr("office.الكل")}</option>
+            {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{tr("office." + p.label)}</option>)}
           </select>
         </Field>
-        <Field label="الحالة">
+        <Field label={tr("office.الحالة")}>
           <select className={SELECT_CLS} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
-            <option value="all">الكل</option>
-            {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            <option value="all">{tr("office.الكل")}</option>
+            {STATUSES.map((s) => <option key={s.id} value={s.id}>{tr("office." + s.label)}</option>)}
           </select>
         </Field>
-        <Field label="المصدر">
+        <Field label={tr("office.المصدر")}>
           <select className={SELECT_CLS} value={fSource} onChange={(e) => setFSource(e.target.value)}>
-            <option value="all">كل المصادر</option>
-            {SOURCES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            <option value="all">{tr("office.كل المصادر")}</option>
+            {SOURCES.map((s) => <option key={s.id} value={s.id}>{tr("office." + s.label)}</option>)}
           </select>
         </Field>
         <button
@@ -231,12 +235,12 @@ export function TasksSection() {
       </Card>
 
       {isLoading ? (
-        <Card className="p-6 text-sm text-muted-foreground">جارٍ التحميل…</Card>
+        <Card className="p-6 text-sm text-muted-foreground">{tr("office.جارٍ التحميل…")}</Card>
       ) : (
         <Card>
           <ScrollableTable>
             <table className="oid-table">
-              <thead><tr>{["المهمة", "المؤسسة", "الأولوية", "الحالة", "الاستحقاق", "المصدر", "الإجراءات"].map((h) => <th key={h}>{h}</th>)}</tr></thead>
+              <thead><tr>{["المهمة", "المؤسسة", "الأولوية", "الحالة", "الاستحقاق", "المصدر", "الإجراءات"].map((h) => <th key={h}>{tr("office." + h)}</th>)}</tr></thead>
               <tbody>
                 {filtered.map((t) => {
                   const p = metaOf(PRIORITIES, t.priority);
@@ -245,21 +249,21 @@ export function TasksSection() {
                   return (
                     <tr key={t.id}>
                       <td className="min-w-[260px]"><div className="font-semibold">{t.title}</div>{t.description && <div className="mt-1 text-[11px] text-muted-foreground">{t.description}</div>}</td>
-                      <td>{t.org_id ? <span className="inline-flex items-center gap-1"><OrgLogo orgId={t.org_id as OrgId} size={20} shape="circle" />{orgName(t.org_id as OrgId)}</span> : "—"}</td>
-                      <td><span className="inline-flex items-center gap-1.5"><span className="size-2 shrink-0 rounded-full" style={{ background: p.color }} />{p.label}</span></td>
+                      <td>{t.org_id ? <span className="inline-flex items-center gap-1"><OrgLogo orgId={t.org_id as OrgId} size={20} shape="circle" />{orgLabel(lang, t.org_id)}</span> : "—"}</td>
+                      <td><span className="inline-flex items-center gap-1.5"><span className="size-2 shrink-0 rounded-full" style={{ background: p.color }} />{tr("office." + p.label)}</span></td>
                       <td>
-                        <span className={`${statusTone} inline-block rounded-full px-2.5 py-1 text-[11px]`}>{status.label}</span>
-                        <select aria-label={`تغيير حالة ${t.title}`} className="mr-2 rounded border border-border bg-card px-1 py-0.5 text-[10px]" value={t.status} onChange={(e) => changeStatus(t.id, e.target.value)}>
-                          {STATUSES.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+                        <span className={`${statusTone} inline-block rounded-full px-2.5 py-1 text-[11px]`}>{tr("office." + status.label)}</span>
+                        <select aria-label={`${tr("office.تغيير حالة")} ${t.title}`} className="mr-2 rounded border border-border bg-card px-1 py-0.5 text-[10px]" value={t.status} onChange={(e) => changeStatus(t.id, e.target.value)}>
+                          {STATUSES.map((x) => <option key={x.id} value={x.id}>{tr("office." + x.label)}</option>)}
                         </select>
                       </td>
                       <td className={`numeric ${isOverdue(t) ? "status-red" : ""}`}>{t.due_date ? <span className="inline-flex items-center gap-1"><CalendarDays size={11} />{t.due_date}</span> : "—"}</td>
-                      <td>{SOURCE_LABELS[t.source_type ?? "manual"] ?? t.source_type ?? "يدوي"}</td>
-                      <td><div className="flex justify-center gap-2"><Button size="icon" variant="ghost" title="تعديل" onClick={() => { setPrefill(null); setEditing(t); setOpen(true); }}><Pencil size={14} /></Button><Button size="icon" variant="ghost" title="حذف" onClick={() => remove(t.id)}><Trash2 size={14} /></Button></div></td>
+                      <td>{tr("office." + (SOURCE_LABELS[t.source_type ?? "manual"] ?? t.source_type ?? "يدوي"))}</td>
+                      <td><div className="flex justify-center gap-2"><Button size="icon" variant="ghost" title={tr("office.تعديل")} onClick={() => { setPrefill(null); setEditing(t); setOpen(true); }}><Pencil size={14} /></Button><Button size="icon" variant="ghost" title={tr("office.حذف")} onClick={() => remove(t.id)}><Trash2 size={14} /></Button></div></td>
                     </tr>
                   );
                 })}
-                {filtered.length === 0 && <tr><td colSpan={7} className="text-center text-muted-foreground">لا توجد مهام مطابقة.</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={7} className="text-center text-muted-foreground">{tr("office.لا توجد مهام مطابقة.")}</td></tr>}
               </tbody>
             </table>
           </ScrollableTable>
@@ -289,6 +293,7 @@ function TaskDialog({
   editing: Task | null;
   onSave: (payload: any) => void;
 }) {
+  const { t: tr, lang, dir } = useLang();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [orgId, setOrgId] = useState("");
@@ -310,57 +315,57 @@ function TaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg" dir="rtl">
+      <DialogContent className="max-w-lg" dir={dir}>
         <DialogHeader>
           <DialogTitle>{editing ? "تعديل مهمة" : "إضافة مهمة متابعة"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
-            <Label>العنوان *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان المهمة" />
+            <Label>{tr("office.العنوان *")}</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={tr("office.عنوان المهمة")} />
           </div>
           <div className="space-y-1">
-            <Label>الوصف</Label>
+            <Label>{tr("office.الوصف")}</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>المؤسسة</Label>
+              <Label>{tr("office.المؤسسة")}</Label>
               <select className={SELECT_CLS + " w-full"} value={orgId} onChange={(e) => setOrgId(e.target.value)}>
-                <option value="">— غير محدد —</option>
-                {ORGS.map((o) => <option key={o.id} value={o.id}>{o.nameAr ?? o.id}</option>)}
+                <option value="">{tr("office.— غير محدد —")}</option>
+                {ORGS.map((o) => <option key={o.id} value={o.id}>{lang === "en" ? o.nameEn : o.nameAr}</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <Label>الأولوية</Label>
+              <Label>{tr("office.الأولوية")}</Label>
               <select className={SELECT_CLS + " w-full"} value={priority} onChange={(e) => setPriority(e.target.value)}>
-                {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{tr("office." + p.label)}</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <Label>الحالة</Label>
+              <Label>{tr("office.الحالة")}</Label>
               <select className={SELECT_CLS + " w-full"} value={status} onChange={(e) => setStatus(e.target.value)}>
-                {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                {STATUSES.map((s) => <option key={s.id} value={s.id}>{tr("office." + s.label)}</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <Label>تاريخ الاستحقاق</Label>
+              <Label>{tr("office.تاريخ الاستحقاق")}</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
             <div className="space-y-1 col-span-2">
-              <Label>القسم المرتبط</Label>
+              <Label>{tr("office.القسم المرتبط")}</Label>
               <select className={SELECT_CLS + " w-full"} value={sectionRef} onChange={(e) => setSectionRef(e.target.value)}>
-                <option value="">— غير محدد —</option>
-                {SECTION_REFS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                <option value="">{tr("office.— غير محدد —")}</option>
+                {SECTION_REFS.map((s) => <option key={s.id} value={s.id}>{tr("office." + s.label)}</option>)}
               </select>
             </div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{tr("office.إلغاء")}</Button>
           <Button
             onClick={() => {
-              if (!title.trim()) return toast.error("العنوان مطلوب");
+              if (!title.trim()) return toast.error(tr("office.العنوان مطلوب"));
               onSave({
                 title: title.trim(),
                 description: description.trim() || null,

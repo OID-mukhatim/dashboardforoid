@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ORGS, orgName, type OrgId } from "@/lib/oid-data";
+import { ORGS, type OrgId } from "@/lib/oid-data";
 import { OrgLogo } from "@/components/oid/OrgLogo";
+import { useLang } from "@/lib/lang-context";
 import { Card, CardHeader } from "./_shared";
 import { TasksSection } from "./TasksSection";
 import { exportMeetingPDF, exportVisitPDF } from "@/lib/office-pdf";
@@ -21,6 +22,8 @@ import {
   loadPlans, savePlan, deletePlan, saveActivity, deleteActivity, convertActivityToTask,
   type Attendee, type DecisionInput, type GapInput,
 } from "@/lib/office-api";
+
+const orgLabel = (lang: string, id: string) => { const org = ORGS.find(o => o.id === id); return org ? (lang === "en" ? org.nameEn : org.nameAr) : id; };
 
 const SELECT_CLS =
   "text-xs px-3 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30";
@@ -51,7 +54,8 @@ const ACT_STATUS = [
 const labelOf = (list: { id: string; label: string }[], id: string) =>
   list.find((x) => x.id === id)?.label ?? id;
 
-export function OfficeSection() {
+export function OfficeSection()  const { t, lang, dir } = useLang();
+ {
   const [tab, setTab] = useState<"plans" | "meetings" | "visits" | "tasks">("meetings");
   const TABS = [
     { id: "plans", icon: "📋", label: "خطط المكتب" },
@@ -65,8 +69,8 @@ export function OfficeSection() {
       <div className="flex items-center gap-2">
         <Building2 size={20} className="text-primary" />
         <div>
-          <h2 className="text-lg font-bold leading-tight">أعمال المكتب</h2>
-          <p className="text-[11px] text-muted-foreground">مكتب الإشراف والتطوير المؤسسي — OID</p>
+          <h2 className="text-lg font-bold leading-tight">{t("office.أعمال المكتب")}</h2>
+          <p className="text-[11px] text-muted-foreground">{t("office.مكتب الإشراف والتطوير المؤسسي — OID")}</p>
         </div>
       </div>
 
@@ -81,7 +85,7 @@ export function OfficeSection() {
             }`}
           >
             <span>{t.icon}</span>
-            {t.label}
+            {t("office." + t.label)}
           </button>
         ))}
       </div>
@@ -97,6 +101,7 @@ export function OfficeSection() {
 /* ══════════════════════ عناصر مشتركة ══════════════════════ */
 
 function StatusBadge({ status }: { status: string }) {
+  const { t, lang, dir } = useLang();
   const final = status === "final";
   return (
     <span
@@ -124,16 +129,17 @@ function EmptyState({ text }: { text: string }) {
 /* ══════════════════════ تبويب الاجتماعات ══════════════════════ */
 
 function MeetingsTab() {
+  const { t, lang, dir } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const { data: rows = [], isLoading } = useQuery({ queryKey: ["meetings"], queryFn: loadMeetings });
 
   async function remove(id: string) {
-    if (!confirm("حذف هذا الاجتماع؟")) return;
+    if (!confirm(t("office.حذف هذا الاجتماع؟"))) return;
     try {
       await deleteMeeting(id);
-      toast.success("تم الحذف");
+      toast.success(t("office.تم الحذف"));
       qc.invalidateQueries({ queryKey: ["meetings"] });
     } catch (e: any) { toast.error(e.message); }
   }
@@ -141,14 +147,14 @@ function MeetingsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{rows.length} اجتماع</span>
+        <span className="text-xs text-muted-foreground">{rows.length} {t("office.اجتماع")}</span>
         <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
           <Plus size={15} className="ms-1" /> اجتماع جديد
         </Button>
       </div>
 
-      {isLoading ? <EmptyState text="جارٍ التحميل…" /> : rows.length === 0 ? (
-        <EmptyState text="لا توجد اجتماعات مسجّلة بعد." />
+      {isLoading ? <EmptyState text={t("office.جارٍ التحميل…")} /> : rows.length === 0 ? (
+        <EmptyState text={t("office.لا توجد اجتماعات مسجّلة بعد.")} />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {rows.map((m: any) => {
@@ -160,8 +166,8 @@ function MeetingsTab() {
                   <div>
                     <div className="font-semibold text-sm">{m.title}</div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {labelOf(MEETING_TYPES, m.meeting_type)}
-                      {m.org_id ? ` — ${orgName(m.org_id as OrgId)}` : ""}
+                      {t("office." + labelOf(MEETING_TYPES, m.meeting_type))}
+                      {m.org_id ? ` — ${orgLabel(lang, m.org_id)}` : ""}
                     </div>
                   </div>
                   <StatusBadge status={m.status} />
@@ -172,7 +178,7 @@ function MeetingsTab() {
                   {m.duration && <span>⏱ {m.duration}</span>}
                 </div>
                 <div className="text-[11px]">
-                  القرارات: <b>{decisions.length}</b> — المحوّلة لمهام: <b className="text-primary">{converted}</b>
+                  {t("office.القرارات:")} <b>{decisions.length}</b> — {t("office.المحوّلة لمهام:")} <b className="text-primary">{converted}</b>
                 </div>
                 <div className="flex gap-2 pt-1">
                   <Button size="sm" variant="outline" onClick={() => { setEditing(m); setOpen(true); }}>
@@ -197,6 +203,7 @@ function MeetingsTab() {
 }
 
 function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenChange: (v: boolean) => void; editing: any | null }) {
+  const { t, lang, dir } = useLang();
   const qc = useQueryClient();
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
@@ -229,8 +236,8 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
   }, [open, editing]);
 
   async function save() {
-    if (!title.trim()) return toast.error("عنوان الاجتماع مطلوب");
-    if (!date) return toast.error("التاريخ مطلوب");
+    if (!title.trim()) return toast.error(t("office.عنوان الاجتماع مطلوب"));
+    if (!date) return toast.error(t("office.التاريخ مطلوب"));
     setSaving(true);
     try {
       await saveMeeting({
@@ -248,14 +255,14 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
         status,
         decisions,
       });
-      toast.success("تم حفظ الاجتماع");
+      toast.success(t("office.تم حفظ الاجتماع"));
       qc.invalidateQueries({ queryKey: ["meetings"] });
       onOpenChange(false);
     } catch (e: any) { toast.error(e.message); } finally { setSaving(false); }
   }
 
   async function convert(d: DecisionInput) {
-    if (!d.id) return toast.error("احفظ الاجتماع أولاً قبل تحويل القرار لمهمة");
+    if (!d.id) return toast.error(t("office.احفظ الاجتماع أولاً قبل تحويل القرار لمهمة"));
     try {
       await convertDecisionToTask({
         decisionId: d.id,
@@ -266,7 +273,7 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
         orgId: orgId || null,
       });
       setDecisions((prev) => prev.map((x) => (x.id === d.id ? { ...x, converted: true } : x)));
-      toast.success("تم إنشاء مهمة متابعة");
+      toast.success(t("office.تم إنشاء مهمة متابعة"));
       qc.invalidateQueries({ queryKey: ["office_tasks"] });
       qc.invalidateQueries({ queryKey: ["meetings"] });
     } catch (e: any) { toast.error(e.message); }
@@ -277,36 +284,36 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir={dir}>
         <DialogHeader><DialogTitle>{editing ? "الاجتماع" : "اجتماع جديد"}</DialogTitle></DialogHeader>
 
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
-              <FieldBox label="عنوان الاجتماع *">
+              <FieldBox label={t("office.عنوان الاجتماع *")}>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} />
               </FieldBox>
             </div>
-            <FieldBox label="التاريخ *"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></FieldBox>
-            <FieldBox label="المدة"><Input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="ساعتان" /></FieldBox>
-            <FieldBox label="المكان"><Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="حضوري / عن بعد" /></FieldBox>
-            <FieldBox label="نوع الاجتماع">
+            <FieldBox label={t("office.التاريخ *")}><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></FieldBox>
+            <FieldBox label={t("office.المدة")}><Input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder={t("office.ساعتان")} /></FieldBox>
+            <FieldBox label={t("office.المكان")}><Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("office.حضوري / عن بعد")} /></FieldBox>
+            <FieldBox label={t("office.نوع الاجتماع")}>
               <select className={SELECT_CLS + " w-full"} value={type} onChange={(e) => setType(e.target.value)}>
-                {MEETING_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+                {MEETING_TYPES.map((t) => <option key={t.id} value={t.id}>{t("office." + t.label)}</option>)}
               </select>
             </FieldBox>
             {type === "with_institution" && (
-              <FieldBox label="المؤسسة المعنية">
+              <FieldBox label={t("office.المؤسسة المعنية")}>
                 <select className={SELECT_CLS + " w-full"} value={orgId} onChange={(e) => setOrgId(e.target.value)}>
-                  <option value="">— اختر —</option>
-                  {ORGS.map((o) => <option key={o.id} value={o.id}>{o.nameAr ?? o.id}</option>)}
+                  <option value="">{t("office.— اختر —")}</option>
+                  {ORGS.map((o) => <option key={o.id} value={o.id}>{lang === "en" ? o.nameEn : o.nameAr}</option>)}
                 </select>
               </FieldBox>
             )}
-            <FieldBox label="الحالة">
+            <FieldBox label={t("office.الحالة")}>
               <select className={SELECT_CLS + " w-full"} value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="draft">مسودة</option>
-                <option value="final">معتمد</option>
+                <option value="draft">{t("office.مسودة")}</option>
+                <option value="final">{t("office.معتمد")}</option>
               </select>
             </FieldBox>
           </div>
@@ -314,16 +321,16 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
           {/* الحضور */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs">الحضور</Label>
+              <Label className="text-xs">{t("office.الحضور")}</Label>
               <Button size="sm" variant="outline" onClick={() => setAttendees([...attendees, { name: "", role: "" }])}>
                 <Plus size={13} className="ms-1" /> إضافة حاضر
               </Button>
             </div>
             {attendees.map((a, i) => (
               <div key={i} className="flex gap-2">
-                <Input className="flex-1" placeholder="الاسم" value={a.name}
+                <Input className="flex-1" placeholder={t("office.الاسم")} value={a.name}
                   onChange={(e) => setAttendees(attendees.map((x, ix) => ix === i ? { ...x, name: e.target.value } : x))} />
-                <Input className="flex-1" placeholder="الصفة" value={a.role}
+                <Input className="flex-1" placeholder={t("office.الصفة")} value={a.role}
                   onChange={(e) => setAttendees(attendees.map((x, ix) => ix === i ? { ...x, role: e.target.value } : x))} />
                 <button type="button" className="text-muted-foreground hover:text-danger px-2"
                   onClick={() => setAttendees(attendees.filter((_, ix) => ix !== i))}><X size={15} /></button>
@@ -331,14 +338,14 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
             ))}
           </div>
 
-          <FieldBox label="هدف الاجتماع"><Textarea rows={2} value={objective} onChange={(e) => setObjective(e.target.value)} /></FieldBox>
-          <FieldBox label="وقائع الاجتماع"><Textarea rows={4} value={minutes} onChange={(e) => setMinutes(e.target.value)} /></FieldBox>
-          <FieldBox label="مخرجات الاجتماع"><Textarea rows={3} value={outputs} onChange={(e) => setOutputs(e.target.value)} /></FieldBox>
+          <FieldBox label={t("office.هدف الاجتماع")}><Textarea rows={2} value={objective} onChange={(e) => setObjective(e.target.value)} /></FieldBox>
+          <FieldBox label={t("office.وقائع الاجتماع")}><Textarea rows={4} value={minutes} onChange={(e) => setMinutes(e.target.value)} /></FieldBox>
+          <FieldBox label={t("office.مخرجات الاجتماع")}><Textarea rows={3} value={outputs} onChange={(e) => setOutputs(e.target.value)} /></FieldBox>
 
           {/* القرارات */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs">القرارات</Label>
+              <Label className="text-xs">{t("office.القرارات")}</Label>
               <Button size="sm" variant="outline" onClick={() => setDecisions([...decisions, { decision: "", assigned_to: "", due_date: "" }])}>
                 <Plus size={13} className="ms-1" /> إضافة قرار
               </Button>
@@ -347,15 +354,15 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
               <table className="oid-table">
                 <thead>
                   <tr>
-                    <th className="p-2 text-right">القرار</th>
-                    <th className="p-2 text-right w-32">المكلف</th>
-                    <th className="p-2 text-right w-36">وقت الإنجاز</th>
-                    <th className="p-2 text-right w-32">تحويل</th>
+                    <th className="p-2 text-right">{t("office.القرار")}</th>
+                    <th className="p-2 text-right w-32">{t("office.المكلف")}</th>
+                    <th className="p-2 text-right w-36">{t("office.وقت الإنجاز")}</th>
+                    <th className="p-2 text-right w-32">{t("office.تحويل")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {decisions.length === 0 && (
-                    <tr><td colSpan={4} className="p-3 text-center text-muted-foreground">لا توجد قرارات.</td></tr>
+                    <tr><td colSpan={4} className="p-3 text-center text-muted-foreground">{t("office.لا توجد قرارات.")}</td></tr>
                   )}
                   {decisions.map((d, i) => (
                     <tr key={d.id ?? i} className="border-t border-border">
@@ -391,7 +398,7 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
               <Printer size={14} className="ms-1" /> تصدير محضر
             </Button>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>إغلاق</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("office.إغلاق")}</Button>
           <Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ"}</Button>
         </DialogFooter>
       </DialogContent>
@@ -402,16 +409,17 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
 /* ══════════════════════ تبويب الزيارات ══════════════════════ */
 
 function VisitsTab() {
+  const { t, lang, dir } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const { data: rows = [], isLoading } = useQuery({ queryKey: ["visits"], queryFn: loadVisits });
 
   async function remove(id: string) {
-    if (!confirm("حذف هذه الزيارة؟")) return;
+    if (!confirm(t("office.حذف هذه الزيارة؟"))) return;
     try {
       await deleteVisit(id);
-      toast.success("تم الحذف");
+      toast.success(t("office.تم الحذف"));
       qc.invalidateQueries({ queryKey: ["visits"] });
     } catch (e: any) { toast.error(e.message); }
   }
@@ -419,14 +427,14 @@ function VisitsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{rows.length} زيارة</span>
+        <span className="text-xs text-muted-foreground">{rows.length} {t("office.زيارة")}</span>
         <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
           <Plus size={15} className="ms-1" /> زيارة جديدة
         </Button>
       </div>
 
-      {isLoading ? <EmptyState text="جارٍ التحميل…" /> : rows.length === 0 ? (
-        <EmptyState text="لا توجد زيارات مسجّلة بعد." />
+      {isLoading ? <EmptyState text={t("office.جارٍ التحميل…")} /> : rows.length === 0 ? (
+        <EmptyState text={t("office.لا توجد زيارات مسجّلة بعد.")} />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {rows.map((v: any) => {
@@ -439,8 +447,8 @@ function VisitsTab() {
                   <div className="flex items-center gap-2">
                     <OrgLogo orgId={v.org_id as OrgId} size={26} shape="circle" />
                     <div>
-                      <div className="font-semibold text-sm">{orgName(v.org_id as OrgId)}</div>
-                      <div className="text-[11px] text-muted-foreground">{labelOf(VISIT_TYPES, v.visit_type)}</div>
+                      <div className="font-semibold text-sm">{orgLabel(lang, v.org_id)}</div>
+                      <div className="text-[11px] text-muted-foreground">{t("office." + labelOf(VISIT_TYPES, v.visit_type))}</div>
                     </div>
                   </div>
                   <StatusBadge status={v.status} />
@@ -449,11 +457,11 @@ function VisitsTab() {
                   <span>📅 {v.date}</span>
                   {perf && (
                     <span className="px-1.5 py-0.5 rounded font-medium"
-                      style={{ background: perf.color + "22", color: perf.color }}>{perf.label}</span>
+                      style={{ background: perf.color + "22", color: perf.color }}>{t("office." + perf.label)}</span>
                   )}
                 </div>
                 <div className="text-[11px]">
-                  الفجوات: <b>{gaps.length}</b> — المحوّلة لمهام: <b className="text-primary">{converted}</b>
+                  {t("office.الفجوات:")} <b>{gaps.length}</b> — {t("office.المحوّلة لمهام:")} <b className="text-primary">{converted}</b>
                 </div>
                 <div className="flex gap-2 pt-1">
                   <Button size="sm" variant="outline" onClick={() => { setEditing(v); setOpen(true); }}>
@@ -478,6 +486,7 @@ function VisitsTab() {
 }
 
 function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenChange: (v: boolean) => void; editing: any | null }) {
+  const { t, lang, dir } = useLang();
   const qc = useQueryClient();
   const [orgId, setOrgId] = useState("");
   const [date, setDate] = useState("");
@@ -540,8 +549,8 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
   }, [prevVisit, editing]);
 
   async function save() {
-    if (!orgId) return toast.error("اختر المؤسسة");
-    if (!date) return toast.error("التاريخ مطلوب");
+    if (!orgId) return toast.error(t("office.اختر المؤسسة"));
+    if (!date) return toast.error(t("office.التاريخ مطلوب"));
     setSaving(true);
     try {
       await saveVisit({
@@ -566,21 +575,21 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
         status,
         gaps,
       });
-      toast.success("تم حفظ الزيارة");
+      toast.success(t("office.تم حفظ الزيارة"));
       qc.invalidateQueries({ queryKey: ["visits"] });
       onOpenChange(false);
     } catch (e: any) { toast.error(e.message); } finally { setSaving(false); }
   }
 
   async function convert(g: GapInput) {
-    if (!g.id) return toast.error("احفظ الزيارة أولاً قبل تحويل الفجوة لمهمة");
+    if (!g.id) return toast.error(t("office.احفظ الزيارة أولاً قبل تحويل الفجوة لمهمة"));
     try {
       await convertGapToTask({
         gapId: g.id, visitId: editing.id, gap: g.gap, action: g.action,
         priority: g.priority, dueDate: g.due_date, orgId,
       });
       setGaps((prev) => prev.map((x) => (x.id === g.id ? { ...x, converted: true } : x)));
-      toast.success("تم إنشاء مهمة متابعة");
+      toast.success(t("office.تم إنشاء مهمة متابعة"));
       qc.invalidateQueries({ queryKey: ["office_tasks"] });
       qc.invalidateQueries({ queryKey: ["visits"] });
     } catch (e: any) { toast.error(e.message); }
@@ -591,45 +600,45 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir={dir}>
         <DialogHeader><DialogTitle>{editing ? "الزيارة" : "زيارة جديدة"}</DialogTitle></DialogHeader>
 
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FieldBox label="المؤسسة *">
+            <FieldBox label={t("office.المؤسسة *")}>
               <select className={SELECT_CLS + " w-full"} value={orgId} onChange={(e) => setOrgId(e.target.value)}>
-                <option value="">— اختر —</option>
-                {ORGS.map((o) => <option key={o.id} value={o.id}>{o.nameAr ?? o.id}</option>)}
+                <option value="">{t("office.— اختر —")}</option>
+                {ORGS.map((o) => <option key={o.id} value={o.id}>{lang === "en" ? o.nameEn : o.nameAr}</option>)}
               </select>
             </FieldBox>
-            <FieldBox label="التاريخ *"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></FieldBox>
-            <FieldBox label="نوع الزيارة">
+            <FieldBox label={t("office.التاريخ *")}><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></FieldBox>
+            <FieldBox label={t("office.نوع الزيارة")}>
               <select className={SELECT_CLS + " w-full"} value={visitType} onChange={(e) => setVisitType(e.target.value)}>
-                {VISIT_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+                {VISIT_TYPES.map((t) => <option key={t.id} value={t.id}>{t("office." + t.label)}</option>)}
               </select>
             </FieldBox>
-            <FieldBox label="الحالة">
+            <FieldBox label={t("office.الحالة")}>
               <select className={SELECT_CLS + " w-full"} value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="draft">مسودة</option>
-                <option value="final">معتمد</option>
+                <option value="draft">{t("office.مسودة")}</option>
+                <option value="final">{t("office.معتمد")}</option>
               </select>
             </FieldBox>
-            <FieldBox label="مندوب OID"><Input value={oidDelegate} onChange={(e) => setOidDelegate(e.target.value)} /></FieldBox>
-            <FieldBox label="مدير المؤسسة"><Input value={orgDelegate} onChange={(e) => setOrgDelegate(e.target.value)} /></FieldBox>
+            <FieldBox label={t("office.مندوب OID")}><Input value={oidDelegate} onChange={(e) => setOidDelegate(e.target.value)} /></FieldBox>
+            <FieldBox label={t("office.مدير المؤسسة")}><Input value={orgDelegate} onChange={(e) => setOrgDelegate(e.target.value)} /></FieldBox>
             <div className="sm:col-span-2">
-              <FieldBox label="هدف الزيارة"><Textarea rows={2} value={objective} onChange={(e) => setObjective(e.target.value)} /></FieldBox>
+              <FieldBox label={t("office.هدف الزيارة")}><Textarea rows={2} value={objective} onChange={(e) => setObjective(e.target.value)} /></FieldBox>
             </div>
           </div>
 
           {orgId && prevOpenGaps.length > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs space-y-1">
               <div className="font-semibold text-amber-800">📋 المتابعات السابقة</div>
-              <div className="text-amber-700">آخر زيارة: {prevVisit?.date}</div>
+              <div className="text-amber-700">{t("office.آخر زيارة:")} {prevVisit?.date}</div>
               <ul className="list-disc ps-5 text-amber-800 space-y-0.5">
                 {prevOpenGaps.map((g: any) => (
                   <li key={g.id}>
                     {g.gap}
-                    {g.converted ? " — محوّلة لمهمة" : ""}
+                    {g.converted ? " — " + t("office.محوّلة لمهمة") : ""}
                   </li>
                 ))}
               </ul>
@@ -637,9 +646,9 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
           )}
 
           <div className="space-y-3">
-            <div className="text-xs font-bold text-primary">التقييمات والملاحظات</div>
+            <div className="text-xs font-bold text-primary">{t("office.التقييمات والملاحظات")}</div>
             {EVAL_FIELDS.map(([key, label]) => (
-              <FieldBox key={String(key)} label={label}>
+              <FieldBox key={String(key)} label={t("office." + label)}>
                 <Textarea rows={2} value={evals[String(key)] ?? ""}
                   onChange={(e) => setEvals({ ...evals, [String(key)]: e.target.value })} />
               </FieldBox>
@@ -649,7 +658,7 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
           {/* الفجوات */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs">الفجوات</Label>
+              <Label className="text-xs">{t("office.الفجوات")}</Label>
               <Button size="sm" variant="outline" onClick={() => setGaps([...gaps, { gap: "", action: "", priority: "normal", due_date: "" }])}>
                 <Plus size={13} className="ms-1" /> إضافة فجوة
               </Button>
@@ -658,16 +667,16 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
               <table className="oid-table">
                 <thead>
                   <tr>
-                    <th className="p-2 text-right">الفجوة</th>
-                    <th className="p-2 text-right">الإجراء التصحيحي</th>
-                    <th className="p-2 text-right w-24">الأولوية</th>
-                    <th className="p-2 text-right w-36">موعد الإنجاز</th>
-                    <th className="p-2 text-right w-32">تحويل</th>
+                    <th className="p-2 text-right">{t("office.الفجوة")}</th>
+                    <th className="p-2 text-right">{t("office.الإجراء التصحيحي")}</th>
+                    <th className="p-2 text-right w-24">{t("office.الأولوية")}</th>
+                    <th className="p-2 text-right w-36">{t("office.موعد الإنجاز")}</th>
+                    <th className="p-2 text-right w-32">{t("office.تحويل")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {gaps.length === 0 && (
-                    <tr><td colSpan={5} className="p-3 text-center text-muted-foreground">لا توجد فجوات.</td></tr>
+                    <tr><td colSpan={5} className="p-3 text-center text-muted-foreground">{t("office.لا توجد فجوات.")}</td></tr>
                   )}
                   {gaps.map((g, i) => (
                     <tr key={g.id ?? i} className="border-t border-border">
@@ -675,8 +684,8 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
                       <td className="p-1"><Input value={g.action ?? ""} onChange={(e) => upd(i, { action: e.target.value })} /></td>
                       <td className="p-1">
                         <select className={SELECT_CLS + " w-full"} value={g.priority} onChange={(e) => upd(i, { priority: e.target.value })}>
-                          <option value="urgent">عاجل</option>
-                          <option value="normal">غير عاجل</option>
+                          <option value="urgent">{t("office.عاجل")}</option>
+                          <option value="normal">{t("office.غير عاجل")}</option>
                         </select>
                       </td>
                       <td className="p-1"><Input type="date" value={g.due_date ?? ""} onChange={(e) => upd(i, { due_date: e.target.value })} /></td>
@@ -703,11 +712,11 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
           </div>
 
           <div className="space-y-3">
-            <div className="text-xs font-bold text-primary">نتائج الزيارة</div>
-            <FieldBox label="المخرجات والقرارات"><Textarea rows={3} value={outputs} onChange={(e) => setOutputs(e.target.value)} /></FieldBox>
-            <FieldBox label="التحديات والتوصيات"><Textarea rows={3} value={challenges} onChange={(e) => setChallenges(e.target.value)} /></FieldBox>
+            <div className="text-xs font-bold text-primary">{t("office.نتائج الزيارة")}</div>
+            <FieldBox label={t("office.المخرجات والقرارات")}><Textarea rows={3} value={outputs} onChange={(e) => setOutputs(e.target.value)} /></FieldBox>
+            <FieldBox label={t("office.التحديات والتوصيات")}><Textarea rows={3} value={challenges} onChange={(e) => setChallenges(e.target.value)} /></FieldBox>
             <div className="space-y-1">
-              <Label className="text-xs">مستوى الأداء العام</Label>
+              <Label className="text-xs">{t("office.مستوى الأداء العام")}</Label>
               <div className="flex flex-wrap gap-2">
                 {PERFORMANCE.map((p) => (
                   <button key={p.id} type="button" onClick={() => setPerformance(p.id)}
@@ -715,13 +724,13 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
                     style={performance === p.id
                       ? { background: p.color, color: "#fff", borderColor: p.color }
                       : { background: "transparent", color: p.color, borderColor: p.color + "66" }}>
-                    {p.label}
+                    {t("office." + p.label)}
                   </button>
                 ))}
               </div>
             </div>
-            <FieldBox label="توجيه رئيس المؤسسة"><Textarea rows={2} value={guidance} onChange={(e) => setGuidance(e.target.value)} /></FieldBox>
-            <FieldBox label="أخرى"><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></FieldBox>
+            <FieldBox label={t("office.توجيه رئيس المؤسسة")}><Textarea rows={2} value={guidance} onChange={(e) => setGuidance(e.target.value)} /></FieldBox>
+            <FieldBox label={t("office.أخرى")}><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></FieldBox>
           </div>
         </div>
 
@@ -731,7 +740,7 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
               <Printer size={14} className="ms-1" /> تصدير استمارة
             </Button>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>إغلاق</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("office.إغلاق")}</Button>
           <Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ"}</Button>
         </DialogFooter>
       </DialogContent>
@@ -742,6 +751,7 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
 /* ══════════════════════ تبويب خطط المكتب ══════════════════════ */
 
 function PlansTab() {
+  const { t, lang, dir } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
@@ -749,10 +759,10 @@ function PlansTab() {
   const { data: rows = [], isLoading } = useQuery({ queryKey: ["office_plans"], queryFn: loadPlans });
 
   async function remove(id: string) {
-    if (!confirm("حذف هذه الخطة وأنشطتها؟")) return;
+    if (!confirm(t("office.حذف هذه الخطة وأنشطتها؟"))) return;
     try {
       await deletePlan(id);
-      toast.success("تم الحذف");
+      toast.success(t("office.تم الحذف"));
       qc.invalidateQueries({ queryKey: ["office_plans"] });
     } catch (e: any) { toast.error(e.message); }
   }
@@ -766,14 +776,14 @@ function PlansTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{rows.length} خطة</span>
+        <span className="text-xs text-muted-foreground">{rows.length} {t("office.خطة")}</span>
         <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
           <Plus size={15} className="ms-1" /> خطة جديدة
         </Button>
       </div>
 
-      {isLoading ? <EmptyState text="جارٍ التحميل…" /> : rows.length === 0 ? (
-        <EmptyState text="لا توجد خطط مسجّلة بعد." />
+      {isLoading ? <EmptyState text={t("office.جارٍ التحميل…")} /> : rows.length === 0 ? (
+        <EmptyState text={t("office.لا توجد خطط مسجّلة بعد.")} />
       ) : (
         byYear.map(([year, plans]) => (
           <div key={year} className="space-y-2">
@@ -786,17 +796,17 @@ function PlansTab() {
               return (
                 <Card key={p.id}>
                   <CardHeader
-                    title={`${p.title} — ${p.quarter ? p.quarter : "خطة سنوية"}`}
+                    title={`${p.title} — ${p.quarter ? p.quarter : t("office.خطة سنوية")}`}
                     subtitle={p.objective ?? ""}
                     action={
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
-                          {p.status === "completed" ? "مكتملة" : p.status === "cancelled" ? "ملغاة" : "نشطة"}
+                          {t("office." + (p.status === "completed" ? "مكتملة" : p.status === "cancelled" ? "ملغاة" : "نشطة"))}
                         </span>
                         <Button size="sm" variant="outline" onClick={() => setOpenPlan(expanded ? null : p.id)}>
                           {expanded ? "إخفاء" : "الأنشطة"}
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}>تعديل</Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}>{t("office.تعديل")}</Button>
                         <Button size="sm" variant="ghost" className="text-danger" onClick={() => remove(p.id)}>
                           <Trash2 size={14} />
                         </Button>
@@ -825,6 +835,7 @@ function PlansTab() {
 }
 
 function PlanActivities({ plan }: { plan: any }) {
+  const { t, lang, dir } = useLang();
   const qc = useQueryClient();
   const acts = (plan.plan_activities ?? []) as any[];
   const [title, setTitle] = useState("");
@@ -834,11 +845,11 @@ function PlanActivities({ plan }: { plan: any }) {
   const refresh = () => qc.invalidateQueries({ queryKey: ["office_plans"] });
 
   async function add() {
-    if (!title.trim()) return toast.error("عنوان النشاط مطلوب");
+    if (!title.trim()) return toast.error(t("office.عنوان النشاط مطلوب"));
     try {
       await saveActivity({ plan_id: plan.id, title: title.trim(), assigned_to: assigned || null, due_date: due || null });
       setTitle(""); setAssigned(""); setDue("");
-      toast.success("تمت إضافة النشاط");
+      toast.success(t("office.تمت إضافة النشاط"));
       refresh();
     } catch (e: any) { toast.error(e.message); }
   }
@@ -854,7 +865,7 @@ function PlanActivities({ plan }: { plan: any }) {
         activityId: a.id, planId: plan.id, title: a.title,
         description: a.description, assignedTo: a.assigned_to, dueDate: a.due_date,
       });
-      toast.success("تم إنشاء مهمة متابعة");
+      toast.success(t("office.تم إنشاء مهمة متابعة"));
       qc.invalidateQueries({ queryKey: ["office_tasks"] });
       refresh();
     } catch (e: any) { toast.error(e.message); }
@@ -866,18 +877,18 @@ function PlanActivities({ plan }: { plan: any }) {
 
   return (
     <div className="border-t border-border p-4 space-y-2">
-      {acts.length === 0 && <p className="text-xs text-muted-foreground">لا توجد أنشطة بعد.</p>}
+      {acts.length === 0 && <p className="text-xs text-muted-foreground">{t("office.لا توجد أنشطة بعد.")}</p>}
       {acts.map((a) => (
         <div key={a.id} className="border border-border rounded-lg p-3 bg-white flex flex-wrap items-center gap-2">
           <div className="flex-1 min-w-[180px]">
             <div className="text-sm font-medium">{a.title}</div>
             {a.description && <div className="text-[11px] text-muted-foreground">{a.description}</div>}
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              {a.assigned_to ? `المكلف: ${a.assigned_to}` : "بدون مكلف"}{a.due_date ? ` — ${a.due_date}` : ""}
+              {a.assigned_to ? `${t("office.المكلف:")} ${a.assigned_to}` : t("office.بدون مكلف")}{a.due_date ? ` — ${a.due_date}` : ""}
             </div>
           </div>
           <select className={SELECT_CLS} value={a.status} onChange={(e) => setStatus(a, e.target.value)}>
-            {ACT_STATUS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            {ACT_STATUS.map((s) => <option key={s.id} value={s.id}>{t("office." + s.label)}</option>)}
           </select>
           {a.task_id ? (
             <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
@@ -895,16 +906,17 @@ function PlanActivities({ plan }: { plan: any }) {
       ))}
 
       <div className="flex flex-wrap gap-2 pt-2">
-        <Input className="flex-1 min-w-[160px]" placeholder="نشاط جديد" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <Input className="w-40" placeholder="المكلف" value={assigned} onChange={(e) => setAssigned(e.target.value)} />
+        <Input className="flex-1 min-w-[160px]" placeholder={t("office.نشاط جديد")} value={title} onChange={(e) => setTitle(e.target.value)} />
+        <Input className="w-40" placeholder={t("office.المكلف")} value={assigned} onChange={(e) => setAssigned(e.target.value)} />
         <Input className="w-40" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
-        <Button size="sm" onClick={add}><Plus size={14} className="ms-1" /> إضافة</Button>
+        <Button size="sm" onClick={add}><Plus size={14} className="ms-1" />{t("office.إضافة")}</Button>
       </div>
     </div>
   );
 }
 
 function PlanDialog({ open, onOpenChange, editing }: { open: boolean; onOpenChange: (v: boolean) => void; editing: any | null }) {
+  const { t, lang, dir } = useLang();
   const qc = useQueryClient();
   const [title, setTitle] = useState("");
   const [year, setYear] = useState(2026);
@@ -924,14 +936,14 @@ function PlanDialog({ open, onOpenChange, editing }: { open: boolean; onOpenChan
   }, [open, editing]);
 
   async function save() {
-    if (!title.trim()) return toast.error("عنوان الخطة مطلوب");
+    if (!title.trim()) return toast.error(t("office.عنوان الخطة مطلوب"));
     try {
       await savePlan({
         id: editing?.id, title: title.trim(), year: Number(year),
         quarter: quarter || null, objective: objective || null,
         description: description || null, status,
       });
-      toast.success("تم حفظ الخطة");
+      toast.success(t("office.تم حفظ الخطة"));
       qc.invalidateQueries({ queryKey: ["office_plans"] });
       onOpenChange(false);
     } catch (e: any) { toast.error(e.message); }
@@ -939,32 +951,32 @@ function PlanDialog({ open, onOpenChange, editing }: { open: boolean; onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg" dir="rtl">
+      <DialogContent className="max-w-lg" dir={dir}>
         <DialogHeader><DialogTitle>{editing ? "تعديل خطة" : "خطة جديدة"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <FieldBox label="عنوان الخطة *"><Input value={title} onChange={(e) => setTitle(e.target.value)} /></FieldBox>
+          <FieldBox label={t("office.عنوان الخطة *")}><Input value={title} onChange={(e) => setTitle(e.target.value)} /></FieldBox>
           <div className="grid grid-cols-2 gap-3">
-            <FieldBox label="السنة"><Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} /></FieldBox>
-            <FieldBox label="الربع">
+            <FieldBox label={t("office.السنة")}><Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} /></FieldBox>
+            <FieldBox label={t("office.الربع")}>
               <select className={SELECT_CLS + " w-full"} value={quarter} onChange={(e) => setQuarter(e.target.value)}>
-                <option value="">خطة سنوية</option>
+                <option value="">{t("office.خطة سنوية")}</option>
                 {["Q1", "Q2", "Q3", "Q4"].map((q) => <option key={q} value={q}>{q}</option>)}
               </select>
             </FieldBox>
           </div>
-          <FieldBox label="الهدف"><Textarea rows={2} value={objective} onChange={(e) => setObjective(e.target.value)} /></FieldBox>
-          <FieldBox label="الوصف"><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></FieldBox>
-          <FieldBox label="الحالة">
+          <FieldBox label={t("office.الهدف")}><Textarea rows={2} value={objective} onChange={(e) => setObjective(e.target.value)} /></FieldBox>
+          <FieldBox label={t("office.الوصف")}><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></FieldBox>
+          <FieldBox label={t("office.الحالة")}>
             <select className={SELECT_CLS + " w-full"} value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="active">نشطة</option>
-              <option value="completed">مكتملة</option>
-              <option value="cancelled">ملغاة</option>
+              <option value="active">{t("office.نشطة")}</option>
+              <option value="completed">{t("office.مكتملة")}</option>
+              <option value="cancelled">{t("office.ملغاة")}</option>
             </select>
           </FieldBox>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
-          <Button onClick={save}>حفظ</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("office.إلغاء")}</Button>
+          <Button onClick={save}>{t("office.حفظ")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
