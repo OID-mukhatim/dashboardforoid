@@ -2,7 +2,10 @@
  * تصدير نماذج المكتب الرسمية (محضر اجتماع — نموذج 3، استمارة زيارة — نموذج 2)
  * بصيغة صفحة طباعة جاهزة PDF.
  */
-import { orgName, type OrgId } from "@/lib/oid-data";
+import { ORGS, type OrgId } from "@/lib/oid-data";
+import { t as translate, type Lang } from "@/lib/i18n";
+const orgNameFor = (id: OrgId, lang: Lang) => { const org = ORGS.find(o => o.id === id); return org ? (lang === "en" ? org.nameEn : org.nameAr) : id; };
+const tx = (lang: Lang, text: string) => translate(lang, "office." + text);
 
 const BASE_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -31,9 +34,9 @@ const esc = (v: any) =>
     ? "—"
     : String(v).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
 
-function openPrint(title: string, body: string) {
-  const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-  <title>${esc(title)}</title><style>${BASE_CSS}</style></head><body>${body}</body></html>`;
+function openPrint(title: string, body: string, lang: Lang) {
+  const html = `<!doctype html><html lang="${lang}" dir="${lang === "ar" ? "rtl" : "ltr"}"><head><meta charset="utf-8">
+  <title>${esc(title)}</title><style>${BASE_CSS}${lang === "en" ? "body{direction:ltr;font-family:Arial,sans-serif}th{text-align:left}.section h3{border-right:0;border-left:3px solid #0e4d2e}" : ""}</style></head><body>${body}</body></html>`;
   const win = window.open("", "_blank");
   if (!win) return;
   win.document.write(html);
@@ -41,11 +44,11 @@ function openPrint(title: string, body: string) {
   setTimeout(() => win.print(), 700);
 }
 
-const FOOTER = `<div class="footer">مكتب الإشراف والتطوير المؤسسي — شبكة مؤسسات زمزم</div>`;
-const HEADER = (form: string) => `
+const FOOTER = (lang: Lang) => `<div class="footer">${tx(lang, "مكتب الإشراف والتطوير المؤسسي — شبكة مؤسسات زمزم")}</div>`;
+const HEADER = (form: string, lang: Lang) => `
   <div class="header">
-    <h1>مكتب الإشراف والتطوير المؤسسي (OID)</h1>
-    <p>نماذج العمل — ${form}</p>
+    <h1>${tx(lang, "مكتب الإشراف والتطوير المؤسسي (OID)")}</h1>
+    <p>${tx(lang, "نماذج العمل —")} ${form}</p>
   </div>`;
 
 const MEETING_TYPES: Record<string, string> = {
@@ -55,35 +58,35 @@ const MEETING_TYPES: Record<string, string> = {
 };
 
 /** تصدير محضر اجتماع (نموذج 3). */
-export function exportMeetingPDF(meeting: any) {
+export function exportMeetingPDF(meeting: any, lang: Lang = "ar") {
   const decisions = meeting.meeting_decisions ?? [];
   const attendees = (meeting.attendees ?? []) as { name: string; role: string }[];
   const body = `
-  ${HEADER("نموذج 3")}
-  <div class="title-bar">محضر اجتماع — ${esc(meeting.title)}</div>
+  ${HEADER(tx(lang, "نموذج 3"), lang)}
+  <div class="title-bar">${tx(lang, 'محضر اجتماع —')} ${esc(meeting.title)}</div>
 
   <div class="section">
-    <h3>البيانات الأساسية</h3>
-    <div class="field"><div class="field-label">التاريخ:</div><div class="field-value">${esc(meeting.date)}</div></div>
-    <div class="field"><div class="field-label">نوع الاجتماع:</div><div class="field-value">${esc(MEETING_TYPES[meeting.meeting_type] ?? meeting.meeting_type)}</div></div>
-    ${meeting.org_id ? `<div class="field"><div class="field-label">المؤسسة المعنية:</div><div class="field-value">${esc(orgName(meeting.org_id as OrgId))}</div></div>` : ""}
-    <div class="field"><div class="field-label">مدة ومكان الاجتماع:</div><div class="field-value">${esc(meeting.duration)} | ${esc(meeting.location)}</div></div>
-    <div class="field"><div class="field-label">الحضور:</div><div class="field-value">${
+    <h3>${tx(lang, 'البيانات الأساسية')}</h3>
+    <div class="field"><div class="field-label">${tx(lang, 'التاريخ:')}</div><div class="field-value">${esc(meeting.date)}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'نوع الاجتماع:')}</div><div class="field-value">${esc(tx(lang, MEETING_TYPES[meeting.meeting_type] ?? meeting.meeting_type))}</div></div>
+    ${meeting.org_id ? `<div class="field"><div class="field-label">${tx(lang, 'المؤسسة المعنية:')}</div><div class="field-value">${esc(orgNameFor(meeting.org_id as OrgId, lang))}</div></div>` : ""}
+    <div class="field"><div class="field-label">${tx(lang, 'مدة ومكان الاجتماع:')}</div><div class="field-value">${esc(meeting.duration)} | ${esc(meeting.location)}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'الحضور:')}</div><div class="field-value">${
       attendees.map((a) => `${esc(a.name)} (${esc(a.role)})`).join(" | ") || "—"
     }</div></div>
   </div>
 
   <div class="section">
-    <h3>محتوى الاجتماع</h3>
-    <div class="field"><div class="field-label">هدف الاجتماع:</div><div class="field-value">${esc(meeting.objective)}</div></div>
-    <div class="field"><div class="field-label">وقائع الاجتماع:</div><div class="field-value">${esc(meeting.minutes)}</div></div>
-    <div class="field"><div class="field-label">مخرجات الاجتماع:</div><div class="field-value">${esc(meeting.outputs)}</div></div>
+    <h3>${tx(lang, 'محتوى الاجتماع')}</h3>
+    <div class="field"><div class="field-label">${tx(lang, 'هدف الاجتماع:')}</div><div class="field-value">${esc(meeting.objective)}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'وقائع الاجتماع:')}</div><div class="field-value">${esc(meeting.minutes)}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'مخرجات الاجتماع:')}</div><div class="field-value">${esc(meeting.outputs)}</div></div>
   </div>
 
   <div class="section">
-    <h3>المخرجات والقرارات</h3>
+    <h3>${tx(lang, 'المخرجات والقرارات')}</h3>
     <table>
-      <thead><tr><th style="width:32px">#</th><th>القرار</th><th style="width:140px">المكلف</th><th style="width:110px">وقت الإنجاز</th></tr></thead>
+      <thead><tr><th style="width:32px">#</th><th>${tx(lang, 'القرار')}</th><th style="width:140px">${tx(lang, 'المكلف')}</th><th style="width:110px">${tx(lang, 'وقت الإنجاز')}</th></tr></thead>
       <tbody>
         ${
           decisions.length
@@ -93,13 +96,13 @@ export function exportMeetingPDF(meeting: any) {
                     `<tr><td>${i + 1}</td><td>${esc(d.decision)}</td><td>${esc(d.assigned_to)}</td><td>${esc(d.due_date)}</td></tr>`,
                 )
                 .join("")
-            : `<tr><td colspan="4" style="text-align:center;color:#94a3b8">لا توجد قرارات مسجّلة</td></tr>`
+            : `<tr><td colspan="4" style="text-align:center;color:#94a3b8">${tx(lang, 'لا توجد قرارات مسجّلة')}</td></tr>`
         }
       </tbody>
     </table>
   </div>
-  ${FOOTER}`;
-  openPrint(`محضر اجتماع — ${meeting.title}`, body);
+  ${FOOTER(lang)}`;
+  openPrint(`${tx(lang, "محضر اجتماع —")} ${meeting.title}`, body, lang);
 }
 
 const PERFORMANCE_LABELS: Record<string, string> = {
@@ -116,7 +119,7 @@ const VISIT_TYPE_LABELS: Record<string, string> = {
 };
 
 /** تصدير استمارة زيارة (نموذج 2). */
-export function exportVisitPDF(visit: any) {
+export function exportVisitPDF(visit: any, lang: Lang = "ar") {
   const gaps = visit.visit_gaps ?? [];
   const evals: [string, any][] = [
     ["الهوية البصرية", visit.visual_identity],
@@ -127,32 +130,32 @@ export function exportVisitPDF(visit: any) {
     ["سير العمل العام", visit.general_work],
   ];
   const body = `
-  ${HEADER("نموذج 2")}
-  <div class="title-bar">استمارة الزيارات — ${esc(orgName(visit.org_id as OrgId))}</div>
+  ${HEADER(tx(lang, "نموذج 2"), lang)}
+  <div class="title-bar">${tx(lang, 'استمارة الزيارات —')} ${esc(orgNameFor(visit.org_id as OrgId, lang))}</div>
 
   <div class="section">
-    <h3>البيانات الأساسية</h3>
-    <div class="field"><div class="field-label">اسم المؤسسة:</div><div class="field-value">${esc(orgName(visit.org_id as OrgId))}</div></div>
-    <div class="field"><div class="field-label">التاريخ:</div><div class="field-value">${esc(visit.date)}</div></div>
-    <div class="field"><div class="field-label">الهدف:</div><div class="field-value">${esc(visit.objective)}</div></div>
-    <div class="field"><div class="field-label">نوع الزيارة:</div><div class="field-value">${esc(VISIT_TYPE_LABELS[visit.visit_type] ?? visit.visit_type)}</div></div>
-    <div class="field"><div class="field-label">وفد الزيارة:</div><div class="field-value">رئيس المؤسسة: ${esc(visit.org_delegate)} / مندوب OID: ${esc(visit.oid_delegate)}</div></div>
+    <h3>${tx(lang, 'البيانات الأساسية')}</h3>
+    <div class="field"><div class="field-label">${tx(lang, 'اسم المؤسسة:')}</div><div class="field-value">${esc(orgNameFor(visit.org_id as OrgId, lang))}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'التاريخ:')}</div><div class="field-value">${esc(visit.date)}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'الهدف:')}</div><div class="field-value">${esc(visit.objective)}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'نوع الزيارة:')}</div><div class="field-value">${esc(tx(lang, VISIT_TYPE_LABELS[visit.visit_type] ?? visit.visit_type))}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'وفد الزيارة:')}</div><div class="field-value">${tx(lang, 'رئيس المؤسسة:')} ${esc(visit.org_delegate)} / ${tx(lang, "مندوب OID:")} ${esc(visit.oid_delegate)}</div></div>
   </div>
 
   <div class="section">
-    <h3>التقييمات والملاحظات</h3>
+    <h3>${tx(lang, 'التقييمات والملاحظات')}</h3>
     ${evals
       .map(
         ([label, val]) =>
-          `<div class="field"><div class="field-label">${label}:</div><div class="field-value">${esc(val)}</div></div>`,
+          `<div class="field"><div class="field-label">${tx(lang, label)}:</div><div class="field-value">${esc(val)}</div></div>`,
       )
       .join("")}
   </div>
 
   <div class="section">
-    <h3>الفجوات</h3>
+    <h3>${tx(lang, 'الفجوات')}</h3>
     <table>
-      <thead><tr><th style="width:32px">#</th><th>الفجوة المرصودة</th><th>الإجراء التصحيحي</th><th style="width:90px">الأولوية</th><th style="width:110px">موعد الإنجاز</th></tr></thead>
+      <thead><tr><th style="width:32px">#</th><th>${tx(lang, 'الفجوة المرصودة')}</th><th>${tx(lang, 'الإجراء التصحيحي')}</th><th style="width:90px">${tx(lang, 'الأولوية')}</th><th style="width:110px">${tx(lang, 'موعد الإنجاز')}</th></tr></thead>
       <tbody>
         ${
           gaps.length
@@ -160,24 +163,24 @@ export function exportVisitPDF(visit: any) {
                 .map(
                   (g: any, i: number) =>
                     `<tr><td>${i + 1}</td><td>${esc(g.gap)}</td><td>${esc(g.action)}</td><td>${
-                      g.priority === "urgent" ? "🔴 عاجل" : "⚪ غير عاجل"
+                      g.priority === "urgent" ? "🔴 " + tx(lang, "عاجل") : "⚪ " + tx(lang, "غير عاجل")
                     }</td><td>${esc(g.due_date)}</td></tr>`,
                 )
                 .join("")
-            : `<tr><td colspan="5" style="text-align:center;color:#94a3b8">لا توجد فجوات مرصودة</td></tr>`
+            : `<tr><td colspan="5" style="text-align:center;color:#94a3b8">${tx(lang, 'لا توجد فجوات مرصودة')}</td></tr>`
         }
       </tbody>
     </table>
   </div>
 
   <div class="section">
-    <h3>نتائج الزيارة</h3>
-    <div class="field"><div class="field-label">المخرجات والقرارات:</div><div class="field-value">${esc(visit.outputs)}</div></div>
-    <div class="field"><div class="field-label">التحديات والتوصيات:</div><div class="field-value">${esc(visit.challenges)}</div></div>
-    <div class="field"><div class="field-label">مستوى الأداء العام:</div><div class="field-value">${esc(PERFORMANCE_LABELS[visit.performance] ?? visit.performance)}</div></div>
-    <div class="field"><div class="field-label">توجيه رئيس المؤسسة:</div><div class="field-value">${esc(visit.guidance)}</div></div>
-    <div class="field"><div class="field-label">أخرى:</div><div class="field-value">${esc(visit.notes)}</div></div>
+    <h3>${tx(lang, 'نتائج الزيارة')}</h3>
+    <div class="field"><div class="field-label">${tx(lang, 'المخرجات والقرارات:')}</div><div class="field-value">${esc(visit.outputs)}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'التحديات والتوصيات:')}</div><div class="field-value">${esc(visit.challenges)}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'مستوى الأداء العام:')}</div><div class="field-value">${esc(tx(lang, PERFORMANCE_LABELS[visit.performance] ?? visit.performance))}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'توجيه رئيس المؤسسة:')}</div><div class="field-value">${esc(visit.guidance)}</div></div>
+    <div class="field"><div class="field-label">${tx(lang, 'أخرى:')}</div><div class="field-value">${esc(visit.notes)}</div></div>
   </div>
-  ${FOOTER}`;
-  openPrint(`استمارة زيارة — ${orgName(visit.org_id as OrgId)}`, body);
+  ${FOOTER(lang)}`;
+  openPrint(`${tx(lang, "استمارة زيارة —")} ${orgNameFor(visit.org_id as OrgId, lang)}`, body, lang);
 }
