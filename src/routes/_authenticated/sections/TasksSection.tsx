@@ -83,8 +83,8 @@ function metaOf<T extends { id: string; label: string; color: string }>(list: re
   return list.find((x) => x.id === id) ?? { id, label: id, color: "#64748b" };
 }
 
-export function TasksSection()  const { t: tr, lang, dir } = useLang();
- {
+export function TasksSection() {
+  const { t: tr , lang } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [prefill, setPrefill] = useState<TaskPrefill | null>(null);
@@ -317,7 +317,7 @@ function TaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg" dir={dir}>
         <DialogHeader>
-          <DialogTitle>{editing ? "تعديل مهمة" : "إضافة مهمة متابعة"}</DialogTitle>
+          <DialogTitle>{editing ? tr("office.تعديل مهمة") : tr("office.إضافة مهمة متابعة")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">

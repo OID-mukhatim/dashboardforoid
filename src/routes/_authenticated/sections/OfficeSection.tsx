@@ -54,8 +54,8 @@ const ACT_STATUS = [
 const labelOf = (list: { id: string; label: string }[], id: string) =>
   list.find((x) => x.id === id)?.label ?? id;
 
-export function OfficeSection()  const { t, lang, dir } = useLang();
- {
+export function OfficeSection() {
+  const { t } = useLang();
   const [tab, setTab] = useState<"plans" | "meetings" | "visits" | "tasks">("meetings");
   const TABS = [
     { id: "plans", icon: "📋", label: "خطط المكتب" },
@@ -75,17 +75,17 @@ export function OfficeSection()  const { t, lang, dir } = useLang();
       </div>
 
       <div className="flex flex-wrap gap-1 border-b border-border">
-        {TABS.map((t) => (
+        {TABS.map((tabItem) => (
           <button
-            key={t.id}
+            key={tabItem.id}
             type="button"
-            onClick={() => setTab(t.id as any)}
+            onClick={() => setTab(tabItem.id)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2 ${
-              tab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              tab === tabItem.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            <span>{t.icon}</span>
-            {t("office." + t.label)}
+            <span>{tabItem.icon}</span>
+            {t("office." + tabItem.label)}
           </button>
         ))}
       </div>
@@ -101,14 +101,14 @@ export function OfficeSection()  const { t, lang, dir } = useLang();
 /* ══════════════════════ عناصر مشتركة ══════════════════════ */
 
 function StatusBadge({ status }: { status: string }) {
-  const { t, lang, dir } = useLang();
+  const { t } = useLang();
   const final = status === "final";
   return (
     <span
       className="text-[10px] px-1.5 py-0.5 rounded font-medium"
       style={{ background: final ? "#10b98122" : "#94a3b822", color: final ? "#10b981" : "#64748b" }}
     >
-      {final ? "معتمد" : "مسودة"}
+      {t("office." + (final ? "معتمد" : "مسودة"))}
     </span>
   );
 }
@@ -129,7 +129,7 @@ function EmptyState({ text }: { text: string }) {
 /* ══════════════════════ تبويب الاجتماعات ══════════════════════ */
 
 function MeetingsTab() {
-  const { t, lang, dir } = useLang();
+  const { t , lang } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
@@ -285,7 +285,7 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir={dir}>
-        <DialogHeader><DialogTitle>{editing ? "الاجتماع" : "اجتماع جديد"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{editing ? t("office.الاجتماع") : t("office.اجتماع جديد")}</DialogTitle></DialogHeader>
 
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -299,7 +299,7 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
             <FieldBox label={t("office.المكان")}><Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("office.حضوري / عن بعد")} /></FieldBox>
             <FieldBox label={t("office.نوع الاجتماع")}>
               <select className={SELECT_CLS + " w-full"} value={type} onChange={(e) => setType(e.target.value)}>
-                {MEETING_TYPES.map((t) => <option key={t.id} value={t.id}>{t("office." + t.label)}</option>)}
+                {MEETING_TYPES.map((t) => <option key={t.id} value={t.id}>{t("office." + tabItem.label)}</option>)}
               </select>
             </FieldBox>
             {type === "with_institution" && (
@@ -399,7 +399,7 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("office.إغلاق")}</Button>
-          <Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ"}</Button>
+          <Button onClick={save} disabled={saving}>{saving ? t("office.جارٍ الحفظ…") : t("office.حفظ")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -409,7 +409,7 @@ function MeetingDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
 /* ══════════════════════ تبويب الزيارات ══════════════════════ */
 
 function VisitsTab() {
-  const { t, lang, dir } = useLang();
+  const { t , lang } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
@@ -601,7 +601,7 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir={dir}>
-        <DialogHeader><DialogTitle>{editing ? "الزيارة" : "زيارة جديدة"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{editing ? t("office.الزيارة") : t("office.زيارة جديدة")}</DialogTitle></DialogHeader>
 
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -614,7 +614,7 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
             <FieldBox label={t("office.التاريخ *")}><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></FieldBox>
             <FieldBox label={t("office.نوع الزيارة")}>
               <select className={SELECT_CLS + " w-full"} value={visitType} onChange={(e) => setVisitType(e.target.value)}>
-                {VISIT_TYPES.map((t) => <option key={t.id} value={t.id}>{t("office." + t.label)}</option>)}
+                {VISIT_TYPES.map((t) => <option key={t.id} value={t.id}>{t("office." + tabItem.label)}</option>)}
               </select>
             </FieldBox>
             <FieldBox label={t("office.الحالة")}>
@@ -632,7 +632,7 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
 
           {orgId && prevOpenGaps.length > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs space-y-1">
-              <div className="font-semibold text-amber-800">📋 المتابعات السابقة</div>
+              <div className="font-semibold text-amber-800">📋 {t("office.المتابعات السابقة")}</div>
               <div className="text-amber-700">{t("office.آخر زيارة:")} {prevVisit?.date}</div>
               <ul className="list-disc ps-5 text-amber-800 space-y-0.5">
                 {prevOpenGaps.map((g: any) => (
@@ -741,7 +741,7 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("office.إغلاق")}</Button>
-          <Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ"}</Button>
+          <Button onClick={save} disabled={saving}>{saving ? t("office.جارٍ الحفظ…") : t("office.حفظ")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -751,7 +751,7 @@ function VisitDialog({ open, onOpenChange, editing }: { open: boolean; onOpenCha
 /* ══════════════════════ تبويب خطط المكتب ══════════════════════ */
 
 function PlansTab() {
-  const { t, lang, dir } = useLang();
+  const { t } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
@@ -804,7 +804,7 @@ function PlansTab() {
                           {t("office." + (p.status === "completed" ? "مكتملة" : p.status === "cancelled" ? "ملغاة" : "نشطة"))}
                         </span>
                         <Button size="sm" variant="outline" onClick={() => setOpenPlan(expanded ? null : p.id)}>
-                          {expanded ? "إخفاء" : "الأنشطة"}
+                          {expanded ? t("office.إخفاء") : t("office.الأنشطة")}
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}>{t("office.تعديل")}</Button>
                         <Button size="sm" variant="ghost" className="text-danger" onClick={() => remove(p.id)}>
@@ -835,7 +835,7 @@ function PlansTab() {
 }
 
 function PlanActivities({ plan }: { plan: any }) {
-  const { t, lang, dir } = useLang();
+  const { t } = useLang();
   const qc = useQueryClient();
   const acts = (plan.plan_activities ?? []) as any[];
   const [title, setTitle] = useState("");
@@ -916,7 +916,7 @@ function PlanActivities({ plan }: { plan: any }) {
 }
 
 function PlanDialog({ open, onOpenChange, editing }: { open: boolean; onOpenChange: (v: boolean) => void; editing: any | null }) {
-  const { t, lang, dir } = useLang();
+  const { t , dir } = useLang();
   const qc = useQueryClient();
   const [title, setTitle] = useState("");
   const [year, setYear] = useState(2026);
@@ -952,7 +952,7 @@ function PlanDialog({ open, onOpenChange, editing }: { open: boolean; onOpenChan
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg" dir={dir}>
-        <DialogHeader><DialogTitle>{editing ? "تعديل خطة" : "خطة جديدة"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{editing ? t("office.تعديل خطة") : t("office.خطة جديدة")}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <FieldBox label={t("office.عنوان الخطة *")}><Input value={title} onChange={(e) => setTitle(e.target.value)} /></FieldBox>
           <div className="grid grid-cols-2 gap-3">
