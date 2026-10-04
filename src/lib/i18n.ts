@@ -972,8 +972,14 @@ export const UI_STRINGS = {
 export const t = (lang: Lang, path: string): string => {
   const keys = path.split(".");
   let result: unknown = UI_STRINGS[lang];
-  for (const key of keys) {
-    result = (result as Record<string, unknown> | undefined)?.[key];
+  for (let i = 0; i < keys.length; i++) {
+    const object = result as Record<string, unknown> | undefined;
+    const remaining = keys.slice(i).join(".");
+    if (object && Object.prototype.hasOwnProperty.call(object, remaining)) {
+      result = object[remaining];
+      break;
+    }
+    result = object?.[keys[i]];
     if (result === undefined) return path;
   }
   return typeof result === "string" ? result : path;
