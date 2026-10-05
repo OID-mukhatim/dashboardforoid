@@ -5,16 +5,11 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, Cart
 import { ORGS, type OrgId, orgOverallScores, POLICY_STATUS_META, type PolicyStatus, generalPolicies, universityPolicies, humanitarianPolicies, educationPolicies } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { loadGovernancePolicies, updatePolicyStatus } from "@/lib/dashboard.functions";
+import { useLang } from "@/lib/lang-context";
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader, useDashboardSnapshotQuery, SectionTitle } from "./_shared";
 
-const STATUS_OPTIONS: { value: PolicyStatus; label: string }[] = [
-  { value: "active", label: "✅ موجود ومفعّل" },
-  { value: "inactive", label: "🔵 موجود وغير مفعّل" },
-  { value: "review", label: "🟡 بحاجة تحديث" },
-  { value: "inDev", label: "🟠 قيد الإعداد" },
-  { value: "missing", label: "❌ غير موجود" },
-  { value: "pending", label: "⏳ بيانات ناقصة" },
-];
+const STATUS_OPTIONS: PolicyStatus[] = ["active", "inactive", "review", "inDev", "missing", "pending"];
 
 const STATUS_SELECT_CLASS: Record<PolicyStatus, string> = {
   active: "status-green border-success/30",
@@ -29,6 +24,7 @@ const ALL_POLICIES = [...generalPolicies, ...universityPolicies, ...humanitarian
 
 /* ============================ GOVERNANCE ============================ */
 export function GovernanceSection() {
+  const { lang, t } = useLang();
   const { data: snap } = useDashboardSnapshotQuery();
   const [cat, setCat] = useState<"all"|"general"|"university"|"humanitarian"|"education">("general");
   const queryClient = useQueryClient();
@@ -106,25 +102,25 @@ export function GovernanceSection() {
 
   return (
     <div className="space-y-6">
-      <SectionTitle title="الحوكمة والامتثال" subtitle="حالة السياسات والوثائق المؤسسية" />
+      <SectionTitle title={t("governance.title")} subtitle={t("governance.subtitle")} />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {governanceScores.map(o => (
           <Card key={o.id} className="p-4 text-center">
-            <div className="text-xs text-muted-foreground mb-2 whitespace-normal break-words">{o.nameAr}</div>
+            <div className="text-xs text-muted-foreground mb-2 whitespace-normal break-words">{lang === "ar" ? o.nameAr : o.nameEn}</div>
             <div className="text-3xl font-bold tabular-nums mb-1" style={{ color: o.color }}>{o.govPct !== null ? `${o.govPct}%` : "—"}</div>
             <div className="text-[11px] text-muted-foreground">
-              {o.govPct === null ? "بيانات ناقصة" :
-               o.govPct >= 80 ? "ممتاز ⭐⭐⭐" :
-               o.govPct >= 60 ? "جيد ⭐⭐" :
-               o.govPct >= 40 ? "متوسط ⭐" : "ضعيف"}
+              {o.govPct === null ? t("governance.missingData") :
+               o.govPct >= 80 ? t("governance.excellent") :
+               o.govPct >= 60 ? t("governance.good") :
+               o.govPct >= 40 ? t("governance.average") : t("governance.weak")}
             </div>
           </Card>
         ))}
       </div>
 
       <Card>
-        <CardHeader title="توزيع السياسات حسب الحالة (Stacked)" />
+        <CardHeader title={t("governance.distribution")} />
         <div className="p-4 h-[280px]">
           <ResponsiveContainer>
             <BarChart data={stackedData}>
@@ -133,22 +129,22 @@ export function GovernanceSection() {
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="active" stackId="a" fill="#16a34a" name="مفعّل" />
-              <Bar dataKey="inactive" stackId="a" fill="#2563eb" name="غير مفعّل" />
-              <Bar dataKey="review" stackId="a" fill="#d97706" name="بحاجة تحديث" />
-              <Bar dataKey="inDev" stackId="a" fill="#ea580c" name="قيد الإعداد" />
-              <Bar dataKey="missing" stackId="a" fill="#dc2626" name="غير موجود" />
-              <Bar dataKey="pending" stackId="a" fill="#94a3b8" name="بيانات ناقصة" />
+              <Bar dataKey="active" stackId="a" fill="#16a34a" name={t("governance.chartStatuses.active")} />
+              <Bar dataKey="inactive" stackId="a" fill="#2563eb" name={t("governance.chartStatuses.inactive")} />
+              <Bar dataKey="review" stackId="a" fill="#d97706" name={t("governance.chartStatuses.review")} />
+              <Bar dataKey="inDev" stackId="a" fill="#ea580c" name={t("governance.chartStatuses.inDev")} />
+              <Bar dataKey="missing" stackId="a" fill="#dc2626" name={t("governance.chartStatuses.missing")} />
+              <Bar dataKey="pending" stackId="a" fill="#94a3b8" name={t("governance.chartStatuses.pending")} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </Card>
 
       <Card>
-        <CardHeader title="جدول السياسات التفصيلي" subtitle="اختر الحالة من القائمة — تُحفظ تلقائياً" action={
-          <div className="flex gap-2">
-            {[["general","عامة"],["university","جامعية"],["humanitarian","إنسانية"],["education","تعليمية"],["all","الكل"]].map(([k,l])=>(
-              <button key={k} onClick={()=>setCat(k as any)} className={`text-xs px-3 py-1 rounded-md border ${cat===k?"bg-primary text-primary-foreground border-primary":"border-border text-muted-foreground hover:bg-muted"}`}>{l}</button>
+        <CardHeader title={t("governance.policiesTitle")} subtitle={t("governance.editHint")} action={
+          <div className="flex flex-wrap gap-2">
+            {(["general", "university", "humanitarian", "education", "all"] as const).map((k)=>(
+              <Button key={k} size="sm" variant={cat === k ? "default" : "outline"} onClick={()=>setCat(k)} className="text-xs">{t(`governance.categories.${k}`)}</Button>
             ))}
           </div>
         } />
@@ -156,8 +152,8 @@ export function GovernanceSection() {
           <table className="oid-table">
             <thead>
               <tr>
-                <th className="px-3 py-2 text-right font-medium">الكود</th>
-                <th className="px-3 py-2 text-right font-medium">السياسة</th>
+                <th className="px-3 py-2 text-start font-medium">{t("governance.code")}</th>
+                <th className="px-3 py-2 text-start font-medium">{t("governance.policy")}</th>
                 {ORGS.map(o => (
                   <th key={o.id} className="text-center min-w-[90px]" style={{ background: `linear-gradient(135deg, ${o.color}dd, ${o.color}99)` }}>
                     {o.abbr}
@@ -169,7 +165,7 @@ export function GovernanceSection() {
               {data.map(p => (
                 <tr key={p.id} className="border-t border-border">
                   <td className="px-3 py-2 font-mono text-xs">{p.id}</td>
-                  <td className="px-3 py-2">{p.name}</td>
+                  <td className="px-3 py-2">{t(`governance.policies.${p.id}`)}</td>
                   {ORGS.map(o => {
                     const s = effectivePolicyStatus(p.id, o.id, p.values[o.id]) ?? "pending";
                     const meta = POLICY_STATUS_META[s];
@@ -178,11 +174,11 @@ export function GovernanceSection() {
                         <select
                           value={s}
                           onChange={(e) => void handleStatusChange(p.id, o.id, e.target.value as PolicyStatus)}
-                          title={meta?.label}
+                           title={t(`governance.statuses.${s}`)}
                           className={`w-full cursor-pointer rounded-md border px-1.5 py-1 text-[11px] font-semibold font-sans ${STATUS_SELECT_CLASS[s]}`}
                         >
-                          {STATUS_OPTIONS.map(op => (
-                            <option key={op.value} value={op.value}>{op.label}</option>
+                           {STATUS_OPTIONS.map(op => (
+                             <option key={op} value={op}>{POLICY_STATUS_META[op].icon} {t(`governance.statuses.${op}`)}</option>
                           ))}
                         </select>
                       </td>
@@ -195,7 +191,7 @@ export function GovernanceSection() {
         </ScrollableTable>
         <div className="flex flex-wrap gap-3 p-4 border-t border-border text-xs">
           {(Object.entries(POLICY_STATUS_META) as [PolicyStatus, any][]).map(([k, m]) => (
-            <span key={k} className={`px-2 py-1 rounded ${m.bg} ${m.fg}`}>{m.icon} {m.label}</span>
+            <span key={k} className={`px-2 py-1 rounded ${m.bg} ${m.fg}`}>{m.icon} {t(`governance.statuses.${k}`)}</span>
           ))}
         </div>
       </Card>

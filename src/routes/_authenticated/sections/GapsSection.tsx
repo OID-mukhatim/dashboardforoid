@@ -5,6 +5,7 @@ import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, Pola
 import { ORGS, GAP_AXES, gapScores, criticalGaps, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { loadGapScores, updateGapScore } from "@/lib/dashboard.functions";
+import { useLang } from "@/lib/lang-context";
 import { Card, CardHeader, useDashboardSnapshotQuery, getLiveGapValue, SectionTitle } from "./_shared";
 
 const PERIOD = "Q2-2026";
@@ -20,6 +21,7 @@ const DOMAIN_NAMES = [
 
 /* ============================ GAPS ============================ */
 export function GapsSection() {
+  const { lang, t } = useLang();
   const { data: snap } = useDashboardSnapshotQuery();
   const queryClient = useQueryClient();
   const loadGaps = useServerFn(loadGapScores);
@@ -72,7 +74,7 @@ export function GapsSection() {
     return "bg-green-100 text-green-700";
   };
   const radarData = GAP_AXES.map((axis, i) => {
-    const row: any = { axis };
+    const row: any = { axis: t(`gaps.axes.${i}`) };
     ORGS.forEach((o) => {
       row[o.id] = liveGapScores[o.id]?.[i] ?? 0;
     });
@@ -80,19 +82,19 @@ export function GapsSection() {
   });
   return (
     <div className="space-y-6">
-      <SectionTitle title="تحليل الفجوات المؤسسية" subtitle="تشخيص مستوى النضج عبر 7 محاور" />
+      <SectionTitle title={t("gaps.title")} subtitle={t("gaps.subtitle")} />
 
       <Card>
-        <CardHeader title="خريطة الحرارة (Heatmap)" subtitle="اضغط على أي رقم لتعديله — يُحفظ تلقائياً" />
+        <CardHeader title={t("gaps.heatmapTitle")} subtitle={t("gaps.editHint")} />
         <div className="p-4"><ScrollableTable>
           <table className="oid-table">
-            <thead><tr><th className="px-3 py-2 text-right text-xs text-muted-foreground">المؤسسة</th>
-              {GAP_AXES.map(a => <th key={a} className="px-3 py-2 text-xs text-muted-foreground">{a}</th>)}
+            <thead><tr><th className="px-3 py-2 text-start text-xs text-muted-foreground">{t("gaps.institution")}</th>
+              {GAP_AXES.map((a, i) => <th key={a} className="px-3 py-2 text-xs text-muted-foreground">{t(`gaps.axes.${i}`)}</th>)}
             </tr></thead>
             <tbody>
               {ORGS.map(o => (
                 <tr key={o.id} className="border-t border-border">
-                  <td className="px-3 py-2 font-medium">{o.nameAr}</td>
+                  <td className="px-3 py-2 font-medium">{lang === "ar" ? o.nameAr : o.nameEn}</td>
                   {GAP_AXES.map((axis, i) => {
                     const v = liveGapScores[o.id]?.[i] ?? null;
                     return (
@@ -104,6 +106,7 @@ export function GapsSection() {
                           step={0.1}
                           defaultValue={v ?? ""}
                           dir="ltr"
+                          aria-label={`${lang === "ar" ? o.nameAr : o.nameEn} — ${t(`gaps.axes.${i}`)}`}
                           onBlur={(e) => {
                             const n = parseFloat(e.target.value);
                             if (!Number.isNaN(n) && n >= 0 && n <= 5 && n !== v) {
@@ -127,7 +130,7 @@ export function GapsSection() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader title="Radar — 7 محاور" />
+          <CardHeader title={t("gaps.radarTitle")} />
           <div className="p-4 h-[380px]">
             <ResponsiveContainer>
               <RadarChart data={radarData}>
@@ -135,7 +138,7 @@ export function GapsSection() {
                 <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11 }} />
                 <PolarRadiusAxis domain={[0, 5]} tick={{ fontSize: 10 }} />
                 {ORGS.map(o => (
-                  <Radar key={o.id} name={o.nameAr} dataKey={o.id} stroke={o.color} fill={o.color} fillOpacity={0.07}
+                  <Radar key={o.id} name={lang === "ar" ? o.nameAr : o.nameEn} dataKey={o.id} stroke={o.color} fill={o.color} fillOpacity={0.07}
                     strokeDasharray={o.id==="HAMDI" ? "4 4" : undefined} />
                 ))}
                 <Legend wrapperStyle={{ fontSize: 10 }} />
@@ -146,16 +149,16 @@ export function GapsSection() {
         </Card>
 
         <Card>
-          <CardHeader title="الفجوات الحرجة (مرتبة بالأولوية)" />
+          <CardHeader title={t("gaps.criticalTitle")} />
           <div className="p-5 space-y-2">
-            {criticalGaps.map(g => (
+            {criticalGaps.map((g, i) => (
               <div key={g.rank} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/20">
                 <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">{g.rank}</div>
                 <div className="flex-1">
-                  <div className="text-sm font-medium">{g.name}</div>
-                  <div className="text-xs text-muted-foreground">المتأثر: {g.affected} • المتوسط: {g.avg.toFixed(2)}</div>
+                  <div className="text-sm font-medium">{t(`gaps.items.${i}`)}</div>
+                  <div className="text-xs text-muted-foreground">{t("gaps.affectedLabel")} {g.affected} • {t("gaps.averageLabel")} {g.avg.toFixed(2)}</div>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${g.priority.includes("جداً") ? "bg-red-100 text-red-700" : g.priority==="حرج" ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700"}`}>{g.priority}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${g.priority.includes("جداً") ? "bg-red-100 text-red-700" : g.priority==="حرج" ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700"}`}>{t(`gaps.priorities.${g.priority.includes("جداً") ? "veryCritical" : g.priority === "حرج" ? "critical" : "high"}`)}</span>
               </div>
             ))}
           </div>
