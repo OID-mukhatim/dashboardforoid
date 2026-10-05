@@ -148,7 +148,7 @@ export function GovernanceSection() {
             ))}
           </div>
         } />
-        <ScrollableTable>
+        <ScrollableTable direction={lang === "ar" ? "rtl" : "ltr"}>
           <table className="oid-table">
             <thead>
               <tr>

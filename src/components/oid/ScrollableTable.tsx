@@ -11,6 +11,7 @@ type Props = {
   children: ReactNode;
   maxHeight?: string | number;
   className?: string;
+  direction?: "rtl" | "ltr";
   /** أدنى عرض للمحتوى بالبكسل */
   minWidth?: number;
 };
@@ -147,7 +148,7 @@ function GlobalHScrollbar() {
   );
 }
 
-export function ScrollableTable({ children, maxHeight, className = "", minWidth = 880 }: Props) {
+export function ScrollableTable({ children, maxHeight, className = "", minWidth = 880, direction = "rtl" }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [owner, setOwner] = useState(false);
 
@@ -169,9 +170,9 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
     ro.observe(el);
     const onScroll = () => notify();
     el.addEventListener("scroll", onScroll);
-    // يبدأ العرض من الطرف الأيمن لأن المحتوى عربي.
+    // اعرض بداية الجدول بحسب اتجاه لغة المحتوى.
     requestAnimationFrame(() => {
-      el.scrollLeft = el.scrollWidth - el.clientWidth;
+      el.scrollLeft = direction === "rtl" ? el.scrollWidth - el.clientWidth : 0;
       notify();
     });
     return () => {
@@ -179,7 +180,7 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
       ro.disconnect();
       el.removeEventListener("scroll", onScroll);
     };
-  }, [children]);
+  }, [children, direction]);
 
   const style = maxHeight
     ? { maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight }
@@ -193,7 +194,7 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
         style={{ overflowX: "auto", overflowY: maxHeight ? "auto" : "visible", ...style }}
       >
         <div
-          dir="rtl"
+          dir={direction}
           className="st-content"
           style={{ minWidth: `max(100%, ${minWidth}px)` }}
         >
@@ -204,6 +205,7 @@ export function ScrollableTable({ children, maxHeight, className = "", minWidth 
       {owner && <GlobalHScrollbar />}
 
       <style>{`
+        .st-content[dir="ltr"] .oid-table { direction: ltr; }
         /* إخفاء شريط الجدول نفسه — الشريط الوحيد هو الثابت أسفل الشاشة */
         .st-wrap { scrollbar-width: none; -ms-overflow-style: none; }
         .st-wrap::-webkit-scrollbar { height: 0; width: 0; }

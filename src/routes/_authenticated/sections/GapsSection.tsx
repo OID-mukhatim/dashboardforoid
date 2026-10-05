@@ -86,7 +86,7 @@ export function GapsSection() {
 
       <Card>
         <CardHeader title={t("gaps.heatmapTitle")} subtitle={t("gaps.editHint")} />
-        <div className="p-4"><ScrollableTable>
+        <div className="p-4"><ScrollableTable direction={lang === "ar" ? "rtl" : "ltr"}>
           <table className="oid-table">
             <thead><tr><th className="px-3 py-2 text-start text-xs text-muted-foreground">{t("gaps.institution")}</th>
               {GAP_AXES.map((a, i) => <th key={a} className="px-3 py-2 text-xs text-muted-foreground">{t(`gaps.axes.${i}`)}</th>)}
