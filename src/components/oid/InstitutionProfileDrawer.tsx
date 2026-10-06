@@ -289,7 +289,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                     {profile.maturityLabel && (
                       <span
                         className="mt-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
-                        style={{ color: profile.maturityColor!, background: profile.maturityColor! + "20" }}
+                         style={{ color: profile.maturityColor ?? org.color, background: (profile.maturityColor ?? org.color) + "20" }}
                       >
                         {tFormat("profileDetail.level", { level: profile.maturityLevel ?? "—", label: profile.maturityLevel ? t(`dashboard.maturity.l${profile.maturityLevel}`) : "—" })}
                       </span>
@@ -353,25 +353,25 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
 
               {/* Financial */}
               {(fin || finProg) && (
-                <Block title="الوضع المالي">
+                <Block title={t("profileDetail.financial")}>
                   {fin && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                      <Mini label="التقييم المالي" value={`${formatScore(fin.rating)} / 5`} sub={fin.label} accent="#7c3aed" />
-                      <Mini label="نقاط القوة" value={String(fin.strengths.length)} sub="عنصر" accent="#15803d" />
-                      <Mini label="التوصيات" value={String(fin.recommendations.length)} sub="إجراء" accent="#d97706" />
+                      <Mini label={t("profileDetail.financialRating")} value={`${formatScore(fin.rating)} / 5`} sub={<TranslatableText text={fin.label} />} accent="#7c3aed" />
+                      <Mini label={t("profileDetail.strengths")} value={String(fin.strengths.length)} sub={t("profileDetail.item")} accent="#15803d" />
+                      <Mini label={t("profileDetail.recommendations")} value={String(fin.recommendations.length)} sub={t("profileDetail.action")} accent="#d97706" />
                     </div>
                   )}
                   {fin && (
                     <details className="text-sm border border-border rounded-lg p-3">
-                      <summary className="cursor-pointer font-medium">عرض القوة / الضعف / التوصيات</summary>
+                      <summary className="cursor-pointer font-medium">{t("profileDetail.showAssessment")}</summary>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 text-xs">
-                        <Lst title="نقاط القوة" items={fin.strengths} color="#15803d" />
-                        <Lst title="نقاط الضعف" items={fin.weaknesses} color="#dc2626" />
-                        <Lst title="التوصيات" items={fin.recommendations} color="#d97706" />
+                        <Lst title={t("profileDetail.strengths")} items={fin.strengths} color="#15803d" />
+                        <Lst title={t("profileDetail.weaknesses")} items={fin.weaknesses} color="#dc2626" />
+                        <Lst title={t("profileDetail.recommendations")} items={fin.recommendations} color="#d97706" />
                       </div>
                       {fin.nextMilestone && (
                         <div className="mt-3 p-2 rounded bg-amber-50 text-amber-800 text-xs border border-amber-200">
-                          <strong>الإنجاز القادم:</strong> {fin.nextMilestone}
+                          <strong>{t("profileDetail.nextMilestone")}</strong> <TranslatableText text={fin.nextMilestone} />
                         </div>
                       )}
                     </details>
@@ -380,9 +380,9 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                     <ul className="mt-3 space-y-1 text-xs">
                       {finProg.map((p, i) => (
                         <li key={i} className="flex items-center gap-2 border border-border rounded p-2">
-                          <span className="flex-1">{p.domain}</span>
-                          <span className="text-muted-foreground whitespace-normal break-words max-w-[260px]">{p.note}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">{p.status}</span>
+                           <span className="flex-1"><TranslatableText text={p.domain} /></span>
+                           <span className="text-muted-foreground whitespace-normal break-words max-w-[260px]"><TranslatableText text={p.note} /></span>
+                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={p.status} /></span>
                         </li>
                       ))}
                     </ul>
@@ -391,10 +391,10 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
               )}
 
               {/* Anomalies for this org */}
-              <Block title={`الشذوذات الخاصة (${anomalies.length})`}>
+              <Block title={tFormat("profileDetail.anomalies", { count: anomalies.length })}>
                 {anomalies.length === 0 ? (
                   <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded p-2 flex items-center gap-2">
-                    <AlertTriangle size={13} /> لا شذوذات مكتشفة لهذه المؤسسة.
+                     <AlertTriangle size={13} /> {t("profileDetail.noAnomalies")}
                   </div>
                 ) : (
                   <ul className="space-y-1.5">
@@ -407,12 +407,12 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                           style={{ borderInlineStartWidth: 3, borderInlineStartColor: m.color }}
                         >
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className="font-semibold">{a.title}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: m.bg, color: m.color }}>{m.label}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{getCategoryLabel(a.category)}</span>
+                             <span className="font-semibold"><TranslatableText text={a.title} /></span>
+                             <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: m.bg, color: m.color }}><TranslatableText text={m.label} /></span>
+                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600"><TranslatableText text={getCategoryLabel(a.category)} /></span>
                           </div>
-                          <p className="text-muted-foreground">{a.message}</p>
-                          <p className="text-slate-700 mt-1"><span className="font-medium">↳</span> {a.suggestion}</p>
+                           <p className="text-muted-foreground"><TranslatableText text={a.message} /></p>
+                           <p className="text-slate-700 mt-1"><span className="font-medium">{t("profileDetail.suggestion")}</span> <TranslatableText text={a.suggestion} /></p>
                         </li>
                       );
                     })}
@@ -422,29 +422,29 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
             </>
           )}
 
-          {tab === "الفجوات" && (
+          {tab === "gaps" && (
             <>
-              <Block title="تحليل الفجوات — مخطط رادار" subtitle="7 محاور مؤسسية لهذه المؤسسة">
+              <Block title={t("profileDetail.gapAnalysis")} subtitle={t("profileDetail.sevenAxes")}>
                 <div style={{ width: "100%", height: 300 }}>
                   <ResponsiveContainer>
                     <RadarChart data={radarData} outerRadius="75%">
                       <PolarGrid />
                       <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11, fill: "#64748b" }} />
                       <PolarRadiusAxis domain={[0, 5]} tick={{ fontSize: 10, fill: "#94a3b8" }} />
-                      <Radar name="النتيجة" dataKey="score" stroke={org.color} fill={org.color} fillOpacity={0.35} />
+                      <Radar name={t("profileDetail.result")} dataKey="score" stroke={org.color} fill={org.color} fillOpacity={0.35} />
                       <Tooltip formatter={(v: any) => formatScore(Number(v))} labelFormatter={(l: any) => periodWithMonths(orgId, String(l))} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
               </Block>
-              <Block title="القيم التفصيلية">
+              <Block title={t("profileDetail.detailedValues")}>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {GAP_AXES.map((ax, i) => {
                     const v = gapScores[orgId][i];
                     const color = v === null ? "#94a3b8" : v < 2 ? "#dc2626" : v < 3 ? "#ea580c" : v < 4 ? "#d97706" : "#15803d";
                     return (
                       <div key={ax} className="border border-border rounded-lg p-3 text-center">
-                        <div className="text-[11px] text-muted-foreground mb-1 whitespace-normal break-words">{ax}</div>
+                         <div className="text-[11px] text-muted-foreground mb-1 whitespace-normal break-words">{t(`gaps.axes.${i}`)}</div>
                         <div className="text-xl font-bold tabular-nums" style={{ color }} dir="ltr">
                           {v !== null ? formatScore(v) : "—"}
                         </div>
@@ -456,10 +456,10 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
             </>
           )}
 
-          {tab === "الحوكمة" && (
-            <Block title={`الحوكمة والسياسات (${orgPolicies.length})`}>
+          {tab === "governance" && (
+            <Block title={tFormat("profileDetail.governancePolicies", { count: orgPolicies.length })}>
               {orgPolicies.length === 0 ? (
-                <EmptyMini msg="لا توجد سياسات مسجلة" />
+                <EmptyMini msg={t("profileDetail.noPolicies")} />
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
                   {orgPolicies.map((p, i) => {
@@ -467,9 +467,9 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                     return (
                       <div key={i} className={`flex items-center gap-2 p-2 rounded ${meta.bg}`}>
                         <span>{meta.icon}</span>
-                        <span className="flex-1 whitespace-normal break-words">{p.name}</span>
+                         <span className="flex-1 whitespace-normal break-words">{t(`governance.policies.${p.id}`)}</span>
                         <span className="text-[10px] text-muted-foreground">{p.group}</span>
-                        <span className={`text-[10px] ${meta.fg} font-medium`}>{meta.label}</span>
+                         <span className={`text-[10px] ${meta.fg} font-medium`}><TranslatableText text={meta.label} /></span>
                       </div>
                     );
                   })}
@@ -478,17 +478,17 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
             </Block>
           )}
 
-          {tab === "الشراكات" && (
-            <Block title={`الشراكات (${orgPartnerships.length})`} subtitle={livePartnerships.length > 0 ? "مصدر: قاعدة البيانات" : "مصدر: البيانات الثابتة"}>
+          {tab === "partnerships" && (
+            <Block title={tFormat("profileDetail.partnershipsTitle", { count: orgPartnerships.length })} subtitle={livePartnerships.length > 0 ? t("profileDetail.databaseSource") : t("profileDetail.staticSource")}>
               {orgPartnerships.length === 0 ? (
-                <EmptyMini msg="لا شراكات مرتبطة" />
+                <EmptyMini msg={t("profileDetail.noPartnerships")} />
               ) : (
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
                   {orgPartnerships.map((p: any) => (
                     <li key={p.id} className="border border-border rounded p-2 flex items-center gap-2">
-                      <span className="flex-1 whitespace-normal break-words">{p.name}</span>
-                      {p.type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">{p.type}</span>}
-                      {p.status && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">{p.status}</span>}
+                       <span className="flex-1 whitespace-normal break-words"><TranslatableText text={p.name} recordId={p.id} tableName="partnerships" fieldName="name" /></span>
+                       {p.type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={p.type} /></span>}
+                       {p.status && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={p.status} /></span>}
                     </li>
                   ))}
                 </ul>
@@ -496,23 +496,23 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
             </Block>
           )}
 
-          {tab === "المبادرات" && (
-            <Block title={`المبادرات (${orgInitiatives.length})`} subtitle={liveInits.length > 0 ? "مصدر: قاعدة البيانات" : "مصدر: البيانات الثابتة"}>
+          {tab === "initiatives" && (
+            <Block title={tFormat("profileDetail.initiativesTitle", { count: orgInitiatives.length })} subtitle={liveInits.length > 0 ? t("profileDetail.databaseSource") : t("profileDetail.staticSource")}>
               {orgInitiatives.length === 0 ? (
-                <EmptyMini msg="لا توجد مبادرات" />
+                <EmptyMini msg={t("profileDetail.noInitiatives")} />
               ) : (
                 <ul className="space-y-1.5 text-xs">
                   {orgInitiatives.map((i: any) => (
                     <li key={i.id} className="border border-border rounded p-2">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-mono text-[10px] text-muted-foreground">{i.id}</span>
-                        <span className="font-medium flex-1 whitespace-normal break-words">{i.title}</span>
-                        {i.priority && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">{i.priority}</span>}
-                        {i.status && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">{i.status}</span>}
+                         <span className="font-medium flex-1 whitespace-normal break-words"><TranslatableText text={i.title} recordId={i.id} tableName="initiatives" fieldName="title" /></span>
+                         {i.priority && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={i.priority} /></span>}
+                         {i.status && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={i.status} /></span>}
                       </div>
-                      {i.objective && <div className="text-muted-foreground whitespace-normal break-words">{i.objective}</div>}
+                       {i.objective && <div className="text-muted-foreground whitespace-normal break-words"><TranslatableText text={i.objective} recordId={i.id} tableName="initiatives" fieldName="objective" /></div>}
                       {(i.cost || i.timeline) && (
-                        <div className="text-[10px] text-primary mt-1">{i.cost} · {i.timeline}</div>
+                         <div className="text-[10px] text-primary mt-1">{i.cost} · <TranslatableText text={i.timeline} /></div>
                       )}
                     </li>
                   ))}
@@ -521,8 +521,8 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
             </Block>
           )}
 
-          {tab === "السجل الزمني" && (
-            <Block title="السجل الزمني — اتجاه الأداء" subtitle="مخطط خطي متعدد المجالات">
+          {tab === "timeline" && (
+            <Block title={t("profileDetail.timelineTitle")} subtitle={t("profileDetail.timelineSubtitle")}>
               {hasTimeline ? (
                 <div style={{ width: "100%", height: 320 }}>
                   <ResponsiveContainer>
@@ -533,13 +533,13 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                       <Tooltip formatter={(v: any) => formatScore(Number(v))} labelFormatter={(l: any) => periodWithMonths(orgId, String(l))} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {TL_DOMAINS.map((d) => (
-                        <Line key={d.key} type="monotone" dataKey={d.key} name={d.label} stroke={d.color} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                         <Line key={d.key} type="monotone" dataKey={d.key} name={t(`profileDetail.timelineDomains.${d.key}`)} stroke={d.color} strokeWidth={2} dot={{ r: 3 }} connectNulls />
                       ))}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <EmptyMini msg="لا توجد بيانات زمنية متوفرة لهذه المؤسسة" />
+                 <EmptyMini msg={t("profileDetail.noTimeline")} />
               )}
             </Block>
           )}
@@ -601,7 +601,7 @@ function Lst({ title, items, color }: { title: string; items: readonly string[];
     <div>
       <div className="font-bold mb-1" style={{ color }}>{title}</div>
       <ul className="space-y-1">
-        {items.map((s, i) => <li key={i} className="flex gap-1"><span style={{ color }}>•</span><span>{s}</span></li>)}
+        {items.map((s, i) => <li key={i} className="flex gap-1"><span style={{ color }}>•</span><TranslatableText text={s} /></li>)}
       </ul>
     </div>
   );
