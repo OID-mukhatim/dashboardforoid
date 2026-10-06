@@ -255,15 +255,15 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
 
         {/* Tabs */}
         <div className="sticky top-[73px] z-10 bg-background border-b border-border px-4 flex gap-1 overflow-x-auto">
-          {TABS.map((t) => (
+          {TABS.map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className={`px-3 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition ${
-                tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                tab === tabKey ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-               {t(`profileDetail.tabs.${t}`)}
+               {t(`profileDetail.tabs.${tabKey}`)}
             </button>
           ))}
         </div>
@@ -463,6 +463,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
                   {orgPolicies.map((p, i) => {
+                    if (!p.status) return null;
                     const meta = POLICY_STATUS_META[p.status];
                     return (
                       <div key={i} className={`flex items-center gap-2 p-2 rounded ${meta.bg}`}>
