@@ -167,7 +167,7 @@ export function InitiativesSection() {
                          {i.timeline && <span className="px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={i.timeline} /></span>}
                          {i.orgs?.slice(0,3).map((o, idx) => <span key={idx} className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700"><TranslatableText text={o} /></span>)}
                       </div>
-                      {i.cost && <div className="text-xs font-bold text-primary mb-2">{i.cost}</div>}
+                       {i.cost && <div className="text-xs font-bold text-primary mb-2"><TranslatableText text={i.cost} /></div>}
                       {isEditor && (
                         <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
                           <select
