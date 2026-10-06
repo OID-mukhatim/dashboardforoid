@@ -197,7 +197,7 @@ export function PartnershipsSection() {
         const matchType = filters.type === "all" || p.type === filters.type;
         const matchStat = filters.status === "all" || p.status === filters.status;
         const matchGeo = filters.geography === "all" || p.geography === filters.geography;
-        const matchOrg = filters.org === "all" || p.linkedOrgs.includes(filters.org);
+        const matchOrg = filters.org === "all" || (p.linkedOrgs ?? []).includes(filters.org);
         return matchType && matchStat && matchGeo && matchOrg;
       })
       .sort((a, b) => {
@@ -318,7 +318,7 @@ export function PartnershipsSection() {
                      <td className="px-3 py-2 text-xs">{t(`partnerships.types.${TYPE_KEYS[p.type]}`)}</td>
                      <td className="px-3 py-2"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">{t(`partnerships.statuses.${STATUS_KEYS[p.status]}`)}</span></td>
                      <td className="px-3 py-2 text-xs">{t(`partnerships.regions.${GEO_KEYS[p.geography]}`)}</td>
-                    <td className="px-3 py-2"><div className="flex gap-1">{p.linkedOrgs.map(o => <OrgChip key={o} id={o as OrgId} />)}</div></td>
+                     <td className="px-3 py-2"><div className="flex gap-1">{(p.linkedOrgs ?? []).map(o => <OrgChip key={o} id={o as OrgId} />)}</div></td>
                   </tr>
                 ))}
               </tbody>
@@ -336,7 +336,7 @@ export function PartnershipsSection() {
                <div className="font-bold text-sm mb-2 leading-tight"><TranslatableText text={lang === "en" && p.name_en ? p.name_en : p.name} sourceLang={lang === "en" && p.name_en ? "en" : "ar"} recordId={p.id} tableName="partnerships" fieldName="name" /></div>
                <div className="text-xs text-muted-foreground mb-3">{t(`partnerships.types.${TYPE_KEYS[p.type]}`)} • {t(`partnerships.regions.${GEO_KEYS[p.geography]}`)}</div>
                {p.description && <div className="text-xs text-muted-foreground mb-3 line-clamp-2"><TranslatableText text={p.description} recordId={p.id} tableName="partnerships" fieldName="description" /></div>}
-              <div className="flex flex-wrap gap-1">{p.linkedOrgs.map(o => <OrgChip key={o} id={o as OrgId} />)}</div>
+               <div className="flex flex-wrap gap-1">{(p.linkedOrgs ?? []).map(o => <OrgChip key={o} id={o as OrgId} />)}</div>
             </Card>
           ))}
         </div>
