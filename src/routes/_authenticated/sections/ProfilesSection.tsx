@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, EmptyData, SectionTitle, Row } from "./_shared";
 import { useLang } from "@/lib/lang-context";
 import { TranslatableText } from "@/components/oid/TranslatableText";
+import { Button } from "@/components/ui/button";
 
 type DbInstitution = {
   id: string;
@@ -152,7 +153,7 @@ export function ProfilesSection() {
             )}
             {(o as any).dataStatus === "pending" && !live && !db && <div className="mt-3"><EmptyData msg={t("profiles.incomplete")} /></div>}
             </div>
-            <button onClick={() => openOrgProfile(o.id as OrgId)} className="mt-4 w-full text-xs flex items-center justify-center gap-1 py-2 rounded-md border border-border text-primary hover:bg-primary/5">{t("profiles.detailedReport")} <ChevronRight size={14} className={lang === "ar" ? "rotate-180" : ""} /></button>
+            <Button variant="outline" onClick={() => openOrgProfile(o.id as OrgId)} className="mt-4 w-full text-xs text-primary">{t("profiles.detailedReport")} <ChevronRight size={14} className={lang === "ar" ? "rotate-180" : ""} /></Button>
           </Card>
           );
         })}
@@ -181,15 +182,17 @@ function LogoWithUpload({
   return (
     <div className="relative group shrink-0" onClick={(e) => e.stopPropagation()}>
       <OrgLogo orgId={orgId as OrgId} size={56} shape="rounded" src={signedUrl ?? null} />
-      <button
+      <Button
+        variant="outline"
+        size="icon"
         type="button"
         onClick={() => inputRef.current?.click()}
         title={t("profiles.uploadLogo")}
         aria-label={t("profiles.uploadLogo")}
-        className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition"
+        className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition"
       >
         {uploading ? <Loader2 size={12} className="animate-spin" /> : <ImageUp size={12} />}
-      </button>
+      </Button>
       <input
         ref={inputRef}
         type="file"

@@ -211,13 +211,13 @@ export function PartnershipsSection() {
   const byGeo = useMemo(() => {
     const m: Record<string, number> = {};
     filtered.forEach(p => { m[p.geography] = (m[p.geography] || 0) + 1; });
-    return Object.entries(m).map(([name, value]) => ({ name, value }));
-  }, [filtered]);
+    return Object.entries(m).map(([name, value]) => ({ name: GEO_KEYS[name] ? t(`partnerships.regions.${GEO_KEYS[name]}`) : name, value }));
+  }, [filtered, t]);
   const byType = useMemo(() => {
     const m: Record<string, number> = {};
     filtered.forEach(p => { m[p.type] = (m[p.type] || 0) + 1; });
-    return Object.entries(m).map(([name, value]) => ({ name, value }));
-  }, [filtered]);
+    return Object.entries(m).map(([name, value]) => ({ name: TYPE_KEYS[name] ? t(`partnerships.types.${TYPE_KEYS[name]}`) : name, value }));
+  }, [filtered, t]);
   const colors = ["#0e4d2e", "#1558a0", "#2e9bd4", "#d97706", "#10b986", "#7c3aed"];
   const hasActive = filters.type !== "all" || filters.status !== "all" || filters.geography !== "all" || filters.org !== "all";
   const total = activePartnerships.length;
@@ -331,7 +331,7 @@ export function PartnershipsSection() {
             <Card key={p.id} className="p-4 hover:shadow-md transition">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-mono text-[10px] text-muted-foreground">{p.id.slice(0, 8)}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700">{p.status}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700">{STATUS_KEYS[p.status] ? t(`partnerships.statuses.${STATUS_KEYS[p.status]}`) : p.status}</span>
               </div>
                <div className="font-bold text-sm mb-2 leading-tight"><TranslatableText text={lang === "en" && p.name_en ? p.name_en : p.name} sourceLang={lang === "en" && p.name_en ? "en" : "ar"} recordId={p.id} tableName="partnerships" fieldName="name" /></div>
                <div className="text-xs text-muted-foreground mb-3">{t(`partnerships.types.${TYPE_KEYS[p.type]}`)} • {t(`partnerships.regions.${GEO_KEYS[p.geography]}`)}</div>

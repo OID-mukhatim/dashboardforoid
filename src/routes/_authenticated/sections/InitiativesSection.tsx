@@ -177,12 +177,12 @@ export function InitiativesSection() {
                           >
                              {INITIATIVE_STATUSES.map(s => <option key={s} value={s}>{t(`initiatives.statuses.${STATUS_KEYS[s]}`)}</option>)}
                           </select>
-                           <button onClick={() => openEdit(i)} className="p-1 hover:bg-muted rounded" title={t("initiatives.edit")}>
+                           <Button variant="ghost" size="icon" onClick={() => openEdit(i)} className="h-7 w-7" title={t("initiatives.edit")}>
                             <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                          </button>
-                           <button onClick={() => handleDelete(i.id)} className="p-1 hover:bg-red-50 rounded" title={t("initiatives.delete")}>
+                           </Button>
+                           <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)} className="h-7 w-7 hover:bg-red-50" title={t("initiatives.delete")}>
                             <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                          </button>
+                           </Button>
                         </div>
                       )}
                     </div>
