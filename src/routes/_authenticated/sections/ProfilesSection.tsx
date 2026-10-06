@@ -8,6 +8,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, EmptyData, SectionTitle, Row } from "./_shared";
+import { useLang } from "@/lib/lang-context";
+import { TranslatableText } from "@/components/oid/TranslatableText";
 
 type DbInstitution = {
   id: string;
@@ -29,6 +31,7 @@ type DbInstitution = {
 
 /* ============================ PROFILES ============================ */
 export function ProfilesSection() {
+  const { lang, t, tFormat } = useLang();
   const qc = useQueryClient();
   const profilesFn = useServerFn(loadInstitutionalProfiles);
   const { data: liveProfiles = {} } = useQuery({
@@ -89,7 +92,7 @@ export function ProfilesSection() {
 
   return (
     <div className="space-y-6">
-      <SectionTitle title="البيانات المؤسسية" subtitle="بطاقات تعريف الكيانات الست — تُثرى تلقائياً من قاعدة البيانات وملفات الاستمارة المرفوعة" />
+      <SectionTitle title={t("profiles.title")} subtitle={t("profiles.subtitle")} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {merged.map(o => {
           const db = o.db;
@@ -111,45 +114,45 @@ export function ProfilesSection() {
             <div className="flex items-start gap-3 mb-4">
               <LogoWithUpload orgId={o.id} logoPath={db?.logo_url ?? null} uploading={uploading === o.id} onUpload={handleLogoUpload} />
               <div className="flex-1 min-w-0">
-                <div className="font-bold leading-tight">{db?.name_ar ?? o.nameAr}</div>
-                <div className="text-xs text-muted-foreground font-serif">{db?.name_en ?? o.nameEn}</div>
+                <div className="font-bold leading-tight">{lang === "ar" ? (db?.name_ar ?? o.nameAr) : (db?.name_en ?? o.nameEn)}</div>
+                <div className="text-xs text-muted-foreground font-serif">{lang === "ar" ? (db?.name_en ?? o.nameEn) : (db?.name_ar ?? o.nameAr)}</div>
               </div>
               {(db || live) && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0" title={db ? "من قاعدة البيانات" : `${live?.fieldCount} حقل من ${live?.fileName ?? "ملف مرفوع"}`}>
-                  محدّث
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0" title={db ? t("profiles.fromDatabase") : tFormat("profiles.uploadedFile", { count: live?.fieldCount ?? 0, file: live?.fileName ?? t("profiles.uploadedFallback") })}>
+                  {t("profiles.updated")}
                 </span>
               )}
             </div>
-            <div className="text-xs text-muted-foreground mb-3">{db?.sector ?? o.sector}</div>
+            <div className="text-xs text-muted-foreground mb-3"><TranslatableText text={db?.sector ?? o.sector} /></div>
             <dl className="space-y-1.5 text-xs">
-              <Row k="التأسيس" v={founded} />
-              <Row k="الترخيص" v={license} />
-              <Row k="الصلاحية" v={expiry} />
-              <Row k="المدير التنفيذي" v={exec} />
-              {phone && <Row k="هاتف" v={phone} />}
-              {email && <Row k="الإيميل" v={<span dir="ltr" className="break-all">{email}</span>} />}
-              {site && <Row k="الموقع" v={<a href={String(site).startsWith("http") ? String(site) : `https://${site}`} target="_blank" rel="noreferrer" dir="ltr" className="text-primary break-all">{site}</a>} />}
-              {address && <Row k="المقر" v={address} />}
-              <Row k="الموظفون" v={staffTotal ? `${staffTotal}` : null} />
-              <Row k="الميزانية" v={budget ? `$${Number(budget).toLocaleString()}` : null} />
+              <Row k={t("profiles.founded")} v={<TranslatableText text={founded} />} />
+              <Row k={t("profiles.license")} v={<TranslatableText text={license} />} />
+              <Row k={t("profiles.expiry")} v={<TranslatableText text={expiry} />} />
+              <Row k={t("profiles.executive")} v={<TranslatableText text={exec} />} />
+              {phone && <Row k={t("profiles.phone")} v={phone} />}
+              {email && <Row k={t("profiles.email")} v={<span dir="ltr" className="break-all">{email}</span>} />}
+              {site && <Row k={t("profiles.website")} v={<a href={String(site).startsWith("http") ? String(site) : `https://${site}`} target="_blank" rel="noreferrer" dir="ltr" className="text-primary break-all">{site}</a>} />}
+              {address && <Row k={t("profiles.address")} v={<TranslatableText text={String(address)} />} />}
+              <Row k={t("profiles.staff")} v={staffTotal ? `${staffTotal}` : null} />
+              <Row k={t("profiles.budget")} v={budget ? `$${Number(budget).toLocaleString()}` : null} />
             </dl>
             <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
-              <span className="text-xs">الأداء:</span>
+              <span className="text-xs">{t("profiles.performance")}</span>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${o.color}15`, color: o.color }}>
                 {o.score !== null ? o.score.toFixed(2) : "—"}
               </span>
-              <span className="text-xs ml-1">الحوكمة:</span>
+              <span className="text-xs ml-1">{t("profiles.governance")}</span>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted">{o.govScore !== null ? `${o.govScore.toFixed(2)}` : "—"}</span>
-              {live && <span className="text-[10px] text-muted-foreground ml-auto">{live.fieldCount} حقل مرفوع</span>}
+              {live && <span className="text-[10px] text-muted-foreground ml-auto">{tFormat("profiles.uploadedFields", { count: live.fieldCount })}</span>}
             </div>
             {o.alerts && o.alerts.length > 0 && (
               <div className="mt-3 space-y-1">
-                {o.alerts.map((a, i) => <div key={i} className="text-xs p-2 rounded bg-red-50 text-red-700 border border-red-200">{a}</div>)}
+                {o.alerts.map((a, i) => <div key={i} className="text-xs p-2 rounded bg-red-50 text-red-700 border border-red-200"><TranslatableText text={a} /></div>)}
               </div>
             )}
-            {(o as any).dataStatus === "pending" && !live && !db && <div className="mt-3"><EmptyData msg="بعض البيانات قيد الاستكمال" /></div>}
+            {(o as any).dataStatus === "pending" && !live && !db && <div className="mt-3"><EmptyData msg={t("profiles.incomplete")} /></div>}
             </div>
-            <button onClick={() => openOrgProfile(o.id as OrgId)} className="mt-4 w-full text-xs flex items-center justify-center gap-1 py-2 rounded-md border border-border text-primary hover:bg-primary/5">التقرير التفصيلي <ChevronRight size={14} className="rotate-180" /></button>
+            <button onClick={() => openOrgProfile(o.id as OrgId)} className="mt-4 w-full text-xs flex items-center justify-center gap-1 py-2 rounded-md border border-border text-primary hover:bg-primary/5">{t("profiles.detailedReport")} <ChevronRight size={14} className={lang === "ar" ? "rotate-180" : ""} /></button>
           </Card>
           );
         })}
@@ -163,11 +166,13 @@ function LogoWithUpload({
   orgId, logoPath, uploading, onUpload,
 }: { orgId: string; logoPath: string | null; uploading: boolean; onUpload: (orgId: string, file: File) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLang();
   const { data: signedUrl } = useQuery({
     queryKey: ["org-logo", orgId, logoPath],
     enabled: !!logoPath,
     queryFn: async () => {
-      const { data, error } = await supabase.storage.from("uploads").createSignedUrl(logoPath!, 60 * 60);
+      if (!logoPath) return null;
+      const { data, error } = await supabase.storage.from("uploads").createSignedUrl(logoPath, 60 * 60);
       if (error) throw error;
       return data.signedUrl;
     },
@@ -179,8 +184,8 @@ function LogoWithUpload({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        title="رفع شعار المؤسسة"
-        aria-label="رفع شعار المؤسسة"
+        title={t("profiles.uploadLogo")}
+        aria-label={t("profiles.uploadLogo")}
         className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition"
       >
         {uploading ? <Loader2 size={12} className="animate-spin" /> : <ImageUp size={12} />}
