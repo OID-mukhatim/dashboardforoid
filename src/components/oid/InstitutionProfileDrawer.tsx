@@ -32,16 +32,19 @@ import { TrendBadge } from "./TrendBadge";
 import { useDashboardSnapshotQuery } from "@/routes/_authenticated/sections/_shared";
 import { loadInstitutionalProfiles } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
+import { useLang } from "@/lib/lang-context";
+import { TranslatableText } from "./TranslatableText";
+import { Button } from "@/components/ui/button";
 
-const TABS = ["نظرة عامة", "الفجوات", "الحوكمة", "الشراكات", "المبادرات", "السجل الزمني"] as const;
+const TABS = ["overview", "gaps", "governance", "partnerships", "initiatives", "timeline"] as const;
 type TabKey = (typeof TABS)[number];
 
-const TL_DOMAINS: { key: TimelineDomain; label: string; color: string }[] = [
-  { key: "composite", label: "مركّبة", color: "#0d3a6e" },
-  { key: "gap", label: "الفجوات", color: "#dc2626" },
-  { key: "governance", label: "الحوكمة", color: "#2563eb" },
-  { key: "kpi", label: "المؤشرات", color: "#d97706" },
-  { key: "financial", label: "المالية", color: "#7c3aed" },
+const TL_DOMAINS: { key: TimelineDomain; color: string }[] = [
+  { key: "composite", color: "#0d3a6e" },
+  { key: "gap", color: "#dc2626" },
+  { key: "governance", color: "#2563eb" },
+  { key: "kpi", color: "#d97706" },
+  { key: "financial", color: "#7c3aed" },
 ];
 
 export function InstitutionProfileDrawer() {
@@ -51,8 +54,10 @@ export function InstitutionProfileDrawer() {
 }
 
 function DrawerContent({ orgId }: { orgId: OrgId }) {
-  const [tab, setTab] = useState<TabKey>("نظرة عامة");
-  const org = ORGS.find((o) => o.id === orgId)!;
+  const { lang, t, tFormat } = useLang();
+  const [tab, setTab] = useState<TabKey>("overview");
+  const org = ORGS.find((o) => o.id === orgId);
+  if (!org) return null;
   const inst = institutions.find((i) => i.id === orgId);
   const trend = computeTrend(orgId, "composite");
 
@@ -148,15 +153,15 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
 
   // سياسات تخص المؤسسة (من كل المجموعات)
   const allPolicyGroups = [
-    { label: "عامة", rows: generalPolicies },
-    { label: "إنسانية", rows: humanitarianPolicies },
-    { label: "جامعية", rows: universityPolicies },
-    { label: "تعليمية", rows: educationPolicies },
+    { label: t("profileDetail.policyGroups.general"), rows: generalPolicies },
+    { label: t("profileDetail.policyGroups.humanitarian"), rows: humanitarianPolicies },
+    { label: t("profileDetail.policyGroups.university"), rows: universityPolicies },
+    { label: t("profileDetail.policyGroups.education"), rows: educationPolicies },
   ];
   const orgPolicies = allPolicyGroups.flatMap((g) =>
     g.rows
       .filter((r) => r.values[orgId])
-      .map((r) => ({ group: g.label, name: r.name, status: r.values[orgId]! })),
+      .map((r) => ({ group: g.label, id: r.id, name: r.name, status: r.values[orgId] })),
   );
 
   const fin = (financialAssessment as any)[orgId] as undefined | typeof financialAssessment.ZUST;
@@ -181,7 +186,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
 
   // رادار الفجوات لهذه المؤسسة
   const radarData = GAP_AXES.map((ax, i) => ({
-    axis: ax,
+    axis: t(`gaps.axes.${i}`),
     score: gapScores[orgId][i] ?? 0,
   }));
 
@@ -207,6 +212,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
       className="fixed inset-0 z-50 flex"
       role="dialog"
       aria-modal="true"
+      dir={lang === "ar" ? "rtl" : "ltr"}
       onKeyDown={(e) => e.key === "Escape" && closeOrgProfile()}
     >
       <div className="flex-1 bg-black/45 backdrop-blur-[2px]" onClick={closeOrgProfile} />
@@ -221,29 +227,29 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
               className="w-14 h-14 rounded-xl bg-white border-2 flex items-center justify-center overflow-hidden shrink-0"
               style={{ borderColor: org.color + "60" }}
             >
-              <img src={ORG_LOGOS[orgId]} alt={org.nameAr} className="max-w-full max-h-full object-contain" />
+              <img src={ORG_LOGOS[orgId]} alt={lang === "ar" ? org.nameAr : org.nameEn} className="max-w-full max-h-full object-contain" />
             </div>
             <div className="min-w-0">
-              <div className="text-lg font-bold whitespace-normal break-words">{org.nameAr}</div>
-              <div className="text-xs text-muted-foreground whitespace-normal break-words" dir="ltr">{org.nameEn}</div>
-              {identity.sector && <div className="text-[11px] mt-0.5 text-muted-foreground">{identity.sector}</div>}
+               <div className="text-lg font-bold whitespace-normal break-words">{lang === "ar" ? org.nameAr : org.nameEn}</div>
+               <div className="text-xs text-muted-foreground whitespace-normal break-words">{lang === "ar" ? org.nameEn : org.nameAr}</div>
+               {identity.sector && <div className="text-[11px] mt-0.5 text-muted-foreground"><TranslatableText text={identity.sector} /></div>}
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <button
+             <Button variant="ghost"
               onClick={() => window.print()}
               className="p-2 rounded-lg hover:bg-muted transition flex items-center gap-1.5 text-xs"
-              title="تصدير PDF (طباعة)"
+               title={t("profileDetail.exportTitle")}
             >
-              <Printer size={16} /> <span className="hidden sm:inline">تصدير</span>
-            </button>
-            <button
+               <Printer size={16} /> <span className="hidden sm:inline">{t("profileDetail.export")}</span>
+             </Button>
+             <Button variant="ghost" size="icon"
               onClick={closeOrgProfile}
               className="p-2 rounded-lg hover:bg-muted transition"
-              title="إغلاق"
+               title={t("profileDetail.close")}
             >
               <X size={18} />
-            </button>
+             </Button>
           </div>
         </div>
 
@@ -257,22 +263,22 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                 tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t}
+               {t(`profileDetail.tabs.${t}`)}
             </button>
           ))}
         </div>
 
         <div className="p-6 space-y-6">
-          {tab === "نظرة عامة" && (
+          {tab === "overview" && (
             <>
               {/* Composite */}
-              <Block title="الدرجة المركّبة" subtitle="ترجيح 4 مصادر: فجوات 35% • حوكمة 25% • KPIs 25% • مالي 15%">
+              <Block title={t("profileDetail.composite")} subtitle={t("profileDetail.compositeSubtitle")}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div
                     className="md:col-span-1 rounded-xl p-4 border flex flex-col items-center justify-center"
                     style={{ background: (profile.maturityColor ?? org.color) + "10", borderColor: (profile.maturityColor ?? org.color) + "40" }}
                   >
-                    <div className="text-[11px] text-muted-foreground">الأداء الكلي</div>
+                    <div className="text-[11px] text-muted-foreground">{t("profileDetail.overall")}</div>
                     <div
                       className="text-4xl font-extrabold tabular-nums"
                       dir="ltr"
@@ -285,13 +291,13 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                         className="mt-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
                         style={{ color: profile.maturityColor!, background: profile.maturityColor! + "20" }}
                       >
-                        المستوى {profile.maturityLevel} — {profile.maturityLabel}
+                        {tFormat("profileDetail.level", { level: profile.maturityLevel ?? "—", label: profile.maturityLevel ? t(`dashboard.maturity.l${profile.maturityLevel}`) : "—" })}
                       </span>
                     )}
                     <div className="mt-2 text-[11px] text-muted-foreground">
-                      اكتمال البيانات: <span className="font-bold" dir="ltr">{formatPct(profile.dataCompleteness * 100)}</span>
+                       {t("profileDetail.completeness")} <span className="font-bold" dir="ltr">{formatPct(profile.dataCompleteness * 100)}</span>
                     </div>
-                    <div className="mt-1"><TrendBadge trend={trend} label="لا يوجد تاريخ بعد" /></div>
+                    <div className="mt-1"><TrendBadge trend={trend} label={t("profileDetail.noHistory")} /></div>
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     {profile.components.map((c) => {
@@ -299,7 +305,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                       const meta = c.state !== "achieved" ? DATA_STATES[c.state] : null;
                       return (
                         <div key={c.source} className="flex items-center gap-3 text-sm">
-                          <span className="w-36 text-muted-foreground">{c.label}</span>
+                           <span className="w-36 text-muted-foreground">{t(`dashboard.components.${c.source}`)}</span>
                           <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden">
                             <div className="h-full rounded-full" style={{ width: `${filled}%`, background: org.color }} />
                           </div>
@@ -321,25 +327,25 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
               </Block>
 
               {/* Identity */}
-              <Block title="البيانات التعريفية">
+              <Block title={t("profileDetail.identity")}>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                  <Field icon={Calendar} k="التأسيس" v={identity.founded} />
-                  <Field icon={ShieldCheck} k="الترخيص" v={identity.license} />
-                  <Field icon={Calendar} k="صلاحية الترخيص" v={identity.licenseExpiry} />
-                  <Field icon={Users} k="المدير التنفيذي" v={identity.execAr} />
-                  {identity.deputyName && <Field icon={Users} k="نائب المدير" v={identity.deputyName} />}
-                  <Field icon={Users} k="إجمالي الموظفين" v={identity.staffTotal ? formatCount(identity.staffTotal) : null} />
-                  <Field icon={Coins} k="الميزانية" v={identity.budget ? formatBudget(identity.budget) : null} />
-                  <Field icon={Building2} k="الفروع/المرافق" v={identity.branches} />
-                  {identity.address && <Field icon={Building2} k="العنوان" v={identity.address} />}
-                  {identity.website && <Field icon={Building2} k="الموقع" v={identity.website} dir="ltr" />}
-                  <Field icon={Phone} k="هاتف" v={identity.phone} dir="ltr" />
-                  <Field icon={Mail} k="بريد" v={identity.email} dir="ltr" />
+                  <Field icon={Calendar} k={t("profileDetail.founded")} v={<TranslatableText text={identity.founded} />} />
+                  <Field icon={ShieldCheck} k={t("profileDetail.license")} v={<TranslatableText text={identity.license} />} />
+                  <Field icon={Calendar} k={t("profileDetail.licenseExpiry")} v={<TranslatableText text={identity.licenseExpiry} />} />
+                  <Field icon={Users} k={t("profileDetail.executive")} v={<TranslatableText text={identity.execAr} />} />
+                  {identity.deputyName && <Field icon={Users} k={t("profileDetail.deputy")} v={<TranslatableText text={identity.deputyName} />} />}
+                  <Field icon={Users} k={t("profileDetail.staff")} v={identity.staffTotal ? formatCount(identity.staffTotal) : null} />
+                  <Field icon={Coins} k={t("profileDetail.budget")} v={identity.budget ? formatBudget(identity.budget) : null} />
+                  <Field icon={Building2} k={t("profileDetail.branches")} v={<TranslatableText text={identity.branches} />} />
+                  {identity.address && <Field icon={Building2} k={t("profileDetail.address")} v={<TranslatableText text={identity.address} />} />}
+                  {identity.website && <Field icon={Building2} k={t("profileDetail.website")} v={identity.website} dir="ltr" />}
+                  <Field icon={Phone} k={t("profileDetail.phone")} v={identity.phone} dir="ltr" />
+                  <Field icon={Mail} k={t("profileDetail.email")} v={identity.email} dir="ltr" />
                 </div>
                 {inst?.alerts && inst.alerts.length > 0 && (
                   <div className="mt-3 space-y-1">
                     {inst.alerts.map((a, i) => (
-                      <div key={i} className="text-xs p-2 rounded bg-red-50 text-red-700 border border-red-200">{a}</div>
+                       <div key={i} className="text-xs p-2 rounded bg-red-50 text-red-700 border border-red-200"><TranslatableText text={a} /></div>
                     ))}
                   </div>
                 )}
