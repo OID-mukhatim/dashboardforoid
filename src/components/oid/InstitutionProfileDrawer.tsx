@@ -46,6 +46,8 @@ const TL_DOMAINS: { key: TimelineDomain; color: string }[] = [
   { key: "kpi", color: "#d97706" },
   { key: "financial", color: "#7c3aed" },
 ];
+const INITIATIVE_PRIORITY_KEYS: Record<string, string> = { "حرج": "critical", "عالٍ": "high", "متوسط": "medium", "منخفض": "low", "جارٍ": "ongoing" };
+const INITIATIVE_STATUS_KEYS: Record<string, string> = { "مقترح": "proposed", "قيد التنفيذ": "inProgress", "مكتمل": "completed" };
 
 export function InstitutionProfileDrawer() {
   const { openOrg } = useOrgDrill();
@@ -231,7 +233,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
             </div>
             <div className="min-w-0">
                <div className="text-lg font-bold whitespace-normal break-words">{lang === "ar" ? org.nameAr : org.nameEn}</div>
-               <div className="text-xs text-muted-foreground whitespace-normal break-words">{lang === "ar" ? org.nameEn : org.nameAr}</div>
+               {lang === "ar" && <div className="text-xs text-muted-foreground whitespace-normal break-words" dir="ltr">{org.nameEn}</div>}
                {identity.sector && <div className="text-[11px] mt-0.5 text-muted-foreground"><TranslatableText text={identity.sector} /></div>}
             </div>
           </div>
@@ -432,7 +434,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                       <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11, fill: "#64748b" }} />
                       <PolarRadiusAxis domain={[0, 5]} tick={{ fontSize: 10, fill: "#94a3b8" }} />
                       <Radar name={t("profileDetail.result")} dataKey="score" stroke={org.color} fill={org.color} fillOpacity={0.35} />
-                      <Tooltip formatter={(v: any) => formatScore(Number(v))} labelFormatter={(l: any) => periodWithMonths(orgId, String(l))} />
+                       <Tooltip formatter={(v: any) => formatScore(Number(v))} labelFormatter={(l: any) => periodWithMonths(orgId, String(l), lang)} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
@@ -508,8 +510,8 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-mono text-[10px] text-muted-foreground">{i.id}</span>
                          <span className="font-medium flex-1 whitespace-normal break-words"><TranslatableText text={i.title} recordId={i.id} tableName="initiatives" fieldName="title" /></span>
-                         {i.priority && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={i.priority} /></span>}
-                         {i.status && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={i.status} /></span>}
+                         {i.priority && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">{INITIATIVE_PRIORITY_KEYS[i.priority] ? t(`initiatives.priorities.${INITIATIVE_PRIORITY_KEYS[i.priority]}`) : <TranslatableText text={i.priority} />}</span>}
+                         {i.status && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">{INITIATIVE_STATUS_KEYS[i.status] ? t(`initiatives.statuses.${INITIATIVE_STATUS_KEYS[i.status]}`) : <TranslatableText text={i.status} />}</span>}
                       </div>
                        {i.objective && <div className="text-muted-foreground whitespace-normal break-words"><TranslatableText text={i.objective} recordId={i.id} tableName="initiatives" fieldName="objective" /></div>}
                       {(i.cost || i.timeline) && (
@@ -529,9 +531,9 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                   <ResponsiveContainer>
                     <LineChart data={lineData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="period" tick={{ fontSize: 11, fill: "#64748b" }} tickFormatter={(p: string) => periodWithMonths(orgId, p)} />
+                       <XAxis dataKey="period" tick={{ fontSize: 11, fill: "#64748b" }} tickFormatter={(p: string) => periodWithMonths(orgId, p, lang)} />
                       <YAxis domain={[0, 5]} tick={{ fontSize: 10, fill: "#94a3b8" }} />
-                      <Tooltip formatter={(v: any) => formatScore(Number(v))} labelFormatter={(l: any) => periodWithMonths(orgId, String(l))} />
+                       <Tooltip formatter={(v: any) => formatScore(Number(v))} labelFormatter={(l: any) => periodWithMonths(orgId, String(l), lang)} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {TL_DOMAINS.map((d) => (
                          <Line key={d.key} type="monotone" dataKey={d.key} name={t(`profileDetail.timelineDomains.${d.key}`)} stroke={d.color} strokeWidth={2} dot={{ r: 3 }} connectNulls />
@@ -552,11 +554,16 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
 
 /* ============ helpers ============ */
 /** يضيف الفترة الزمنية للربع بحسب تقويم المؤسسة: "Q2-2026 · يناير - مارس" */
-function periodWithMonths(orgId: string, period: string) {
+function periodWithMonths(orgId: string, period: string, lang: "ar" | "en") {
   const m = /^(Q[1-4])-(\d{4})$/.exec(period);
   if (!m) return period;
   const months = quarterMonths(orgId, m[1]);
-  return months ? `${period} · ${months}` : period;
+  if (!months) return period;
+  const englishMonths: Record<string, string> = {
+    "يناير - مارس": "January – March", "أبريل - يونيو": "April – June",
+    "يوليو - سبتمبر": "July – September", "أكتوبر - ديسمبر": "October – December",
+  };
+  return `${period} · ${lang === "en" ? (englishMonths[months] ?? months) : months}`;
 }
 
 function Block({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
