@@ -274,6 +274,20 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
       if (staleDeleteErr) throw staleDeleteErr;
     }
 
+    // Financial advisor monthly reports: append a new advisor snapshot automatically.
+    let advisorPeriod: string | null = null;
+    let advisorError: string | null = null;
+    const { data: upRow } = await supabaseAdmin.from("uploads").select("data_type").eq("id", uploadId).maybeSingle();
+    const { looksLikeAdvisorReport, processAdvisorReport } = await import("./advisor-core.server");
+    if (looksLikeAdvisorReport(fileName, upRow?.data_type ?? "", analysis.text)) {
+      try {
+        advisorPeriod = (await processAdvisorReport(uploadId, fileName, analysis.text)).period;
+      } catch (err) {
+        advisorError = err instanceof Error ? err.message : String(err);
+        console.error("advisor report processing failed", advisorError);
+      }
+    }
+
     await supabaseAdmin
       .from("uploads")
       .update({
@@ -285,6 +299,8 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
           orgs_found: orgIds,
           numbers_count: analysis.numbers.length,
           text_length: analysis.text.length,
+          advisor_period: advisorPeriod,
+          advisor_error: advisorError,
         } as unknown as never,
         error_message: null,
       })
