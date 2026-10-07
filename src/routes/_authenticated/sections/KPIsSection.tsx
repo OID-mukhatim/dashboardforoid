@@ -386,24 +386,28 @@ function MatrixView({
                       {k.kpi_name}
                     </td>
                     <td className="px-2 py-2 text-center" style={matrixColumnStyle(MATRIX_COLUMNS[5], true)} title={k.kpi_code ?? ""}><code className="inline-block whitespace-nowrap rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]" dir="ltr">{k.kpi_code}</code></td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[6], true)}>{fmtPct(d.weight, 2)}</td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[7], true)}>{formatKPIValue(d.baseline, unit)}</td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[8], true)}>{formatKPIValue(d.target, unit)}</td>
+                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[6], true)} title={k.kpi_type ?? ""}>{k.kpi_type ?? "—"}</td>
+                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[7], true)} title={k.unit ?? ""}>{k.unit ?? "—"}</td>
+                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[8], true)} title={k.polarity ?? ""}>{k.polarity ?? "—"}</td>
+                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[9], true)} title={k.frequency ?? ""}>{k.frequency ?? "—"}</td>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[10], true)}>{fmtPct(d.weight, 2)}</td>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[11], true)}>{formatKPIValue(d.baseline, unit)}</td>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[12], true)}>{formatKPIValue(d.target, unit)}</td>
                     {[0, 1, 2, 3].flatMap((i) => [
-                      <td key={`p${i}`} className="quarter-start numeric" style={matrixColumnStyle(MATRIX_COLUMNS[9 + i * 2], true)}>
+                      <td key={`p${i}`} className="quarter-start numeric" style={matrixColumnStyle(MATRIX_COLUMNS[13 + i * 2], true)}>
                         {formatKPIValue(d.qp[i], unit)}
                       </td>,
-                      <td key={`a${i}`} className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[10 + i * 2], true)}>
+                      <td key={`a${i}`} className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[14 + i * 2], true)}>
                         {formatKPIValue(d.qa[i], unit)}
                       </td>,
                     ])}
-                    <td className="quarter-start numeric" style={matrixColumnStyle(MATRIX_COLUMNS[17], true)}>
+                    <td className="quarter-start numeric" style={matrixColumnStyle(MATRIX_COLUMNS[21], true)}>
                       {formatKPIValue(d.totalPlanned ?? d.target, unit)}
                     </td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[18], true)}>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[22], true)}>
                       {formatKPIValue(d.totalActual, unit)}
                     </td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[19], true)}>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[23], true)}>
                       <div className="flex flex-col items-center gap-1">
                         <Progress value={res.cappedPct ?? 0} />
                         <span className="text-[11px] tabular-nums">
@@ -411,13 +415,13 @@ function MatrixView({
                         </span>
                       </div>
                     </td>
-                    <td className="exceeded-cell numeric" style={matrixColumnStyle(MATRIX_COLUMNS[20], true)}>
+                    <td className="exceeded-cell numeric" style={matrixColumnStyle(MATRIX_COLUMNS[24], true)}>
                       {res.exceeded !== null ? `+${res.exceeded}%` : "—"}
                     </td>
-                    <td className={`status-${res.status} text-center`} style={matrixColumnStyle(MATRIX_COLUMNS[21], true)} title={res.statusLabel}>
+                    <td className={`status-${res.status} text-center`} style={matrixColumnStyle(MATRIX_COLUMNS[25], true)} title={res.statusLabel}>
                       {res.statusLabel}
                     </td>
-                    <td className="px-3 py-2 text-xs leading-relaxed text-muted-foreground" style={matrixColumnStyle(MATRIX_COLUMNS[22], true)}>{k.final_output ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs leading-relaxed text-muted-foreground" style={matrixColumnStyle(MATRIX_COLUMNS[26], true)}>{k.final_output ?? "—"}</td>
                   </tr>
                 );
               })}
