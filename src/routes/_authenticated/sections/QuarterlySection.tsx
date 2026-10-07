@@ -9,7 +9,7 @@ import { Card, EmptyData, SectionTitle, OrgChip, FilterSelect, QuarterBadge } fr
 import { formatNumber } from "@/lib/oid-formatting";
 
 /* ============================ QUARTERLY ============================ */
-type QAch = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; beneficiaries: number|null; location: string|null; budget: number|null; cost: number|null; variance: number|null; outcomes: string|null };
+type QAch = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; beneficiaries: number|null; location: string|null; outcomes: string|null };
 type QEv = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; participants: number|null; location: string|null; evaluation: string|null };
 type QCh = { n: number|null; title: string; impact: string|null; reasons: string|null; actions: string|null; status: string|null; requiredSupport: string|null };
 
@@ -49,9 +49,6 @@ const QUARTERLY_COLUMNS: readonly QuarterlyColumn[] = [
   { key: "pct", label: "نسبة الإنجاز", width: "100px" },
   { key: "beneficiaries", label: "المستفيدون", width: "100px" },
   { key: "location", label: "الموقع", width: "80px" },
-  { key: "budget", label: "الموازنة", width: "78px" },
-  { key: "cost", label: "التكلفة", width: "78px" },
-  { key: "deviation", label: "الانحراف", width: "78px" },
   { key: "outcomes", label: "المخرجات والنتائج", width: "auto", minWidth: "130px" },
 ];
 
@@ -275,7 +272,7 @@ export function QuarterlySection() {
             <div className="text-sm font-medium">أنشطة الربع الأول (نموذج)</div>
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">بيانات تجريبية — تُستبدل فور رفع التقارير</span>
           </div>
-          <ScrollableTable minWidth={1260} maxHeight="calc(100vh - 180px)">
+          <ScrollableTable minWidth={1030} maxHeight="calc(100vh - 180px)">
             <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
               <QuarterlyColgroup />
               <QuarterlyHead />
@@ -291,12 +288,7 @@ export function QuarterlySection() {
                     <td className="numeric"><AchievementCell pct={r.pct} /></td>
                     <td className="numeric" title={String(r.beneficiaries ?? "")}>{r.beneficiaries}</td>
                     <td className="text-ellipsis-cell text-xs" title="">—</td>
-                    <td className="numeric">{formatNumber(r.budget, { prefix: "$", decimals: 0 })}</td>
-                    <td className="numeric">{formatNumber(r.cost, { prefix: "$", decimals: 0 })}</td>
-                    <td className={`numeric ${r.deviation > 0 ? "status-green" : r.deviation < 0 ? "status-red" : ""}`}>
-                      {r.deviation > 0 ? `+$${r.deviation}` : r.deviation < 0 ? `-$${Math.abs(r.deviation)}` : "—"}
-                    </td>
-                    <td className="text-xs leading-relaxed text-muted-foreground" style={quarterlyColumnStyle(QUARTERLY_COLUMNS[12], true)}>—</td>
+                    <td className="text-xs leading-relaxed text-muted-foreground" style={quarterlyColumnStyle(QUARTERLY_COLUMNS[9], true)}>—</td>
                   </tr>
                 ))}
               </tbody>
@@ -314,7 +306,7 @@ export function QuarterlySection() {
           </Card>
         ) : (
         <Card>
-          <ScrollableTable minWidth={1260} maxHeight="calc(100vh - 180px)">
+          <ScrollableTable minWidth={1030} maxHeight="calc(100vh - 180px)">
             <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
               <QuarterlyColgroup />
               <QuarterlyHead />
@@ -330,12 +322,7 @@ export function QuarterlySection() {
                     <td className="numeric"><AchievementCell pct={r.pct} /></td>
                     <td className="numeric" title={String(r.beneficiaries ?? "")}>{r.beneficiaries ?? "—"}</td>
                     <td className="text-ellipsis-cell text-xs" title={r.location ?? ""}>{r.location ?? "—"}</td>
-                    <td className="numeric">{formatNumber(r.budget, { prefix: "$", decimals: 0 })}</td>
-                    <td className="numeric">{formatNumber(r.cost, { prefix: "$", decimals: 0 })}</td>
-                    <td className={`numeric ${r.variance && r.variance > 0 ? "status-green" : r.variance && r.variance < 0 ? "status-red" : ""}`}>
-                      {r.variance && r.variance > 0 ? `+$${r.variance}` : r.variance && r.variance < 0 ? `-$${Math.abs(r.variance)}` : "—"}
-                    </td>
-                    <td className="text-xs leading-relaxed text-muted-foreground" style={quarterlyColumnStyle(QUARTERLY_COLUMNS[12], true)}>{r.outcomes ?? "—"}</td>
+                    <td className="text-xs leading-relaxed text-muted-foreground" style={quarterlyColumnStyle(QUARTERLY_COLUMNS[9], true)}>{r.outcomes ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

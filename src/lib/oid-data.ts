@@ -78,12 +78,12 @@ export const kpiData = [
 export const PERSPECTIVES = ["أصحاب المصلحة", "العمليات الداخلية", "التعلم والنمو", "المالي"];
 
 export const q1Data = [
-  { id: 1, title: "اعتماد QuickBooks وتسجيل معاملات 2025 — تيو", kpiCode: "TAYO-I1", org: "TAYO", target: "100%", done: "85%", pct: 85, beneficiaries: "—", budget: 0, cost: 0, deviation: 0, status: "inProgress" },
-  { id: 2, title: "إرسال التقرير المالي 2025 للمدقق — جامعة زمزم", kpiCode: "ZUST-F1", org: "ZUST", target: "100%", done: "100%", pct: 100, beneficiaries: "—", budget: 0, cost: 0, deviation: 0, status: "done" },
-  { id: 3, title: "جلسات تدريب موظفي المحاسبة — زاد", kpiCode: "ZAD-L1", org: "ZAD", target: "10 موظفين", done: "7", pct: 75, beneficiaries: "14", budget: 2000, cost: 1800, deviation: 200, status: "inProgress" },
-  { id: 4, title: "استكمال دليل السياسات المالية — جامعة زمزم", kpiCode: "ZUST-I5", org: "ZUST", target: "100%", done: "90%", pct: 90, beneficiaries: "—", budget: 0, cost: 0, deviation: 0, status: "pendingApproval" },
-  { id: 5, title: "اعتماد دليل الحسابات — تيو للتعليم", kpiCode: "TAYO-I2", org: "TAYO", target: "100%", done: "100%", pct: 100, beneficiaries: "10 مدارس", budget: 1200, cost: 1100, deviation: 100, status: "done" },
-  { id: 6, title: "تدقيق خارجي قوائم 2025 — زاد", kpiCode: "ZAD-F1", org: "ZAD", target: "1 تقرير", done: "1", pct: 100, beneficiaries: "—", budget: 3500, cost: 3700, deviation: -200, status: "done" },
+  { id: 1, title: "اعتماد QuickBooks وتسجيل معاملات 2025 — تيو", kpiCode: "TAYO-I1", org: "TAYO", target: "100%", done: "85%", pct: 85, beneficiaries: "—", status: "inProgress" },
+  { id: 2, title: "إرسال التقرير المالي 2025 للمدقق — جامعة زمزم", kpiCode: "ZUST-F1", org: "ZUST", target: "100%", done: "100%", pct: 100, beneficiaries: "—", status: "done" },
+  { id: 3, title: "جلسات تدريب موظفي المحاسبة — زاد", kpiCode: "ZAD-L1", org: "ZAD", target: "10 موظفين", done: "7", pct: 75, beneficiaries: "14", status: "inProgress" },
+  { id: 4, title: "استكمال دليل السياسات المالية — جامعة زمزم", kpiCode: "ZUST-I5", org: "ZUST", target: "100%", done: "90%", pct: 90, beneficiaries: "—", status: "pendingApproval" },
+  { id: 5, title: "اعتماد دليل الحسابات — تيو للتعليم", kpiCode: "TAYO-I2", org: "TAYO", target: "100%", done: "100%", pct: 100, beneficiaries: "10 مدارس", status: "done" },
+  { id: 6, title: "تدقيق خارجي قوائم 2025 — زاد", kpiCode: "ZAD-F1", org: "ZAD", target: "1 تقرير", done: "1", pct: 100, beneficiaries: "—", status: "done" },
 ];
 
 export const criticalGaps = [
