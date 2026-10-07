@@ -76,6 +76,10 @@ const MATRIX_COLUMNS: readonly MatrixColumn[] = [
   { key: "goal_weight", label: "وزن الهدف %", width: "95px" },
   { key: "kpi", label: "مؤشر الأداء", width: "auto", minWidth: "180px" },
   { key: "code", label: "الكود", width: "95px" },
+  { key: "kpi_type", label: "نوع المؤشر", width: "90px" },
+  { key: "unit", label: "الوحدة", width: "80px" },
+  { key: "polarity", label: "القطبية", width: "80px" },
+  { key: "frequency", label: "التكرار", width: "80px" },
   { key: "weight", label: "وزن المؤشر %", width: "100px" },
   { key: "baseline", label: "خط الأساس", width: "92px" },
   { key: "annual_target", label: "المستهدف السنوي", width: "105px" },
@@ -297,7 +301,7 @@ function MatrixView({
 
       <Card className="mt-6">
         <CardHeader title={`جدول المؤشرات (${rows.length})`} />
-        <ScrollableTable minWidth={2030} maxHeight="calc(100vh - 180px)">
+        <ScrollableTable minWidth={2370} maxHeight="calc(100vh - 180px)">
           <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
             <colgroup>
               {MATRIX_COLUMNS.map((col) => (
