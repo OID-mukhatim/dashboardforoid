@@ -6,7 +6,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { YearSelector } from "@/components/oid/YearSelector";
 import { Card, EmptyData, SectionTitle, OrgChip, FilterSelect, QuarterBadge } from "./_shared";
-import { formatNumber } from "@/lib/oid-formatting";
 
 /* ============================ QUARTERLY ============================ */
 type QAch = { n: number|null; title: string; code: string|null; target: number|null; achieved: number|null; pct: number|null; beneficiaries: number|null; location: string|null; outcomes: string|null };
