@@ -155,6 +155,47 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
 
 
 
+    // 2c) Financial score — computed live, updates automatically with every upload:
+    //   60% cumulative advisor progress across ALL monthly advisor reports
+    //       (recency-weighted average of program-status points per report),
+    //   40% budget execution rate from financial reports (actual / approved).
+    //   If only one source exists for an org, it is used alone.
+    const STATUS_PTS: Record<string, number> = { done: 5, inProgress: 3, delayed: 1.5, notYet: 1 };
+    const { data: advRows } = await sb
+      .from("advisor_snapshots")
+      .select("period_order, done, program")
+      .eq("done", true)
+      .order("period_order", { ascending: true });
+    const { data: finRows } = await sb
+      .from("financial_reports")
+      .select("org_id, approved_budget, actual_spending");
+    for (const code of VALID_ORGS) {
+      let wSum = 0, wxSum = 0, idx = 0;
+      for (const r of advRows ?? []) {
+        const rows = ((r.program ?? {}) as Record<string, { status?: string }[]>)[code];
+        if (!Array.isArray(rows) || rows.length === 0) continue;
+        const pts = rows.map((x) => STATUS_PTS[String(x.status)] ?? 0);
+        const avg = pts.reduce((a, b) => a + b, 0) / pts.length;
+        idx += 1; // older reports count, newer ones count more
+        wSum += idx; wxSum += avg * idx;
+      }
+      const advisor = wSum > 0 ? wxSum / wSum : null;
+      let appr = 0, act = 0;
+      for (const f of finRows ?? []) {
+        if (f.org_id !== code) continue;
+        const a = Number(f.approved_budget), b = Number(f.actual_spending);
+        if (Number.isFinite(a) && a > 0 && Number.isFinite(b)) { appr += a; act += b; }
+      }
+      let budget: number | null = null;
+      if (appr > 0) {
+        const ratio = act / appr;
+        budget = ratio <= 1 ? 5 * ratio : Math.max(0, 5 - (ratio - 1) * 10); // overspending is penalised
+      }
+      const fin =
+        advisor !== null && budget !== null ? advisor * 0.6 + budget * 0.4 : advisor ?? budget;
+      if (fin !== null) matrix[code].finScore = Math.round(fin * 100) / 100;
+    }
+
     // 3) totals: initiatives count + last upload timestamp (never throws)
     const { count: initiativesCount } = await sb
       .from("initiatives")
