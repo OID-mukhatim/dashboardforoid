@@ -913,10 +913,7 @@ export type Database = {
         Row: {
           achieved: string | null
           beneficiaries: string | null
-          budget: number | null
-          cost: number | null
           created_at: string
-          deviation: number | null
           fiscal_year_type: string
           id: string
           is_baseline: boolean | null
@@ -937,10 +934,7 @@ export type Database = {
         Insert: {
           achieved?: string | null
           beneficiaries?: string | null
-          budget?: number | null
-          cost?: number | null
           created_at?: string
-          deviation?: number | null
           fiscal_year_type?: string
           id?: string
           is_baseline?: boolean | null
@@ -961,10 +955,7 @@ export type Database = {
         Update: {
           achieved?: string | null
           beneficiaries?: string | null
-          budget?: number | null
-          cost?: number | null
           created_at?: string
-          deviation?: number | null
           fiscal_year_type?: string
           id?: string
           is_baseline?: boolean | null

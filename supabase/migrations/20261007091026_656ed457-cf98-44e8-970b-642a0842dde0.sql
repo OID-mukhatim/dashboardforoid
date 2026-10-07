@@ -1,0 +1,1 @@
+ALTER TABLE public.quarterly_reports DROP COLUMN IF EXISTS budget, DROP COLUMN IF EXISTS cost, DROP COLUMN IF EXISTS deviation;
