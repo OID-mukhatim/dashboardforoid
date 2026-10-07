@@ -224,7 +224,9 @@ export function kpiColumnMap(aoa: unknown[][], headerIdx: number): KpiCols {
   const at = (base: number) => base + off;
   const pick = (re: RegExp, base: number, exclude?: RegExp) => {
     const i = findCol(row, re, exclude);
-    return i >= 0 ? i : at(base);
+    // base -1 = optional column: when absent it must resolve to -1 (→ null),
+    // never to a shifted numeric-block index.
+    return i >= 0 ? i : base >= 0 ? at(base) : -1;
   };
   return {
     code,
