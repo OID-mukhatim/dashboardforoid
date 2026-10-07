@@ -694,7 +694,7 @@ export function UploadSection() {
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 mb-1">
                         {wc.perspectives.map((p) => (
-                          <span key=<UploadText text={p.name} /> className="tabular-nums">
+                          <span key={p.name} className="tabular-nums">
                             <UploadText text={p.name} />: {p.sum.toFixed(2)}%
                           </span>
                         ))}
