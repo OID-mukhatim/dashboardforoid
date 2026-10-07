@@ -198,6 +198,7 @@ function entityFromKpiCode(code: string | null): string | null {
  */
 export type KpiCols = {
   sector: number; objective: number; name: number; code: number; type: number;
+  unit: number; polarity: number; frequency: number;
   weight: number; baseline: number; target: number;
   q1p: number; q2p: number; q3p: number; q4p: number; totalPlanned: number;
   q1a: number; q2a: number; q3a: number; q4a: number; totalActual: number;
@@ -223,7 +224,9 @@ export function kpiColumnMap(aoa: unknown[][], headerIdx: number): KpiCols {
   const at = (base: number) => base + off;
   const pick = (re: RegExp, base: number, exclude?: RegExp) => {
     const i = findCol(row, re, exclude);
-    return i >= 0 ? i : at(base);
+    // base -1 = optional column: when absent it must resolve to -1 (→ null),
+    // never to a shifted numeric-block index.
+    return i >= 0 ? i : base >= 0 ? at(base) : -1;
   };
   return {
     code,
@@ -231,6 +234,9 @@ export function kpiColumnMap(aoa: unknown[][], headerIdx: number): KpiCols {
     objective: pick(/^(الهدف|objective)/i, 2),
     name: pick(/(مؤشر\s*الأداء|وصف\s*المؤشر|^المؤشر$|indicator)/i, 3, /الكود|code/i),
     type: pick(/^(النوع|نوعه|type)/i, 5),
+    unit: pick(/(الوحدة|وحدة\s*القياس|unit)/i, -1),
+    polarity: pick(/(القطبية|الاتجاه|polarity)/i, -1),
+    frequency: pick(/(التردد|التكرار|الدورية|frequency)/i, -1),
     weight: pick(/^(الوزن|weight)/i, 6),
     baseline: pick(/(خط\s*الأساس|baseline)/i, 7),
     target: pick(/(المستهدف\s*السنوي|annual\s*target)/i, 8),
@@ -782,6 +788,9 @@ export const parseUpload = createServerFn({ method: "POST" })
             fiscal_type: ACADEMIC_ORGS.has(rowEntity) ? "academic" : "calendar",
             kpi_name: name,
             kpi_type: toStr(row[cols.type]),
+            unit: cols.unit >= 0 ? toStr(row[cols.unit]) : null,
+            polarity: cols.polarity >= 0 ? toStr(row[cols.polarity]) : null,
+            frequency: cols.frequency >= 0 ? toStr(row[cols.frequency]) : null,
             weight: toNum(row[cols.weight]),
             baseline: toNum(row[cols.baseline]),
             annual_target: toNum(row[cols.target]),
@@ -997,7 +1006,7 @@ export const processUpload = createServerFn({ method: "POST" })
 
 // Preview an Excel KPI upload without writing: returns diff vs existing DB rows.
 const KPI_COMPARE_FIELDS = [
-  "kpi_name", "kpi_type", "sector", "objective",
+  "kpi_name", "kpi_type", "unit", "polarity", "frequency", "sector", "objective",
   "weight", "baseline", "annual_target",
   "q1_planned", "q2_planned", "q3_planned", "q4_planned", "total_planned",
   "q1_actual", "q2_actual", "q3_actual", "q4_actual", "total_actual",
@@ -1005,7 +1014,7 @@ const KPI_COMPARE_FIELDS = [
 ] as const;
 
 const FIELD_LABELS_AR: Record<string, string> = {
-  kpi_name: "وصف المؤشر", kpi_type: "النوع", sector: "المنظور", objective: "الهدف",
+  kpi_name: "وصف المؤشر", kpi_type: "النوع", unit: "الوحدة", polarity: "القطبية", frequency: "التكرار", sector: "المنظور", objective: "الهدف",
   weight: "الوزن", baseline: "خط الأساس", annual_target: "المستهدف السنوي",
   q1_planned: "مخطط ر1", q2_planned: "مخطط ر2", q3_planned: "مخطط ر3", q4_planned: "مخطط ر4",
   total_planned: "إجمالي مخطط",
@@ -1060,6 +1069,7 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
           entity_name: rowOrg && rowOrg !== norm.code ? normalizeEntity(rowOrg).name : norm.name,
           sector: lastSector,
           objective: toStr(row[cols.objective]), kpi_code: kpiCodeWithYear(code, planYear), kpi_name: name, kpi_type: toStr(row[cols.type]),
+          unit: cols.unit >= 0 ? toStr(row[cols.unit]) : null, polarity: cols.polarity >= 0 ? toStr(row[cols.polarity]) : null, frequency: cols.frequency >= 0 ? toStr(row[cols.frequency]) : null,
           plan_year: planYear, is_baseline: planYear === 2026, fiscal_type: ACADEMIC_ORGS.has(rowEntity) ? "academic" : "calendar",
           weight: toNum(row[cols.weight]), baseline: toNum(row[cols.baseline]), annual_target: toNum(row[cols.target]),
           q1_planned: toNum(row[cols.q1p]), q2_planned: toNum(row[cols.q2p]), q3_planned: toNum(row[cols.q3p]), q4_planned: toNum(row[cols.q4p]),
