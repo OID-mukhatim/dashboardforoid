@@ -76,11 +76,11 @@ const MATRIX_COLUMNS: readonly MatrixColumn[] = [
   { key: "goal_weight", label: "وزن الهدف %", width: "95px" },
   { key: "kpi", label: "مؤشر الأداء", width: "auto", minWidth: "180px" },
   { key: "code", label: "الكود", width: "95px" },
+  { key: "weight", label: "وزن المؤشر %", width: "100px" },
   { key: "kpi_type", label: "نوع المؤشر", width: "90px" },
   { key: "unit", label: "الوحدة", width: "80px" },
   { key: "polarity", label: "القطبية", width: "80px" },
   { key: "frequency", label: "التكرار", width: "80px" },
-  { key: "weight", label: "وزن المؤشر %", width: "100px" },
   { key: "baseline", label: "خط الأساس", width: "92px" },
   { key: "annual_target", label: "المستهدف السنوي", width: "105px" },
   { key: "q1_target", label: "مخطط", group: "Q1", width: "62px" },
@@ -386,11 +386,11 @@ function MatrixView({
                       {k.kpi_name}
                     </td>
                     <td className="px-2 py-2 text-center" style={matrixColumnStyle(MATRIX_COLUMNS[5], true)} title={k.kpi_code ?? ""}><code className="inline-block whitespace-nowrap rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]" dir="ltr">{k.kpi_code}</code></td>
-                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[6], true)} title={k.kpi_type ?? ""}>{k.kpi_type ?? "—"}</td>
-                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[7], true)} title={k.unit ?? ""}>{k.unit ?? "—"}</td>
-                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[8], true)} title={k.polarity ?? ""}>{k.polarity ?? "—"}</td>
-                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[9], true)} title={k.frequency ?? ""}>{k.frequency ?? "—"}</td>
-                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[10], true)}>{fmtPct(d.weight, 2)}</td>
+                    <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[6], true)}>{fmtPct(d.weight, 2)}</td>
+                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[7], true)} title={k.kpi_type ?? ""}>{k.kpi_type ?? "—"}</td>
+                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[8], true)} title={k.unit ?? ""}>{k.unit ?? "—"}</td>
+                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[9], true)} title={k.polarity ?? ""}>{k.polarity ?? "—"}</td>
+                    <td className="px-2 py-2 text-center text-xs" style={matrixColumnStyle(MATRIX_COLUMNS[10], true)} title={k.frequency ?? ""}>{k.frequency ?? "—"}</td>
                     <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[11], true)}>{formatKPIValue(d.baseline, unit)}</td>
                     <td className="numeric" style={matrixColumnStyle(MATRIX_COLUMNS[12], true)}>{formatKPIValue(d.target, unit)}</td>
                     {[0, 1, 2, 3].flatMap((i) => [
