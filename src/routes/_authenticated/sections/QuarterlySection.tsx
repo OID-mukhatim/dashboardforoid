@@ -41,7 +41,7 @@ type QuarterlyColumn = { key: string; label: string; width: string; minWidth?: s
 const QUARTERLY_COLUMNS: readonly QuarterlyColumn[] = [
   { key: "seq", label: "م", width: "36px" },
   { key: "title", label: "النشاط", width: "auto", minWidth: "180px" },
-  { key: "kpi_code", label: "كود المؤشر", width: "95px" },
+  { key: "kpi_code", label: "كود المؤشر الداعم Supporting KPI Code", width: "175px" },
   { key: "org", label: "المؤسسة", width: "90px" },
   { key: "target", label: "المستهدف", width: "95px" },
   { key: "done", label: "المنفذ", width: "70px" },
@@ -271,7 +271,7 @@ export function QuarterlySection() {
             <div className="text-sm font-medium">أنشطة الربع الأول (نموذج)</div>
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">بيانات تجريبية — تُستبدل فور رفع التقارير</span>
           </div>
-          <ScrollableTable minWidth={1030} maxHeight="calc(100vh - 180px)">
+          <ScrollableTable minWidth={1110} maxHeight="calc(100vh - 180px)">
             <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
               <QuarterlyColgroup />
               <QuarterlyHead />
