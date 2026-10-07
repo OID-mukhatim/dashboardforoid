@@ -3,9 +3,6 @@
  * The reports do not supply numerical institutional ratings.
  */
 import type { ProgramStatus } from "./oid-data";
-
-export const advisorSource = "المصدر: ملخص التقرير المالي المحدث — يوليو 2026، وملخص التقرير المالي — أغسطس 2026، وتقرير تقدم الإدارة المالية — سبتمبر 2026 (إعداد بشير حارد، 5 أكتوبر 2026). الحالة حتى 30 سبتمبر؛ إجراءات أكتوبر مخططة وليست منجزة.";
-
 export const advisorAssessment = {
   ZUST: {
     label: "تنفيذ الموازنة وجاهزية التقرير السنوي؛ اعتماد الموازنة والنظام معلقان",
