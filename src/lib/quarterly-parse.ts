@@ -19,9 +19,6 @@ export type QuarterlyAchievement = {
   pct: number | null; // 0..100
   beneficiaries: number | null;
   location: string | null;
-  budget: number | null;
-  cost: number | null;
-  variance: number | null;
   outcomes: string | null;
 };
 
@@ -142,7 +139,6 @@ export function parseQuarterlySheet(aoa: unknown[][]): QuarterlyReport | null {
         n: idx, title, code: s(row[2]),
         target: n(row[3]), achieved: n(row[4]), pct: pct(row[5]),
         beneficiaries: n(row[6]), location: s(row[7]),
-        budget: n(row[8]), cost: n(row[9]), variance: n(row[10]),
         outcomes: s(row[12]),
       });
     } else if (current === "ev") {
