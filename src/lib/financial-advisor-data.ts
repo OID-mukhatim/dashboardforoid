@@ -70,6 +70,11 @@ export const advisorProgram: Record<keyof typeof advisorAssessment, { domain: st
 };
 
 export const advisorTimeline = [
+  { period: "نوف-ديس 2025", title: "تقييم أولي", done: true },
+  { period: "يناير 2026", title: "إنجاز الأساسيات", done: true },
+  { period: "فبراير 2026", title: "تقدم ملحوظ", done: true },
+  { period: "مارس-أبريل 2026", title: "تقدم كبير", done: true },
+  { period: "مايو-يونيو 2026", title: "الاكتمال المستهدف", done: true },
   { period: "يوليو 2026", title: "تحليلات الموازنات والقوائم المرحلية وتطوير الأنظمة والأدلة", done: true },
   { period: "أغسطس 2026", title: "تدريب 11 مدرسة وتعميم دليل تيو وتجهيز موازنات 2026/2027", done: true },
   { period: "سبتمبر 2026", title: "تنفيذ الموازنات وتشغيل نظام هلال وجاهزية تقرير الجامعة السنوي", done: true },
