@@ -4,7 +4,7 @@ import {
   ORGS, PROGRAM_STATUS_META,
   ORG_FISCAL_YEAR, FISCAL_QUARTERS, getQuarterLabel, type OrgId,
 } from "@/lib/oid-data";
-import { advisorAssessment as financialAssessment, advisorProgram as financialProgram, advisorTimeline as financialTimeline } from "@/lib/financial-advisor-data";
+import { supabase } from "@/integrations/supabase/client";
 import { formatBudget } from "@/lib/oid-formatting";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import {
@@ -39,6 +39,25 @@ export function FinancialSection() {
 /* ============================ أعمال المستشار ============================ */
 function AdvisorTab() {
   const [tab, setTab] = useState<"assess" | "program" | "timeline">("assess");
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  const { data: snapshots = [], isLoading } = useQuery({
+    queryKey: ["advisor-snapshots"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("advisor_snapshots")
+        .select("id, period, period_order, timeline_title, done, assessment, program")
+        .order("period_order", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const withData = snapshots.filter((s) => s.assessment);
+  const current = withData.find((s) => s.id === pickedId) ?? withData[withData.length - 1];
+  const financialAssessment = (current?.assessment ?? {}) as Record<string, any>;
+  const financialProgram = (current?.program ?? {}) as Record<string, any[]>;
+  const financialTimeline = snapshots.map((s) => ({ period: s.period, title: s.timeline_title, done: s.done }));
+  if (isLoading) return <div className="text-sm text-muted-foreground p-6">جارٍ التحميل…</div>;
   return (
     <div className="space-y-6">
       <div className="flex gap-2 border-b border-border">
@@ -46,6 +65,19 @@ function AdvisorTab() {
           <button key={k} onClick={()=>setTab(k as any)} className={`px-4 py-2 text-sm border-b-2 transition ${tab===k?"border-primary text-primary font-medium":"border-transparent text-muted-foreground hover:text-foreground"}`}>{l}</button>
         ))}
       </div>
+
+      {tab !== "timeline" && withData.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">السجل حسب الفترة:</span>
+          {withData.map((s) => (
+            <button key={s.id} onClick={() => setPickedId(s.id)}
+              className={`px-3 py-1 text-xs rounded-full border transition ${current?.id === s.id ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:text-foreground"}`}>
+              {s.period}
+            </button>
+          ))}
+        </div>
+      )}
+
 
 
       {tab === "assess" && (

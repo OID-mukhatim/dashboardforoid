@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      advisor_snapshots: {
+        Row: {
+          assessment: Json | null
+          created_at: string
+          done: boolean
+          id: string
+          period: string
+          period_order: number
+          program: Json | null
+          source_upload_id: string | null
+          timeline_title: string
+          updated_at: string
+        }
+        Insert: {
+          assessment?: Json | null
+          created_at?: string
+          done?: boolean
+          id?: string
+          period: string
+          period_order: number
+          program?: Json | null
+          source_upload_id?: string | null
+          timeline_title: string
+          updated_at?: string
+        }
+        Update: {
+          assessment?: Json | null
+          created_at?: string
+          done?: boolean
+          id?: string
+          period?: string
+          period_order?: number
+          program?: Json | null
+          source_upload_id?: string | null
+          timeline_title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advisor_snapshots_source_upload_id_fkey"
+            columns: ["source_upload_id"]
+            isOneToOne: true
+            referencedRelation: "uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_extractions: {
         Row: {
           created_at: string
