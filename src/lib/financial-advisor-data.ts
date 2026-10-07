@@ -3,6 +3,7 @@
  * The reports do not supply numerical institutional ratings.
  */
 import type { ProgramStatus } from "./oid-data";
+
 export const advisorAssessment = {
   ZUST: {
     label: "تنفيذ الموازنة وجاهزية التقرير السنوي؛ اعتماد الموازنة والنظام معلقان",
