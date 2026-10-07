@@ -24,7 +24,7 @@ function UploadText({ text }: { text: string | null | undefined }) {
   if (total) return <>{tFormat("upload.totalWeightError", { sum: total[1] })}</>;
   if (count) return <>{tFormat("upload.perspectiveCountWarning", { count: count[1] })}</>;
   if (!text) return <>—</>;
-  if (!/[\u0600-\u06ff]/.test(text)) return <>{text}</>;
+  if (/^[\d\s.,%+−–—\-]+$/.test(text)) return <>{text}</>;
   const translated = t(`upload.${text}`);
   if (translated !== `upload.${text}`) return <>{translated}</>;
   return <TranslatableText text={text} sourceLang={/[\u0600-\u06ff]/.test(text) ? "ar" : "en"} />;

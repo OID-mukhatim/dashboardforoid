@@ -1,4 +1,4 @@
 # Tasks
 - [x] Translate upload controls, history, feedback, and import preview.
 - [x] Translate extracted content and processing progress without changing stored data.
-- [ ] Verify Arabic and English upload screens and preview states.
+- [x] Verify Arabic and English upload screens, calendar labels, history headings, and all preview dictionary strings.
