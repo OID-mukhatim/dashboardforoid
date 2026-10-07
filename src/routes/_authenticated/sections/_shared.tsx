@@ -6,6 +6,7 @@ import { loadDashboardSnapshot } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useLang } from "@/lib/lang-context";
+import { TranslatableText } from "@/components/oid/TranslatableText";
 
 /* ============================ Reusable ============================ */
 export function Card({ children, className = "" }: any) {
@@ -68,14 +69,15 @@ export function UploadProgressBar({
   elapsedMs: number; etaMs: number | null;
   fmtMs: (ms: number | null | undefined) => string;
 }) {
+  const { t, dir } = useLang();
   const currentIdx = Math.max(0, UPLOAD_PHASES.findIndex((p) => p.key === phase));
   const safePercent = Math.min(100, Math.max(0, percent));
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="font-semibold text-amber-800">{label}</span>
-          {message && <span className="text-muted-foreground whitespace-normal break-words">— {message}</span>}
+          <span className="font-semibold text-amber-800">{t(`upload.${phase}`) !== `upload.${phase}` ? t(`upload.${phase}`) : <TranslatableText text={label} sourceLang={/[\u0600-\u06ff]/.test(label) ? "ar" : "en"} />}</span>
+          {message && <span className="text-muted-foreground whitespace-normal break-words">— <TranslatableText text={message} sourceLang={/[\u0600-\u06ff]/.test(message) ? "ar" : "en"} /></span>}
         </div>
         <div className="flex items-center gap-3 whitespace-nowrap tabular-nums">
           <span className="font-bold text-amber-800">{safePercent}%</span>
@@ -84,7 +86,7 @@ export function UploadProgressBar({
         </div>
       </div>
       <Progress value={safePercent} color="#d97706" />
-      <div className="flex items-center justify-between gap-1 text-[10px]" dir="rtl">
+      <div className="flex items-center justify-between gap-1 text-[10px]" dir={dir}>
         {UPLOAD_PHASES.map((p, i) => {
           const done = i < currentIdx || (i === currentIdx && safePercent >= 100);
           const active = i === currentIdx && safePercent < 100;
@@ -97,7 +99,7 @@ export function UploadProgressBar({
               }`}>
                 {done ? "✓" : i + 1}
               </span>
-              <span className={done || active ? "text-foreground" : "text-muted-foreground"}>{p.label}</span>
+              <span className={done || active ? "text-foreground" : "text-muted-foreground"}>{t(`upload.${p.key}`)}</span>
             </div>
           );
         })}
