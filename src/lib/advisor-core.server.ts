@@ -140,5 +140,7 @@ export async function processAdvisorReport(uploadId: string, fileName: string, t
     { onConflict: "source_upload_id" },
   );
   if (error) throw error;
+  // A real report replaces the planned placeholder for that month.
+  await supabaseAdmin.from("advisor_snapshots").delete().eq("period_order", x.period_order).eq("done", false).is("source_upload_id", null);
   return { period: x.period };
 }
