@@ -76,7 +76,7 @@ export function UploadProgressBar({
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="font-semibold text-amber-800"><TranslatableText text={label} sourceLang={/[\u0600-\u06ff]/.test(label) ? "ar" : "en"} /></span>
+          <span className="font-semibold text-amber-800">{t(`upload.${phase}`) !== `upload.${phase}` ? t(`upload.${phase}`) : <TranslatableText text={label} sourceLang={/[\u0600-\u06ff]/.test(label) ? "ar" : "en"} />}</span>
           {message && <span className="text-muted-foreground whitespace-normal break-words">— <TranslatableText text={message} sourceLang={/[\u0600-\u06ff]/.test(message) ? "ar" : "en"} /></span>}
         </div>
         <div className="flex items-center gap-3 whitespace-nowrap tabular-nums">

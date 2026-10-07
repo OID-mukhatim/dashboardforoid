@@ -16,8 +16,15 @@ import { TranslatableText } from "@/components/oid/TranslatableText";
 import { Button } from "@/components/ui/button";
 
 function UploadText({ text }: { text: string | null | undefined }) {
-  const { t, lang } = useLang();
+  const { t, tFormat } = useLang();
+  const perspective = text?.match(/^منظور "(.+)": مجموع الأوزان ([\d.]+)% — يجب أن يساوي ([\d.]+)% بالضبط$/);
+  const total = text?.match(/^المجموع الكلي للأوزان: ([\d.]+)% — يجب أن يساوي 100% بالضبط$/);
+  const count = text?.match(/^عدد المناظير في الملف (\d+) — المتوقع 4 مناظير$/);
+  if (perspective) return <>{tFormat("upload.perspectiveWeightError", { name: "{perspective}", sum: perspective[2], expected: perspective[3] }).split("{perspective}").map((part, i) => <Fragment key={i}>{i > 0 && <UploadText text={perspective[1]} />}{part}</Fragment>)}</>;
+  if (total) return <>{tFormat("upload.totalWeightError", { sum: total[1] })}</>;
+  if (count) return <>{tFormat("upload.perspectiveCountWarning", { count: count[1] })}</>;
   if (!text) return <>—</>;
+  if (!/[\u0600-\u06ff]/.test(text)) return <>{text}</>;
   const translated = t(`upload.${text}`);
   if (translated !== `upload.${text}`) return <>{translated}</>;
   return <TranslatableText text={text} sourceLang={/[\u0600-\u06ff]/.test(text) ? "ar" : "en"} />;
@@ -27,7 +34,7 @@ const DATA_TYPES = ["الكل", "مؤشرات الأداء", "تقرير ربع�
 const PERIODS = ["الكل", "Q1 2026", "Q2 2026", "Q3 2026", "Q4 2026", "سنوي 2026"];
 
 export function UploadSection() {
-  const { t, tFormat, lang, dir, isRTL } = useLang();
+  const { t, tFormat, lang, dir } = useLang();
   const u = (text: string) => t(`upload.${text}`);
   const orgLabel = (id: string) => {
     if (id === "الكل") return u("الكل");
@@ -377,7 +384,7 @@ export function UploadSection() {
                   <div key={r.id} className="border border-border rounded-lg overflow-hidden">
                     <Button
                       onClick={() => setViewExtract(isOpen ? null : r.id)}
-                      className="w-full flex items-center gap-3 p-3 text-start hover:bg-muted/30 transition"
+                      variant="ghost" className="w-full h-auto justify-start whitespace-normal flex items-center gap-3 p-3 text-start hover:bg-muted/30 transition"
                     >
                       <span className="text-xl">{fileIcon(r.file_name)}</span>
                       <div className="flex-1 min-w-0">
@@ -533,7 +540,7 @@ export function UploadSection() {
                           r.status==="error"?"bg-rose-500/10 text-rose-700":
                           "bg-amber-500/10 text-amber-700"
                         }`}>
-                          {r.status==="processed"?"مُعالج":r.status==="error"?"خطأ":"قيد المعالجة"}
+                          {r.status === "processed" ? u("مُعالج") : r.status === "error" ? u("خطأ") : u("قيد المعالجة")}
                         </span>
                       </td>
                       <td className="p-2">{r.rows_extracted ?? 0}</td>
