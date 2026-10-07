@@ -4,7 +4,7 @@ import {
   ORGS, PROGRAM_STATUS_META,
   ORG_FISCAL_YEAR, FISCAL_QUARTERS, getQuarterLabel, type OrgId,
 } from "@/lib/oid-data";
-import { advisorAssessment as financialAssessment, advisorProgram as financialProgram, advisorTimeline as financialTimeline, advisorSource } from "@/lib/financial-advisor-data";
+import { advisorAssessment as financialAssessment, advisorProgram as financialProgram, advisorTimeline as financialTimeline } from "@/lib/financial-advisor-data";
 import { formatBudget } from "@/lib/oid-formatting";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import {
@@ -47,7 +47,6 @@ function AdvisorTab() {
         ))}
       </div>
 
-      <p className="text-xs text-muted-foreground leading-relaxed">{advisorSource}</p>
 
       {tab === "assess" && (
         <div className="space-y-6">
