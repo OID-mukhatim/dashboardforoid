@@ -1,0 +1,16 @@
+REVOKE SELECT ON public.institutions, public.partnerships, public.quarterly_reports, public.timeline_entries, public.governance_policies, public.gap_scores FROM anon;
+DROP POLICY IF EXISTS read_institutions ON public.institutions;
+DROP POLICY IF EXISTS read_partnerships ON public.partnerships;
+DROP POLICY IF EXISTS read_quarterly ON public.quarterly_reports;
+DROP POLICY IF EXISTS read_timeline ON public.timeline_entries;
+DROP POLICY IF EXISTS read_gov ON public.governance_policies;
+DROP POLICY IF EXISTS read_gaps ON public.gap_scores;
+CREATE POLICY read_institutions ON public.institutions FOR SELECT TO authenticated USING (true);
+CREATE POLICY read_partnerships ON public.partnerships FOR SELECT TO authenticated USING (true);
+CREATE POLICY read_quarterly ON public.quarterly_reports FOR SELECT TO authenticated USING (true);
+CREATE POLICY read_timeline ON public.timeline_entries FOR SELECT TO authenticated USING (true);
+CREATE POLICY read_gov ON public.governance_policies FOR SELECT TO authenticated USING (true);
+CREATE POLICY read_gaps ON public.gap_scores FOR SELECT TO authenticated USING (true);
+GRANT SELECT ON public.institutions, public.partnerships, public.quarterly_reports, public.timeline_entries, public.governance_policies, public.gap_scores TO authenticated;
+DROP POLICY IF EXISTS write_translations ON public.translations_cache;
+GRANT ALL ON public.translations_cache TO service_role;
