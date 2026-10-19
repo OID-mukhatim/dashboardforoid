@@ -1,7 +1,7 @@
 # Tasks
-- [ ] Build authenticated live alerts, exclude KPI signals from anomalies, and verify the displayed alert list.
-- [ ] Generate nonduplicating initiatives from latest gap periods without overwriting approved initiatives.
-- [ ] Share safe organization aliases between document extraction and upload preview; verify detection and preview.
+- [x] Build authenticated live alerts, exclude KPI signals from anomalies, and verify the displayed alert list.
+- [x] Generate nonduplicating initiatives from latest gap periods without overwriting approved initiatives.
+- [x] Share safe organization aliases between document extraction and upload preview; verify detection and preview.
 - [x] Update financial advisor assessment, program, and timeline from uploaded July/August/September reports only; leave quarterly financial reports unchanged and verify display.
 - [x] Translate upload controls, history, feedback, and import preview.
 - [x] Translate extracted content and processing progress without changing stored data.
