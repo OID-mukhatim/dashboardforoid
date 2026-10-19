@@ -636,8 +636,9 @@ export async function runParseUpload(data: { uploadId: string; filePath: string;
           if (years.length) minYear.set(ent, Math.min(...years));
         }
         for (const row of kpiRows) {
-          const cur = Number(row.plan_year ?? year);
-          const base = Math.min(cur, minYear.get(row.entity_code ?? "") ?? cur);
+          const cur = Number(row.plan_year);
+          if (!Number.isFinite(cur)) continue;
+          const base = Math.min(cur, minYear.get(String(row.entity_code ?? "")) ?? cur);
           (row as { is_baseline?: boolean }).is_baseline = cur === base;
         }
       }
