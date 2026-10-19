@@ -20,7 +20,7 @@ import {
   POLICY_STATUS_META, type PolicyStatus,
 } from "@/lib/oid-data";
 import { ORG_LOGOS } from "@/lib/oid-logos";
-import { computeProfileFromLive, type LiveInputs } from "@/lib/oid-composite";
+import { computeProfileFromLive, type InstitutionProfile } from "@/lib/oid-composite";
 import { detectAnomalies, getSeverityMeta, getCategoryLabel } from "@/lib/oid-anomalies";
 import { computeTrend, getSeries, type TimelineDomain } from "@/lib/oid-timeline";
 import { useOrgDrill, closeOrgProfile } from "@/lib/oid-drill";
@@ -50,11 +50,20 @@ const INITIATIVE_STATUS_KEYS: Record<string, string> = { "مقترح": "proposed
 
 export function InstitutionProfileDrawer() {
   const { openOrg } = useOrgDrill();
+  const { data: snap } = useDashboardSnapshotQuery();
+  const profiles = useMemo(() => {
+    const out = {} as Record<OrgId, InstitutionProfile>;
+    for (const o of ORGS) out[o.id] = computeProfileFromLive(o.id, {
+      gapAvg: snap?.matrix?.[o.id]?.gapAvg ?? null, govScore: snap?.matrix?.[o.id]?.govScore ?? null,
+      kpiScorePct: snap?.kpi?.[o.id]?.weightedAvgPct ?? null, finScore: snap?.matrix?.[o.id]?.finScore ?? null,
+    });
+    return out;
+  }, [snap]);
   if (!openOrg) return null;
-  return <DrawerContent orgId={openOrg} />;
+  return <DrawerContent orgId={openOrg} allProfiles={profiles} />;
 }
 
-function DrawerContent({ orgId }: { orgId: OrgId }) {
+function DrawerContent({ orgId, allProfiles }: { orgId: OrgId; allProfiles: Record<OrgId, InstitutionProfile> }) {
   const { lang, t, tFormat } = useLang();
   const [tab, setTab] = useState<TabKey>("overview");
   const org = ORGS.find((o) => o.id === orgId);
@@ -127,26 +136,8 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
   });
 
   // ---- Composite score from live snapshot ----
-  const live: LiveInputs = {
-    gapAvg: snap?.matrix?.[orgId]?.gapAvg ?? undefined,
-    govScore: snap?.matrix?.[orgId]?.govScore ?? undefined,
-    kpiScorePct: snap?.kpi?.[orgId]?.weightedAvgPct ?? undefined,
-    finScore: snap?.matrix?.[orgId]?.finScore ?? undefined,
-  };
-  const profile = computeProfileFromLive(orgId, live);
+  const profile = allProfiles[orgId];
 
-  const allProfiles = useMemo(() => {
-    const m = {} as Record<OrgId, ReturnType<typeof computeProfileFromLive>>;
-    for (const o of ORGS) {
-      m[o.id] = computeProfileFromLive(o.id, {
-        gapAvg: snap?.matrix?.[o.id]?.gapAvg ?? undefined,
-        govScore: snap?.matrix?.[o.id]?.govScore ?? undefined,
-        kpiScorePct: snap?.kpi?.[o.id]?.weightedAvgPct ?? undefined,
-        finScore: snap?.matrix?.[o.id]?.finScore ?? undefined,
-      });
-    }
-    return m;
-  }, [snap]);
   // قيم المحاور السبعة الحية لهذه المؤسسة (من snapshot)
   const liveGapAxes = useMemo(
     () => GAP_AXES.map((ax) => getLiveGapValue(snap, orgId, ax)),

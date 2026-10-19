@@ -11,7 +11,7 @@ import {
   type AnomalySeverity,
   type AnomalyExtras,
 } from "@/lib/oid-anomalies";
-import { computeAllProfilesFromLive } from "@/lib/oid-composite";
+import type { InstitutionProfile } from "@/lib/oid-composite";
 import { useDashboardSnapshotQuery, getLiveGapValue } from "@/routes/_authenticated/sections/_shared";
 import { openOrgProfile } from "@/lib/oid-drill";
 import { requestTaskCreate } from "@/lib/tasks-store";
@@ -23,29 +23,18 @@ const SEVERITY_ICON: Record<AnomalySeverity, React.ComponentType<{ size?: number
   low: Info,
 };
 
-export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilter?: "all" | OrgId }) {
+export function AnomaliesPanel({ profiles, orgFilter = "all" as "all" | OrgId }: { profiles: Record<OrgId, InstitutionProfile>; orgFilter?: "all" | OrgId }) {
   const { lang, t } = useLang();
   const [sevFilter, setSevFilter] = useState<"all" | AnomalySeverity>("all");
   const { data: snap } = useDashboardSnapshotQuery();
 
   // ملفات حية من قاعدة البيانات + قيم المحاور الحية لكل مؤسسة
-  const { profiles, extras } = useMemo(() => {
-    const liveByOrg = Object.fromEntries(
-      ORGS.map((o) => [
-        o.id,
-        {
-          gapAvg: snap?.matrix?.[o.id]?.gapAvg ?? null,
-          govScore: snap?.matrix?.[o.id]?.govScore ?? null,
-          kpiScorePct: snap?.kpi?.[o.id]?.weightedAvgPct ?? null,
-          finScore: snap?.matrix?.[o.id]?.finScore ?? null,
-        },
-      ]),
-    ) as any;
+  const extras = useMemo(() => {
     const extrasByOrg: Partial<Record<OrgId, AnomalyExtras>> = {};
     for (const o of ORGS) {
       extrasByOrg[o.id] = { gapAxes: GAP_AXES.map((ax) => getLiveGapValue(snap, o.id, ax)) };
     }
-    return { profiles: computeAllProfilesFromLive(liveByOrg), extras: extrasByOrg };
+    return extrasByOrg;
   }, [snap]);
 
   const anomalies = useMemo(() => {

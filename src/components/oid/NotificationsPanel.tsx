@@ -14,8 +14,7 @@ export type NotificationSource =
   | "license_expiry"
   | "anomaly"
   | "upload_success"
-  | "kpi_below_target"
-  | "quarterly_due";
+;
 
 export type Notification = {
   id: string;
@@ -58,9 +57,9 @@ function useReadState() {
 }
 
 const STYLES = {
-  critical: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", Ic: XCircle, label: "حرج" },
-  warning: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700", Ic: AlertTriangle, label: "تحذير" },
-  info: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", Ic: Info, label: "معلومة" },
+  critical: { bg: "bg-danger/5", border: "border-danger/20", text: "text-danger", Ic: XCircle, label: "حرج" },
+  warning: { bg: "bg-warning/5", border: "border-warning/20", text: "text-warning", Ic: AlertTriangle, label: "تحذير" },
+  info: { bg: "bg-info/5", border: "border-info/20", text: "text-info", Ic: Info, label: "معلومة" },
 } as const;
 
 export function NotificationsPanel({ onNavigate }: { onNavigate?: (s: SectionId) => void }) {
@@ -80,11 +79,11 @@ export function NotificationsPanel({ onNavigate }: { onNavigate?: (s: SectionId)
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative p-2 rounded-lg hover:bg-white/15 transition" title={t("notifications.title")} aria-label={t("notifications.title")}>
+        <Button variant="ghost" size="icon" className="relative p-2 rounded-lg hover:bg-primary-foreground/15 transition" title={t("notifications.title")} aria-label={t("notifications.title")}>
           <Bell size={18} />
           {unread.length ? (
             <span
-              className={`absolute -top-0.5 -left-0.5 text-[10px] ${criticalUnread ? "bg-danger" : "bg-orange-500"} text-white rounded-full min-w-4 h-4 px-1 flex items-center justify-center font-bold`}
+              className={`absolute -top-0.5 -left-0.5 text-[10px] ${criticalUnread ? "bg-danger" : "bg-warning"} text-primary-foreground rounded-full min-w-4 h-4 px-1 flex items-center justify-center font-bold`}
             >
               {unread.length}
             </span>

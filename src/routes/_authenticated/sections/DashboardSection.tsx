@@ -209,7 +209,7 @@ export function DashboardSection() {
           subtitle={t("dashboard.smartAlertsSubtitle")}
         />
         <div className="p-5">
-          <AnomaliesPanel orgFilter={orgFilter} />
+          <AnomaliesPanel profiles={liveProfiles} orgFilter={orgFilter} />
         </div>
       </Card>
 
