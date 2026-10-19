@@ -18,11 +18,14 @@ import { computeOrgKPIPerformance } from "@/lib/oid-kpi-engine";
 import { perspectiveLabelOf } from "@/lib/oid-bsc";
 import { Card, CardHeader, StatCard, EmptyData, Progress, MATURITY_OF_LEVEL, extractBeneficiaries, fmtBudget, fmtNum, useDashboardSnapshotQuery, getLiveGapValue, SectionTitle } from "./_shared";
 import { useLang } from "@/lib/lang-context";
+import { useLiveAlerts } from "@/lib/use-live-alerts";
+import { Button } from "@/components/ui/button";
 
 export function DashboardSection() {
   const { lang, t, tFormat } = useLang();
   const [orgFilter, setOrgFilter] = useState<"all" | OrgId>("all");
   const { data: snap } = useDashboardSnapshotQuery();
+  const { data: liveAlerts = [], isError: alertsError, isPending: alertsLoading } = useLiveAlerts();
   const activeKpisFn = useServerFn(loadActiveKPIs);
 
   // الأداء الهرمي الحي: مؤشر → هدف → منظور (25%) → الأداء العام.
@@ -267,8 +270,14 @@ export function DashboardSection() {
         <Card className="lg:col-span-2">
           <CardHeader title={t("dashboard.alertsTitle")} subtitle={t("dashboard.alertsSubtitle")} />
           <div className="p-5 space-y-2">
-            {/* التنبيهات ستُبنى من محرك التنبيهات على بيانات قاعدة البيانات — حالياً لا توجد تنبيهات ثابتة */}
-            <EmptyData msg={t("dashboard.noAlerts")} />
+            {alertsError ? <EmptyData msg={t("notifications.loadError")} /> : alertsLoading ? <EmptyData msg={t("dashboard.loading")} /> : liveAlerts.filter((a) => orgFilter === "all" || a.org_id === orgFilter).length === 0 ? <EmptyData msg={t("dashboard.noAlerts")} /> : liveAlerts.filter((a) => orgFilter === "all" || a.org_id === orgFilter).map((a) => (
+              <Button key={a.id} variant="ghost" onClick={() => openOrgProfile(a.org_id as OrgId)} className="h-auto w-full justify-start whitespace-normal text-start p-3 border border-border rounded-md">
+                <div className="min-w-0">
+                  <div className={a.severity === "critical" ? "font-semibold text-danger" : "font-semibold text-warning"}>{a.title}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{a.message}</div>
+                </div>
+              </Button>
+            ))}
           </div>
         </Card>
 

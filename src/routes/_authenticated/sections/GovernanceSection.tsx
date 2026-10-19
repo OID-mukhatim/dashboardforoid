@@ -78,6 +78,7 @@ export function GovernanceSection() {
     try {
       await savePolicy({ data: { policyId, orgId, status: newStatus } });
       queryClient.invalidateQueries({ queryKey: ["dashboard-snapshot"] });
+      queryClient.invalidateQueries({ queryKey: ["live-alerts"] });
     } finally {
       queryClient.invalidateQueries({ queryKey: ["governance-policies"] });
     }

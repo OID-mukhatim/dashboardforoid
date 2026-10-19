@@ -2,6 +2,7 @@ export type Lang = "ar" | "en";
 
 export const UI_STRINGS = {
   ar: {
+    notifications: { title: "التنبيهات", summary: "{total} تنبيه — {unread} غير مقروء — {critical} حرج", critical: "حرج", warning: "تحذير", info: "معلومة", markRead: "تعليم كمقروء", markAllRead: "تعليم الكل كمقروء", view: "عرض التفاصيل", loadError: "تعذر تحميل التنبيهات" },
     nav: {
       dashboard: "لوحة القيادة",
       kpis: "مؤشرات الأداء",
@@ -699,6 +700,7 @@ export const UI_STRINGS = {
   },
 
   en: {
+    notifications: { title: "Notifications", summary: "{total} alerts — {unread} unread — {critical} critical", critical: "Critical", warning: "Warning", info: "Info", markRead: "Mark as read", markAllRead: "Mark all as read", view: "View details", loadError: "Unable to load alerts" },
     nav: {
       dashboard: "Dashboard",
       kpis: "KPIs",
