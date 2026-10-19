@@ -1,22 +1,8 @@
 // Central data for OID Dashboard. All editable arrays live here so future updates
 // only touch this single file.
 
-export type OrgId = "ZF" | "ZUST" | "ZAD" | "TAYO" | "KAFI" | "HAMDI";
-
-export const ORGS: {
-  id: OrgId;
-  abbr: string;
-  nameAr: string;
-  nameEn: string;
-  color: string;
-}[] = [
-  { id: "ZF", abbr: "ZF", nameAr: "مؤسسة زمزم", nameEn: "Zamzam Foundation", color: "#d97706" },
-  { id: "ZUST", abbr: "ZU", nameAr: "جامعة زمزم للعلوم والتكنولوجيا", nameEn: "ZUST", color: "#1d4ed8" },
-  { id: "ZAD", abbr: "ZD", nameAr: "زاد للتنمية", nameEn: "Zad for Development", color: "#ea580c" },
-  { id: "TAYO", abbr: "TY", nameAr: "تيو للتعليم", nameEn: "Tayo for Education", color: "#2563eb" },
-  { id: "KAFI", abbr: "KF", nameAr: "كافي للتنمية", nameEn: "Kafi for Development", color: "#15803d" },
-  { id: "HAMDI", abbr: "HM", nameAr: "منظمة حمدي للتنمية", nameEn: "Hamdi Organization", color: "#94a3b8" },
-];
+export { ORGS, ORG_FISCAL_YEAR, type OrgId } from "./org-registry";
+import { ORGS, ORG_FISCAL_YEAR, type OrgId } from "./org-registry";
 
 export const orgName = (id: OrgId) => ORGS.find((o) => o.id === id)?.nameAr ?? id;
 
@@ -103,14 +89,7 @@ export const educationPolicies: PolicyRow[] = [
 ];
 
 /* ============ التقويم المالي / الأكاديمي لكل مؤسسة ============ */
-export const ORG_FISCAL_YEAR: Record<OrgId, "calendar" | "academic"> = {
-  ZF: "calendar",
-  ZAD: "calendar",
-  KAFI: "calendar",
-  ZUST: "academic",
-  TAYO: "academic",
-  HAMDI: "academic",
-};
+
 
 export const FISCAL_QUARTERS: Record<
   "calendar" | "academic",

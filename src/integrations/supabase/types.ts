@@ -61,6 +61,45 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          changed_fields: string[] | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          org_id: string | null
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_fields?: string[] | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          org_id?: string | null
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_fields?: string[] | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          org_id?: string | null
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       document_extractions: {
         Row: {
           created_at: string
@@ -844,6 +883,48 @@ export type Database = {
           active_year?: number
           fiscal_type?: string
           org_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      organizations: {
+        Row: {
+          abbr: string
+          aliases: string[]
+          color: string
+          created_at: string
+          fiscal_type: string
+          id: string
+          name_ar: string
+          name_en: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          abbr?: string
+          aliases?: string[]
+          color?: string
+          created_at?: string
+          fiscal_type?: string
+          id: string
+          name_ar: string
+          name_en?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          abbr?: string
+          aliases?: string[]
+          color?: string
+          created_at?: string
+          fiscal_type?: string
+          id?: string
+          name_ar?: string
+          name_en?: string
+          sort_order?: number
+          status?: string
           updated_at?: string
         }
         Relationships: []

@@ -4,10 +4,11 @@
  * composite-score cards. Falls back gracefully when a source is missing.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { activeOrgIds, isAcademicOrg } from "./org-registry";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type OrgCode = "ZF" | "ZUST" | "ZAD" | "TAYO" | "KAFI" | "HAMDI";
-const VALID_ORGS: OrgCode[] = ["ZF", "ZUST", "ZAD", "TAYO", "KAFI", "HAMDI"];
+export type OrgCode = string;
+const VALID_ORGS = { includes: (id: string) => activeOrgIds().includes(id), [Symbol.iterator]: () => activeOrgIds()[Symbol.iterator]() };
 
 export type SourceRef = { label: string; updatedAt: string | null };
 
@@ -59,6 +60,7 @@ export type InstitutionalProfileEntry = {
 export const loadInstitutionalProfiles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
     const { data, error } = await context.supabase
       .from("document_extractions")
       .select("entity_code, payload, file_name, created_at")
@@ -219,6 +221,7 @@ export type KpiAggregate = { weightedPct: number | null; count: number };
 export const loadKpiAggregates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
     const out: Record<string, KpiAggregate> = {};
     for (const code of VALID_ORGS) out[code] = { weightedPct: null, count: 0 };
 
@@ -271,6 +274,7 @@ export const saveTimelineEntry = createServerFn({ method: "POST" })
     note?: string | null;
   }) => data)
   .handler(async ({ data, context }) => {
+    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
     if (!VALID_ORGS.includes(data.orgId as OrgCode)) {
       return { ok: false as const, error: "invalid org" };
     }
@@ -419,7 +423,8 @@ export const setActiveYear = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { orgId: string; year: number }) => d)
   .handler(async ({ data, context }) => {
-    const academic = ["ZUST", "TAYO", "HAMDI"].includes(data.orgId);
+    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
+    const academic = isAcademicOrg(data.orgId);
     const { error } = await context.supabase.from("org_active_years").upsert(
       {
         org_id: data.orgId,

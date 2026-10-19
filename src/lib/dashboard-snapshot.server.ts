@@ -2,9 +2,12 @@ import { govStatusScore, govAverage } from "./gov-likert";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { DashboardSnapshot, LiveMatrixEntry, LiveKpiEntry, OrgCode } from "./dashboard.functions";
-const VALID_ORGS: OrgCode[] = ["ZF", "ZUST", "ZAD", "TAYO", "KAFI", "HAMDI"];
+import { activeOrgIds } from "./org-registry";
+import { loadOrgRegistry } from "./org-registry.server";
 function emptyMatrix(): LiveMatrixEntry { return { gaps: {}, gapAvg: null, govScore: null, govPct: null, finScore: null, maturity: null, source: null, sources: {} }; }
 export async function readDashboardSnapshot(sb: SupabaseClient<Database>): Promise<DashboardSnapshot> {
+    await loadOrgRegistry(sb);
+    const VALID_ORGS: OrgCode[] = activeOrgIds();
 
 
     // 1) KPI aggregates per org — السنة النشطة فقط لكل مؤسسة (org_active_years)

@@ -38,6 +38,7 @@ export const importKPIMatrix = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { orgId: string; year: number; rows: Row[]; force?: boolean }) => d)
   .handler(async ({ data, context }) => {
+    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
     const { orgId, year, rows, force } = data;
     const validation = validateWeights(rows);
     if (!validation.valid && !force) {
