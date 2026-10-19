@@ -42,7 +42,7 @@ export type DashboardSnapshot = {
 };
 
 function emptyMatrix(): LiveMatrixEntry {
-  return { gaps: {}, gapAvg: null, govScore: null, govPct: null, finScore: null, maturity: null, source: null };
+  return { gaps: {}, gapAvg: null, govScore: null, govPct: null, finScore: null, maturity: null, source: null, sources: {} };
 }
 
 export const loadDashboardSnapshot = createServerFn({ method: "GET" })
@@ -146,31 +146,42 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
     }
 
     // 2b) Live governance policies + gap scores tables take precedence
-    const { data: govRows } = await sb.from("governance_policies").select("org_id, status");
+    const { data: govRows } = await sb.from("governance_policies").select("org_id, status, updated_at");
     const { data: gapRows } = await sb
       .from("gap_scores")
-      .select("org_id, domain_index, domain_name, score")
-      .eq("period", "Q2-2026");
+      .select("org_id, domain_index, domain_name, score, period, updated_at")
+      .order("updated_at", { ascending: false });
 
+    // الأوزان المعتمدة: فعّالة 1.0 / غير مفعّلة 0.75 / تحتاج مراجعة 0.6 / قيد التطوير 0.4 / غير موجودة 0
     const GOV_WEIGHTS: Record<string, number> = {
-      active: 0.9, inactive: 0.5, review: 0.4, inDev: 0.3, missing: 0, pending: 0,
+      active: 1.0, inactive: 0.75, review: 0.6, inDev: 0.4, missing: 0,
     };
 
     for (const code of VALID_ORGS) {
       const cur = matrix[code];
-      const orgPolicies = (govRows ?? []).filter((p) => p.org_id === code);
+      // pending يُستبعد كلياً من البسط والمقام؛ إن كانت كل السياسات pending → null
+      const orgPolicies = (govRows ?? []).filter((p) => p.org_id === code && String(p.status) !== "pending");
       if (orgPolicies.length > 0) {
         const raw = orgPolicies.reduce((s, p) => s + (GOV_WEIGHTS[String(p.status)] ?? 0), 0) / orgPolicies.length;
         cur.govScore = Math.round(raw * 5 * 100) / 100;
+        const latest = orgPolicies.reduce<string | null>(
+          (m, p) => (p.updated_at && (!m || p.updated_at > m) ? p.updated_at : m),
+          null,
+        );
+        cur.sources.governance = { label: "تحديث السياسات", updatedAt: latest };
       }
-      const orgGaps = (gapRows ?? []).filter((g) => g.org_id === code);
-      if (orgGaps.length > 0) {
-        for (const g of orgGaps) {
+      // أحدث فترة للمؤسسة بحسب updated_at — لا فلترة بفترة ثابتة
+      const orgGapRows = (gapRows ?? []).filter((g) => g.org_id === code);
+      if (orgGapRows.length > 0) {
+        const latestPeriod = orgGapRows[0].period as string; // مرتبة تنازلياً بـ updated_at
+        const periodRows = orgGapRows.filter((g) => g.period === latestPeriod);
+        for (const g of periodRows) {
           const n = Number(g.score);
           if (Number.isFinite(n)) cur.gaps[String(g.domain_name)] = n;
         }
         cur.gapAvg =
-          Math.round((orgGaps.reduce((s, g) => s + Number(g.score), 0) / orgGaps.length) * 100) / 100;
+          Math.round((periodRows.reduce((s, g) => s + Number(g.score), 0) / periodRows.length) * 100) / 100;
+        cur.sources.gap = { label: `تقييم الفجوات — ${latestPeriod}`, updatedAt: orgGapRows[0].updated_at ?? null };
       }
       if (cur.govScore !== null) cur.govPct = Math.round((cur.govScore / 5) * 100);
     }
