@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Building2, Users, Heart, Coins, TrendingUp, BarChart3, Target, Handshake, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend } from "recharts";
 import { ORGS, type OrgId, GAP_AXES } from "@/lib/oid-data";
-import { supabase } from "@/integrations/supabase/client";
 import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
 import { DataStateLegend } from "@/components/oid/DataStateCell";
 import { AnomaliesPanel } from "@/components/oid/AnomaliesPanel";
@@ -91,16 +90,26 @@ export function DashboardSection() {
   });
   const partnershipList = useMemo(() => {
     const rows = (partnershipRows ?? []) as any[];
-    const src = rows.length ? rows : (fallbackPartnerships as any[]);
-    return src.map((r) => ({
+    return rows.map((r) => ({
       status: r.status as string,
       linkedOrgs: (Array.isArray(r.linked_orgs) ? r.linked_orgs : Array.isArray(r.linkedOrgs) ? r.linkedOrgs : []) as string[],
     }));
   }, [partnershipRows]);
 
+  // بيانات المؤسسات (الموظفون/الموازنة/الفروع) من قاعدة البيانات فقط
+  const { data: dbInstitutions } = useQuery({
+    queryKey: ["institutions"],
+    queryFn: async () => {
+      const { data } = await supabase.from("institutions").select("id, staff_total, budget, branches");
+      return (data ?? []) as { id: string; staff_total: number | null; budget: number | null; branches: string | null }[];
+    },
+    staleTime: 60 * 1000,
+  });
+
   const stats = useMemo(() => {
-    const list = orgFilter === "all" ? institutions : institutions.filter((i) => i.id === orgFilter);
-    const staff = list.reduce((sum, i) => sum + (i.staff?.total ?? 0), 0);
+    const all = dbInstitutions ?? [];
+    const list = orgFilter === "all" ? all : all.filter((i) => i.id === orgFilter);
+    const staff = list.reduce((sum, i) => sum + (i.staff_total ?? 0), 0);
     const budget = list.reduce((sum, i) => sum + (i.budget ?? 0), 0);
     const beneficiaries = list.reduce((sum, i) => sum + extractBeneficiaries(i.branches), 0);
 
