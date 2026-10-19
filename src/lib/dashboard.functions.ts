@@ -9,6 +9,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export type OrgCode = "ZF" | "ZUST" | "ZAD" | "TAYO" | "KAFI" | "HAMDI";
 const VALID_ORGS: OrgCode[] = ["ZF", "ZUST", "ZAD", "TAYO", "KAFI", "HAMDI"];
 
+export type SourceRef = { label: string; updatedAt: string | null };
+
 export type LiveMatrixEntry = {
   gaps: Record<string, number>;
   gapAvg: number | null;
@@ -17,6 +19,7 @@ export type LiveMatrixEntry = {
   finScore: number | null;
   maturity: number | null;
   source: "extraction" | null;
+  sources: { gap?: SourceRef; governance?: SourceRef; kpi?: SourceRef; financial?: SourceRef };
 };
 
 export type LiveKpiEntry = {
