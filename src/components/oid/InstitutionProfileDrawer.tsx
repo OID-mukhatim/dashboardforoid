@@ -379,13 +379,6 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                   <Field icon={Phone} k={t("profileDetail.phone")} v={identity.phone} dir="ltr" />
                   <Field icon={Mail} k={t("profileDetail.email")} v={identity.email} dir="ltr" />
                 </div>
-                {inst?.alerts && inst.alerts.length > 0 && (
-                  <div className="mt-3 space-y-1">
-                    {inst.alerts.map((a, i) => (
-                       <div key={i} className="text-xs p-2 rounded bg-red-50 text-red-700 border border-red-200"><TranslatableText text={a} /></div>
-                    ))}
-                  </div>
-                )}
               </Block>
 
               {/* Financial */}
@@ -477,7 +470,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
               <Block title={t("profileDetail.detailedValues")}>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {GAP_AXES.map((ax, i) => {
-                    const v = gapScores[orgId][i];
+                    const v = liveGapAxes[i];
                     const color = v === null ? "#94a3b8" : v < 2 ? "#dc2626" : v < 3 ? "#ea580c" : v < 4 ? "#d97706" : "#15803d";
                     return (
                       <div key={ax} className="border border-border rounded-lg p-3 text-center">
