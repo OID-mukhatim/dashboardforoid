@@ -68,7 +68,8 @@ export const translateContent = createServerFn({ method: "POST" })
     const translated = result.choices?.[0]?.message?.content?.trim();
     if (!translated) return { translated: data.text, fromCache: false, autoTranslated: false };
 
-    await sb.from("translations_cache").upsert(
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("translations_cache").upsert(
       {
         source_text: text,
         source_lang: data.sourceLang,

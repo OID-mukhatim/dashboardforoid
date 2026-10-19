@@ -98,9 +98,9 @@ export const updateInitiativeStatus = createServerFn({ method: "POST" })
 export const autoGenerateInitiatives = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const isEditor =
-      (await (context.supabase as any).rpc("has_role", { _user_id: context.userId, _role: "admin" })).data ||
-      (await (context.supabase as any).rpc("has_role", { _user_id: context.userId, _role: "developer" })).data;
+    const { data: roleRows } = await (context.supabase as any)
+      .from("user_roles").select("role").eq("user_id", context.userId).in("role", ["admin", "developer"]);
+    const isEditor = (roleRows ?? []).length > 0;
     if (!isEditor) throw new Error("صلاحيات غير كافية");
 
     const gaps = [
