@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend } from "recharts";
-import { ORGS, GAP_AXES, gapScores, criticalGaps, type OrgId } from "@/lib/oid-data";
+import { ORGS, GAP_AXES, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { loadGapScores, updateGapScore } from "@/lib/dashboard.functions";
 import { useLang } from "@/lib/lang-context";
@@ -33,19 +33,45 @@ export function GapsSection() {
     staleTime: 60 * 1000,
   });
 
+  // أحدث فترة لكل مؤسسة بحسب updated_at — لا فترة ثابتة
+  const latestPeriodOf = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const g of (dbGaps ?? []) as any[]) {
+      const cur = map.get(g.org_id);
+      if (!cur || (g.updated_at ?? "") > (cur as any)) map.set(g.org_id, g.updated_at ?? "");
+    }
+    const period = new Map<string, string>();
+    for (const g of (dbGaps ?? []) as any[]) {
+      if ((g.updated_at ?? "") === map.get(g.org_id)) period.set(g.org_id, g.period);
+    }
+    return period;
+  }, [dbGaps]);
+
   const liveGapScores = useMemo(() => {
     const result: Record<string, (number | null)[]> = {};
     for (const o of ORGS) {
+      const period = latestPeriodOf.get(o.id);
       result[o.id] = Array.from({ length: 7 }, (_, i) => {
-        const row = (dbGaps ?? []).find((g: any) => g.org_id === o.id && g.domain_index === i && g.period === PERIOD);
+        const row = (dbGaps ?? []).find((g: any) => g.org_id === o.id && g.domain_index === i && g.period === period);
         if (row) return Number(row.score);
         const live = getLiveGapValue(snap, o.id as OrgId, GAP_AXES[i]);
-        if (typeof live === "number") return live;
-        return gapScores[o.id as OrgId]?.[i] ?? null;
+        return typeof live === "number" ? live : null;
       });
     }
     return result;
-  }, [dbGaps, snap]);
+  }, [dbGaps, snap, latestPeriodOf]);
+
+  // الفجوات الحرجة: تُحسب حياً من أدنى المحاور متوسطاً عبر المؤسسات
+  const liveCriticalGaps = useMemo(() => {
+    const rows = GAP_AXES.map((axis, i) => {
+      const vals = ORGS.map((o) => liveGapScores[o.id]?.[i]).filter((v): v is number => typeof v === "number");
+      if (vals.length === 0) return null;
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const affected = vals.filter((v) => v < 3).length;
+      return { axisIndex: i, avg, affected, total: vals.length };
+    }).filter((x): x is NonNullable<typeof x> => x !== null);
+    return rows.sort((a, b) => a.avg - b.avg).slice(0, 6);
+  }, [liveGapScores]);
 
   async function handleGapScoreChange(orgId: string, domainIndex: number, newScore: number) {
     queryClient.setQueryData(["gap-scores"], (old: any[] | undefined) => {
