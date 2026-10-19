@@ -626,6 +626,22 @@ export async function runParseUpload(data: { uploadId: string; filePath: string;
 
       await setProgress("matching", 55, kpiRows.length ? `${kpiRows.length} صف للمطابقة` : "لا توجد صفوف مؤشرات مطابقة");
 
+      // سنة الأساس = أقدم سنة متاحة للمؤسسة (قاعدة البيانات + الملف الحالي) — لا سنة ثابتة
+      {
+        const entities = [...new Set(kpiRows.map((r) => r.entity_code).filter(Boolean))] as string[];
+        const minYear = new Map<string, number>();
+        for (const ent of entities) {
+          const { data: yr } = await supabaseAdmin.from("kpis").select("plan_year").eq("entity_code", ent);
+          const years = (yr ?? []).map((r: any) => Number(r.plan_year)).filter(Number.isFinite);
+          if (years.length) minYear.set(ent, Math.min(...years));
+        }
+        for (const row of kpiRows) {
+          const cur = Number(row.plan_year ?? year);
+          const base = Math.min(cur, minYear.get(row.entity_code ?? "") ?? cur);
+          (row as { is_baseline?: boolean }).is_baseline = cur === base;
+        }
+      }
+
       const uniqueRows = Array.from(
         new Map(
           kpiRows.map((row) => [JSON.stringify([row.entity_code, row.kpi_code, row.period]), row]),
