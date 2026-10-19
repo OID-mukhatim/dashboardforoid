@@ -464,24 +464,28 @@ export const loadKpiAggregates = createServerFn({ method: "GET" })
     const out: Record<string, KpiAggregate> = {};
     for (const code of VALID_ORGS) out[code] = { weightedPct: null, count: 0 };
 
-    const { data, error } = await context.supabase
-      .from("kpis")
-      .select("entity_code, achievement_pct, overall_pct, weight");
+    const [{ data, error }, { data: activeYearRows }] = await Promise.all([
+      context.supabase.from("kpis").select("entity_code, achievement_pct, overall_pct, weight, plan_year"),
+      context.supabase.from("org_active_years").select("org_id, active_year"),
+    ]);
     if (error || !data) return out;
+    const activeYearOf = new Map<string, number>();
+    for (const r of activeYearRows ?? []) activeYearOf.set(String(r.org_id), Number(r.active_year));
 
     const acc = new Map<string, { wSum: number; wxSum: number; count: number }>();
     for (const r of data) {
       const code = String(r.entity_code ?? "");
       if (!VALID_ORGS.includes(code as OrgCode)) continue;
+      const activeYear = activeYearOf.get(code);
+      if (activeYear === undefined || Number(r.plan_year) !== activeYear) continue;
       const raw = r.achievement_pct ?? r.overall_pct;
       if (raw == null) continue;
-      const pct = Number(raw);
+      const pct = Number(raw); // النسب تُخزَّن 0–100 كما هي — لا تحويل تلقائي
       if (!Number.isFinite(pct)) continue;
-      const pct100 = pct <= 1 ? pct * 100 : pct;
       const w = Number(r.weight ?? 1) || 1;
       const cur = acc.get(code) ?? { wSum: 0, wxSum: 0, count: 0 };
       cur.wSum += w;
-      cur.wxSum += pct100 * w;
+      cur.wxSum += pct * w;
       cur.count += 1;
       acc.set(code, cur);
     }
@@ -565,7 +569,7 @@ export const loadGapScores = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("gap_scores")
-      .select("org_id, domain_index, domain_name, score, period, note")
+      .select("org_id, domain_index, domain_name, score, period, note, updated_at")
       .order("domain_index", { ascending: true });
     if (error) return [];
     return data ?? [];
