@@ -3,12 +3,12 @@
  * يشمل: ملخص الأداء المركّب، أبرز التنبيهات، ومصفوفة النضج على المحاور السبعة.
  */
 
-import { computeProfile, type InstitutionProfile } from "./oid-composite";
-import { detectAnomalies, type Anomaly } from "./oid-anomalies";
-import { ORGS, institutions, gapScores, GAP_AXES, type OrgId } from "./oid-data";
+import { computeProfileFromLive, type InstitutionProfile } from "./oid-composite";
+import { detectAnomalies, type Anomaly, type AnomalyExtras } from "./oid-anomalies";
+import { ORGS, GAP_AXES, type OrgId } from "./oid-data";
 
 const ORG_NAME: Record<OrgId, string> = Object.fromEntries(
-  institutions.map((i) => [i.id, i.nameAr]),
+  ORGS.map((o) => [o.id, o.nameAr]),
 ) as Record<OrgId, string>;
 
 const MATURITY_COLORS: Record<number, string> = {
@@ -45,18 +45,20 @@ function axisColor(val: number | null): string {
 export const generateExecutiveReport = (
   quarter: string,
   year: number,
-  // البروفايلات الحيّة (من Supabase عبر computeProfileFromLive) تُمرَّر جاهزة
+  // البروفايلات الحيّة (من قاعدة البيانات عبر computeProfileFromLive) تُمرَّر جاهزة
   // من لوحة القيادة حتى تتطابق أرقام التقرير مع اللوحة تماماً.
-  // إن لم تُمرَّر نحسب من البيانات الثابتة كـ fallback.
+  // إن غابت مؤسسة يُبنى ملف فارغ (كل المكونات "بيانات ناقصة").
   liveProfiles?: Partial<Record<OrgId, InstitutionProfile>>,
+  // قيم محاور الفجوات الحية لكل مؤسسة (من snapshot)
+  liveGaps?: Partial<Record<OrgId, (number | null)[]>>,
 ) => {
   const orgIds = ORGS.map((o) => o.id);
   const profilesMap = {} as Record<OrgId, InstitutionProfile>;
-  for (const id of orgIds) profilesMap[id] = liveProfiles?.[id] ?? computeProfile(id);
+  for (const id of orgIds) profilesMap[id] = liveProfiles?.[id] ?? computeProfileFromLive(id, {});
   const profiles = orgIds.map((id) => profilesMap[id]);
 
   const anomalies: Anomaly[] = profiles.flatMap((p) =>
-    detectAnomalies(p.orgId, profilesMap),
+    detectAnomalies(p.orgId, profilesMap, "ar", { gapAxes: liveGaps?.[p.orgId] } satisfies AnomalyExtras),
   );
   const criticals = anomalies.filter((a) => a.severity === "high").slice(0, 5);
   const mediums = anomalies.filter((a) => a.severity !== "high").slice(0, 5);
@@ -119,7 +121,7 @@ export const generateExecutiveReport = (
   const matrixRows = GAP_AXES.map((axis, i) => {
     const cells = matrixOrgs
       .map((p) => {
-        const val = gapScores[p.orgId]?.[i] ?? null;
+        const val = liveGaps?.[p.orgId]?.[i] ?? null;
         return `<td style="color:${axisColor(val)};font-weight:700">${
           val !== null ? Number(val).toFixed(1) : "—"
         }</td>`;

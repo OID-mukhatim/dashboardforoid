@@ -65,7 +65,7 @@ export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilt
       low: all.filter((a) => a.severity === "low").length,
       total: all.length,
     };
-  }, [orgFilter, lang]);
+  }, [orgFilter, lang, profiles, extras]);
 
   return (
     <div className="space-y-4">
