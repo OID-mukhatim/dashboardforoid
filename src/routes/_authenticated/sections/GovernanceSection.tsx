@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
-import { ORGS, type OrgId, orgOverallScores, POLICY_STATUS_META, type PolicyStatus, generalPolicies, universityPolicies, humanitarianPolicies, educationPolicies } from "@/lib/oid-data";
+import { ORGS, type OrgId, POLICY_STATUS_META, type PolicyStatus, generalPolicies, universityPolicies, humanitarianPolicies, educationPolicies } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { loadGovernancePolicies, updatePolicyStatus } from "@/lib/dashboard.functions";
 import { useLang } from "@/lib/lang-context";
@@ -60,11 +60,11 @@ export function GovernanceSection() {
     return "missing";
   };
 
-  const effectivePolicyStatus = (policyId: string, orgId: OrgId, raw: PolicyStatus | undefined): PolicyStatus | undefined => {
+  // الحالة من قاعدة البيانات فقط؛ عند غيابها تُشتق مؤقتاً من درجة الحوكمة الحية
+  const effectivePolicyStatus = (policyId: string, orgId: OrgId): PolicyStatus => {
     const live = livePoliciesMap.get(`${policyId}__${orgId}`);
     if (live) return live;
-    if (raw !== "pending") return raw;
-    return statusFromGovScore(snap?.matrix?.[orgId]?.govScore) ?? raw;
+    return statusFromGovScore(snap?.matrix?.[orgId]?.govScore) ?? "pending";
   };
 
   async function handleStatusChange(policyId: string, orgId: string, newStatus: PolicyStatus) {
@@ -86,17 +86,15 @@ export function GovernanceSection() {
   const stackedData = ORGS.map(o => {
     const counts: any = { org: o.abbr, active: 0, inactive: 0, review: 0, inDev: 0, missing: 0, pending: 0 };
     ALL_POLICIES.forEach(p => {
-      const s = effectivePolicyStatus(p.id, o.id, p.values[o.id]);
+      const s = effectivePolicyStatus(p.id, o.id);
       if (s) counts[s]++;
     });
     return counts;
   });
 
   const governanceScores = ORGS.map((org) => {
-    const liveGovScore = snap?.matrix?.[org.id]?.govScore;
-    const fallback = orgOverallScores.find((s) => s.id === org.id) ?? null;
-    const govScore = typeof liveGovScore === "number" ? liveGovScore : fallback?.govScore ?? null;
-    const govPct = typeof govScore === "number" ? Math.round((govScore / 5) * 100) : fallback?.govPct ?? null;
+    const govScore = snap?.matrix?.[org.id]?.govScore ?? null;
+    const govPct = typeof govScore === "number" ? Math.round((govScore / 5) * 100) : null;
     return { ...org, govScore, govPct };
   });
 
@@ -167,7 +165,7 @@ export function GovernanceSection() {
                   <td className="px-3 py-2 font-mono text-xs">{p.id}</td>
                   <td className="px-3 py-2">{t(`governance.policies.${p.id}`)}</td>
                   {ORGS.map(o => {
-                    const s = effectivePolicyStatus(p.id, o.id, p.values[o.id]) ?? "pending";
+                    const s = effectivePolicyStatus(p.id, o.id);
                     const meta = POLICY_STATUS_META[s];
                     return (
                       <td key={o.id} className="text-center py-1 px-2">
