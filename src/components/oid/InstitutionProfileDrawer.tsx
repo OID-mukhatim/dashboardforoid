@@ -28,7 +28,7 @@ import { DATA_STATES } from "@/lib/oid-data-states";
 import { quarterMonths } from "@/lib/oid-data";
 import { formatScore, formatBudget, formatPct, formatCount } from "@/lib/oid-formatting";
 import { TrendBadge } from "./TrendBadge";
-import { useDashboardSnapshotQuery } from "@/routes/_authenticated/sections/_shared";
+import { useDashboardSnapshotQuery, getLiveGapValue } from "@/routes/_authenticated/sections/_shared";
 import { loadInstitutionalProfiles } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useLang } from "@/lib/lang-context";
@@ -204,27 +204,27 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
   const fin = (advisorSnap?.assessment as Record<string, any> | undefined)?.[orgId];
   const finProg = (advisorSnap?.program as Record<string, any[]> | undefined)?.[orgId];
 
-  // بيانات الهوية مدمجة (DB يغلب على الثابت)
+  // بيانات الهوية: قاعدة البيانات ثم الاستمارة المرفوعة فقط
   const identity = {
-    founded: dbInst?.founded ?? pick(/تاريخ\s*التأسيس/) ?? inst?.founded,
-    license: dbInst?.license_number ?? pick(/رقم\s*الترخيص/) ?? inst?.license,
-    licenseExpiry: dbInst?.license_expiry ?? pick(/تاريخ\s*الصلاحية/) ?? inst?.licenseExpiry,
-    execAr: dbInst?.exec_name_ar ?? pick(/المدير\s*التنفيذي.*العرب/, /المدير\s*التنفيذي/) ?? inst?.execAr,
+    founded: dbInst?.founded ?? pick(/تاريخ\s*التأسيس/),
+    license: dbInst?.license_number ?? pick(/رقم\s*الترخيص/),
+    licenseExpiry: dbInst?.license_expiry ?? pick(/تاريخ\s*الصلاحية/),
+    execAr: dbInst?.exec_name_ar ?? pick(/المدير\s*التنفيذي.*العرب/, /المدير\s*التنفيذي/),
     deputyName: dbInst?.deputy_name_ar ?? pick(/نائب\s*المدير/),
-    staffTotal: dbInst?.staff_total ?? inst?.staff?.total,
-    budget: dbInst?.budget ?? inst?.budget,
-    sector: dbInst?.sector ?? inst?.sector,
-    branches: dbInst?.branches ?? inst?.branches,
+    staffTotal: dbInst?.staff_total ?? null,
+    budget: dbInst?.budget ?? null,
+    sector: dbInst?.sector ?? null,
+    branches: dbInst?.branches ?? null,
     address: dbInst?.address ?? pick(/عنوان\s*المقر|address/i),
     website: extractUrl(dbInst?.website ?? pick(/الموقع\s*الالكتروني|website/i)),
-    phone: dbInst?.exec_phone ?? pick(/رقم\s*التواصل/, /phone/i) ?? inst?.phone,
-    email: dbInst?.exec_email ?? pick(/الإيميل/, /email/i) ?? inst?.email,
+    phone: dbInst?.exec_phone ?? pick(/رقم\s*التواصل/, /phone/i),
+    email: dbInst?.exec_email ?? pick(/الإيميل/, /email/i),
   };
 
-  // رادار الفجوات لهذه المؤسسة
+  // رادار الفجوات لهذه المؤسسة (قيم حية)
   const radarData = GAP_AXES.map((ax, i) => ({
     axis: t(`gaps.axes.${i}`),
-    score: gapScores[orgId][i] ?? 0,
+    score: liveGapAxes[i] ?? 0,
   }));
 
   // السجل الزمني — مخطط خطي متعدد المجالات
