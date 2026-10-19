@@ -8,3 +8,6 @@
 - [x] Translate extracted content and processing progress without changing stored data.
 - [x] Verify Arabic and English upload screens, calendar labels, history headings, and all preview dictionary strings.
 - [ ] Redesign the indicators matrix and quarterly reports sections (awaiting user direction). Until then: no percentage conversion and no data or calculation changes in either section.
+- [x] Audit log (table, trigger on 23 tables, admin change-log screen).
+- [x] Organizations table as single source; admin manage screen with archive/restore.
+- [x] One link per section under the shared frame; "/" → /dashboard; admin pages guarded.

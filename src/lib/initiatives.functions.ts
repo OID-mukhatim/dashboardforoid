@@ -98,6 +98,7 @@ export const updateInitiativeStatus = createServerFn({ method: "POST" })
 export const autoGenerateInitiatives = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
     const { data: roleRows } = await (context.supabase as any)
       .from("user_roles").select("role").eq("user_id", context.userId).in("role", ["admin", "developer"]);
     const isEditor = (roleRows ?? []).length > 0;
@@ -110,7 +111,9 @@ export const autoGenerateInitiatives = createServerFn({ method: "POST" })
     if (gapError) throw gapError;
     if (existingError) throw existingError;
     const { newGapInitiatives } = await import("./live-gap-rules");
-    const rows = newGapInitiatives(gaps ?? [], existing ?? []).map((r) => ({ ...r, created_by: context.userId }));
+    const { activeOrgIds } = await import("./org-registry");
+    const active = new Set(activeOrgIds());
+    const rows = newGapInitiatives((gaps ?? []).filter((g) => active.has(g.org_id)), existing ?? []).map((r) => ({ ...r, created_by: context.userId }));
     if (!rows.length) return { inserted: 0 };
     const { data, error } = await context.supabase.from("initiatives")
       .upsert(rows, { onConflict: "code", ignoreDuplicates: true }).select("id");

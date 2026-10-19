@@ -1,3 +1,5 @@
+import { seedTestOrganizations } from "./org-fixture";
+seedTestOrganizations();
 import { describe, expect, it } from "vitest";
 import { computeProfileFromLive } from "./oid-composite";
 

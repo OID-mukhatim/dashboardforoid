@@ -1,4 +1,5 @@
 import { GOV_LIKERT, GOV_TEXT_STATUS } from "./gov-likert";
+import { isAcademicOrg, activeOrgIds } from "./org-registry";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -163,7 +164,7 @@ export function findKpiHeaderRow(aoa: unknown[][]): number {
 }
 
 /** Derive the org from a KPI code prefix (e.g. "ZAD-S1" → ZAD). */
-export const KPI_CODE_ORGS = ["ZF", "ZUST", "ZAD", "TAYO", "KAFI", "HAMDI"];
+export const KPI_CODE_ORGS = { includes: (id: string) => activeOrgIds().includes(id) };
 export function entityFromKpiCode(code: string | null): string | null {
   if (!code) return null;
   const prefix = code.split(/[-_ ]/)[0]?.toUpperCase();
@@ -259,7 +260,7 @@ export function spreadsheetTextPreview(aoa: unknown[][], maxRows = 20): string {
 
 
 /** المؤسسات ذات التقويم الدراسي (أكتوبر–سبتمبر). */
-export const ACADEMIC_ORGS = new Set(["ZUST", "TAYO", "HAMDI"]);
+export const ACADEMIC_ORGS = { has: (id: string) => isAcademicOrg(id) };
 /** كود المؤشر يحمل دائماً لاحقة سنة الخطة: ORG-S1-2026 */
 export function kpiCodeWithYear(code: string | null, year: number): string {
   const base = (code ?? "").trim();
@@ -281,6 +282,7 @@ export const parseUpload = createServerFn({ method: "POST" })
     z.object({ uploadId: z.string().uuid(), filePath: z.string().min(1), planYear: z.number().int().min(2000).max(2100).optional() }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
     await assertEditor(context);
     const { runParseUpload } = await import("./uploads-core.server");
     return runParseUpload(data);
@@ -316,6 +318,7 @@ export const processUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ uploadId: z.string().uuid(), filePath: z.string().min(1) }).parse(input))
   .handler(async ({ data, context }) => {
+    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
     await assertEditor(context);
     const ext = data.filePath.split(".").pop()?.toLowerCase() || "";
     if (ext === "xlsx" || ext === "xls" || ext === "csv") {
@@ -353,6 +356,7 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ filePath: z.string().min(1), period: z.string().optional(), fileName: z.string().optional(), dataType: z.string().optional(), planYear: z.number().int().min(2000).max(2100).optional() }).parse(input))
   .handler(async ({ data, context }) => {
+    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
     await assertEditor(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const XLSX = await import("xlsx");

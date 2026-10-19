@@ -17,6 +17,7 @@ export const extractDocument = createServerFn({ method: "POST" })
     z.object({ uploadId: z.string().uuid(), filePath: z.string().min(1) }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
     await assertEditor(context);
     const { runDocumentExtraction } = await import("./documents-core.server");
     return runDocumentExtraction(data.uploadId, data.filePath);

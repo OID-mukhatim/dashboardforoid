@@ -1,3 +1,5 @@
+import { seedTestOrganizations } from "./org-fixture";
+seedTestOrganizations();
 import { describe, expect, it } from "vitest";
 import { buildLiveAlerts } from "./alerts-core";
 import { latestGapRows, gapInitiativeCandidates, newGapInitiatives, type GapRow } from "./live-gap-rules";
@@ -36,4 +38,14 @@ it("ignores KPI values in every anomaly rule", () => {
   const high = computeAllProfilesFromLive({ ZF: { gapAvg: 3, govScore: 3, finScore: 3, kpiScorePct: 500 }, KAFI: { gapAvg: 3, govScore: 3, finScore: 3 } });
   expect(detectAllAnomalies(low)).toEqual(detectAllAnomalies(high));
   expect(detectAllAnomalies(high).some((r) => r.category === "kpi_gap_contradiction")).toBe(false);
+});
+describe("organization registry", () => {
+  it("archived institutions disappear from active lists and alias matching", async () => {
+    const { setOrganizations, ORGS, ALL_ORGS } = await import("./org-registry");
+    const { matchOrganization } = await import("./org-aliases");
+    setOrganizations([{ id: "TEST", name_ar: "تجريبية", name_en: "Test", abbr: "TS", color: "#000000", fiscal_type: "calendar", aliases: ["\\bTEST\\b"], status: "archived", sort_order: 9 }]);
+    expect(ORGS).toHaveLength(0); expect(ALL_ORGS).toHaveLength(1); expect(matchOrganization("TEST")).toBeNull();
+    seedTestOrganizations();
+    expect(ORGS.map((o) => o.id)).toEqual(["ZF", "ZUST", "ZAD", "TAYO", "KAFI", "HAMDI"]);
+  });
 });

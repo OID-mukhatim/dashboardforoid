@@ -12,7 +12,22 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedShellRouteImport } from './routes/_authenticated/_shell'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as AuthenticatedShellAuditRouteImport } from './routes/_authenticated/_shell/audit'
+import { Route as AuthenticatedShellDashboardRouteImport } from './routes/_authenticated/_shell/dashboard'
+import { Route as AuthenticatedShellFinancialRouteImport } from './routes/_authenticated/_shell/financial'
+import { Route as AuthenticatedShellGapsRouteImport } from './routes/_authenticated/_shell/gaps'
+import { Route as AuthenticatedShellGovernanceRouteImport } from './routes/_authenticated/_shell/governance'
+import { Route as AuthenticatedShellInitiativesRouteImport } from './routes/_authenticated/_shell/initiatives'
+import { Route as AuthenticatedShellKpisRouteImport } from './routes/_authenticated/_shell/kpis'
+import { Route as AuthenticatedShellOfficeRouteImport } from './routes/_authenticated/_shell/office'
+import { Route as AuthenticatedShellOrganizationsRouteImport } from './routes/_authenticated/_shell/organizations'
+import { Route as AuthenticatedShellPartnershipsRouteImport } from './routes/_authenticated/_shell/partnerships'
+import { Route as AuthenticatedShellProfilesRouteImport } from './routes/_authenticated/_shell/profiles'
+import { Route as AuthenticatedShellQuarterlyRouteImport } from './routes/_authenticated/_shell/quarterly'
+import { Route as AuthenticatedShellTerminologyRouteImport } from './routes/_authenticated/_shell/terminology'
+import { Route as AuthenticatedShellUploadRouteImport } from './routes/_authenticated/_shell/upload'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -28,40 +43,217 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedShellRoute = AuthenticatedShellRouteImport.update({
+  id: '/_shell',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedShellAuditRoute = AuthenticatedShellAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AuthenticatedShellRoute,
+} as any)
+const AuthenticatedShellDashboardRoute =
+  AuthenticatedShellDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
+const AuthenticatedShellFinancialRoute =
+  AuthenticatedShellFinancialRouteImport.update({
+    id: '/financial',
+    path: '/financial',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
+const AuthenticatedShellGapsRoute = AuthenticatedShellGapsRouteImport.update({
+  id: '/gaps',
+  path: '/gaps',
+  getParentRoute: () => AuthenticatedShellRoute,
+} as any)
+const AuthenticatedShellGovernanceRoute =
+  AuthenticatedShellGovernanceRouteImport.update({
+    id: '/governance',
+    path: '/governance',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
+const AuthenticatedShellInitiativesRoute =
+  AuthenticatedShellInitiativesRouteImport.update({
+    id: '/initiatives',
+    path: '/initiatives',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
+const AuthenticatedShellKpisRoute = AuthenticatedShellKpisRouteImport.update({
+  id: '/kpis',
+  path: '/kpis',
+  getParentRoute: () => AuthenticatedShellRoute,
+} as any)
+const AuthenticatedShellOfficeRoute =
+  AuthenticatedShellOfficeRouteImport.update({
+    id: '/office',
+    path: '/office',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
+const AuthenticatedShellOrganizationsRoute =
+  AuthenticatedShellOrganizationsRouteImport.update({
+    id: '/organizations',
+    path: '/organizations',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
+const AuthenticatedShellPartnershipsRoute =
+  AuthenticatedShellPartnershipsRouteImport.update({
+    id: '/partnerships',
+    path: '/partnerships',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
+const AuthenticatedShellProfilesRoute =
+  AuthenticatedShellProfilesRouteImport.update({
+    id: '/profiles',
+    path: '/profiles',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
+const AuthenticatedShellQuarterlyRoute =
+  AuthenticatedShellQuarterlyRouteImport.update({
+    id: '/quarterly',
+    path: '/quarterly',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
+const AuthenticatedShellTerminologyRoute =
+  AuthenticatedShellTerminologyRouteImport.update({
+    id: '/terminology',
+    path: '/terminology',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
+const AuthenticatedShellUploadRoute =
+  AuthenticatedShellUploadRouteImport.update({
+    id: '/upload',
+    path: '/upload',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/audit': typeof AuthenticatedShellAuditRoute
+  '/dashboard': typeof AuthenticatedShellDashboardRoute
+  '/financial': typeof AuthenticatedShellFinancialRoute
+  '/gaps': typeof AuthenticatedShellGapsRoute
+  '/governance': typeof AuthenticatedShellGovernanceRoute
+  '/initiatives': typeof AuthenticatedShellInitiativesRoute
+  '/kpis': typeof AuthenticatedShellKpisRoute
+  '/office': typeof AuthenticatedShellOfficeRoute
+  '/organizations': typeof AuthenticatedShellOrganizationsRoute
+  '/partnerships': typeof AuthenticatedShellPartnershipsRoute
+  '/profiles': typeof AuthenticatedShellProfilesRoute
+  '/quarterly': typeof AuthenticatedShellQuarterlyRoute
+  '/terminology': typeof AuthenticatedShellTerminologyRoute
+  '/upload': typeof AuthenticatedShellUploadRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
-  '/users': typeof AuthenticatedUsersRoute
   '/': typeof AuthenticatedIndexRoute
+  '/users': typeof AuthenticatedUsersRoute
+  '/audit': typeof AuthenticatedShellAuditRoute
+  '/dashboard': typeof AuthenticatedShellDashboardRoute
+  '/financial': typeof AuthenticatedShellFinancialRoute
+  '/gaps': typeof AuthenticatedShellGapsRoute
+  '/governance': typeof AuthenticatedShellGovernanceRoute
+  '/initiatives': typeof AuthenticatedShellInitiativesRoute
+  '/kpis': typeof AuthenticatedShellKpisRoute
+  '/office': typeof AuthenticatedShellOfficeRoute
+  '/organizations': typeof AuthenticatedShellOrganizationsRoute
+  '/partnerships': typeof AuthenticatedShellPartnershipsRoute
+  '/profiles': typeof AuthenticatedShellProfilesRoute
+  '/quarterly': typeof AuthenticatedShellQuarterlyRoute
+  '/terminology': typeof AuthenticatedShellTerminologyRoute
+  '/upload': typeof AuthenticatedShellUploadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/_shell': typeof AuthenticatedShellRouteWithChildren
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/_shell/audit': typeof AuthenticatedShellAuditRoute
+  '/_authenticated/_shell/dashboard': typeof AuthenticatedShellDashboardRoute
+  '/_authenticated/_shell/financial': typeof AuthenticatedShellFinancialRoute
+  '/_authenticated/_shell/gaps': typeof AuthenticatedShellGapsRoute
+  '/_authenticated/_shell/governance': typeof AuthenticatedShellGovernanceRoute
+  '/_authenticated/_shell/initiatives': typeof AuthenticatedShellInitiativesRoute
+  '/_authenticated/_shell/kpis': typeof AuthenticatedShellKpisRoute
+  '/_authenticated/_shell/office': typeof AuthenticatedShellOfficeRoute
+  '/_authenticated/_shell/organizations': typeof AuthenticatedShellOrganizationsRoute
+  '/_authenticated/_shell/partnerships': typeof AuthenticatedShellPartnershipsRoute
+  '/_authenticated/_shell/profiles': typeof AuthenticatedShellProfilesRoute
+  '/_authenticated/_shell/quarterly': typeof AuthenticatedShellQuarterlyRoute
+  '/_authenticated/_shell/terminology': typeof AuthenticatedShellTerminologyRoute
+  '/_authenticated/_shell/upload': typeof AuthenticatedShellUploadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/users'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/users'
+    | '/audit'
+    | '/dashboard'
+    | '/financial'
+    | '/gaps'
+    | '/governance'
+    | '/initiatives'
+    | '/kpis'
+    | '/office'
+    | '/organizations'
+    | '/partnerships'
+    | '/profiles'
+    | '/quarterly'
+    | '/terminology'
+    | '/upload'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/users' | '/'
+  to:
+    | '/auth'
+    | '/'
+    | '/users'
+    | '/audit'
+    | '/dashboard'
+    | '/financial'
+    | '/gaps'
+    | '/governance'
+    | '/initiatives'
+    | '/kpis'
+    | '/office'
+    | '/organizations'
+    | '/partnerships'
+    | '/profiles'
+    | '/quarterly'
+    | '/terminology'
+    | '/upload'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/_shell'
     | '/_authenticated/users'
     | '/_authenticated/'
+    | '/_authenticated/_shell/audit'
+    | '/_authenticated/_shell/dashboard'
+    | '/_authenticated/_shell/financial'
+    | '/_authenticated/_shell/gaps'
+    | '/_authenticated/_shell/governance'
+    | '/_authenticated/_shell/initiatives'
+    | '/_authenticated/_shell/kpis'
+    | '/_authenticated/_shell/office'
+    | '/_authenticated/_shell/organizations'
+    | '/_authenticated/_shell/partnerships'
+    | '/_authenticated/_shell/profiles'
+    | '/_authenticated/_shell/quarterly'
+    | '/_authenticated/_shell/terminology'
+    | '/_authenticated/_shell/upload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -92,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/_shell': {
+      id: '/_authenticated/_shell'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedShellRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/users': {
       id: '/_authenticated/users'
       path: '/users'
@@ -99,15 +298,152 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/_shell/audit': {
+      id: '/_authenticated/_shell/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuthenticatedShellAuditRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/dashboard': {
+      id: '/_authenticated/_shell/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedShellDashboardRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/financial': {
+      id: '/_authenticated/_shell/financial'
+      path: '/financial'
+      fullPath: '/financial'
+      preLoaderRoute: typeof AuthenticatedShellFinancialRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/gaps': {
+      id: '/_authenticated/_shell/gaps'
+      path: '/gaps'
+      fullPath: '/gaps'
+      preLoaderRoute: typeof AuthenticatedShellGapsRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/governance': {
+      id: '/_authenticated/_shell/governance'
+      path: '/governance'
+      fullPath: '/governance'
+      preLoaderRoute: typeof AuthenticatedShellGovernanceRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/initiatives': {
+      id: '/_authenticated/_shell/initiatives'
+      path: '/initiatives'
+      fullPath: '/initiatives'
+      preLoaderRoute: typeof AuthenticatedShellInitiativesRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/kpis': {
+      id: '/_authenticated/_shell/kpis'
+      path: '/kpis'
+      fullPath: '/kpis'
+      preLoaderRoute: typeof AuthenticatedShellKpisRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/office': {
+      id: '/_authenticated/_shell/office'
+      path: '/office'
+      fullPath: '/office'
+      preLoaderRoute: typeof AuthenticatedShellOfficeRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/organizations': {
+      id: '/_authenticated/_shell/organizations'
+      path: '/organizations'
+      fullPath: '/organizations'
+      preLoaderRoute: typeof AuthenticatedShellOrganizationsRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/partnerships': {
+      id: '/_authenticated/_shell/partnerships'
+      path: '/partnerships'
+      fullPath: '/partnerships'
+      preLoaderRoute: typeof AuthenticatedShellPartnershipsRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/profiles': {
+      id: '/_authenticated/_shell/profiles'
+      path: '/profiles'
+      fullPath: '/profiles'
+      preLoaderRoute: typeof AuthenticatedShellProfilesRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/quarterly': {
+      id: '/_authenticated/_shell/quarterly'
+      path: '/quarterly'
+      fullPath: '/quarterly'
+      preLoaderRoute: typeof AuthenticatedShellQuarterlyRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/terminology': {
+      id: '/_authenticated/_shell/terminology'
+      path: '/terminology'
+      fullPath: '/terminology'
+      preLoaderRoute: typeof AuthenticatedShellTerminologyRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
+    '/_authenticated/_shell/upload': {
+      id: '/_authenticated/_shell/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof AuthenticatedShellUploadRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
   }
 }
 
+interface AuthenticatedShellRouteChildren {
+  AuthenticatedShellAuditRoute: typeof AuthenticatedShellAuditRoute
+  AuthenticatedShellDashboardRoute: typeof AuthenticatedShellDashboardRoute
+  AuthenticatedShellFinancialRoute: typeof AuthenticatedShellFinancialRoute
+  AuthenticatedShellGapsRoute: typeof AuthenticatedShellGapsRoute
+  AuthenticatedShellGovernanceRoute: typeof AuthenticatedShellGovernanceRoute
+  AuthenticatedShellInitiativesRoute: typeof AuthenticatedShellInitiativesRoute
+  AuthenticatedShellKpisRoute: typeof AuthenticatedShellKpisRoute
+  AuthenticatedShellOfficeRoute: typeof AuthenticatedShellOfficeRoute
+  AuthenticatedShellOrganizationsRoute: typeof AuthenticatedShellOrganizationsRoute
+  AuthenticatedShellPartnershipsRoute: typeof AuthenticatedShellPartnershipsRoute
+  AuthenticatedShellProfilesRoute: typeof AuthenticatedShellProfilesRoute
+  AuthenticatedShellQuarterlyRoute: typeof AuthenticatedShellQuarterlyRoute
+  AuthenticatedShellTerminologyRoute: typeof AuthenticatedShellTerminologyRoute
+  AuthenticatedShellUploadRoute: typeof AuthenticatedShellUploadRoute
+}
+
+const AuthenticatedShellRouteChildren: AuthenticatedShellRouteChildren = {
+  AuthenticatedShellAuditRoute: AuthenticatedShellAuditRoute,
+  AuthenticatedShellDashboardRoute: AuthenticatedShellDashboardRoute,
+  AuthenticatedShellFinancialRoute: AuthenticatedShellFinancialRoute,
+  AuthenticatedShellGapsRoute: AuthenticatedShellGapsRoute,
+  AuthenticatedShellGovernanceRoute: AuthenticatedShellGovernanceRoute,
+  AuthenticatedShellInitiativesRoute: AuthenticatedShellInitiativesRoute,
+  AuthenticatedShellKpisRoute: AuthenticatedShellKpisRoute,
+  AuthenticatedShellOfficeRoute: AuthenticatedShellOfficeRoute,
+  AuthenticatedShellOrganizationsRoute: AuthenticatedShellOrganizationsRoute,
+  AuthenticatedShellPartnershipsRoute: AuthenticatedShellPartnershipsRoute,
+  AuthenticatedShellProfilesRoute: AuthenticatedShellProfilesRoute,
+  AuthenticatedShellQuarterlyRoute: AuthenticatedShellQuarterlyRoute,
+  AuthenticatedShellTerminologyRoute: AuthenticatedShellTerminologyRoute,
+  AuthenticatedShellUploadRoute: AuthenticatedShellUploadRoute,
+}
+
+const AuthenticatedShellRouteWithChildren =
+  AuthenticatedShellRoute._addFileChildren(AuthenticatedShellRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedShellRoute: typeof AuthenticatedShellRouteWithChildren
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedShellRoute: AuthenticatedShellRouteWithChildren,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }

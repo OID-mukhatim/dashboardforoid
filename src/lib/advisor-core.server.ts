@@ -3,7 +3,8 @@
  * mention keep their previous assessment/program so nothing is lost. */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const ORG_IDS = ["ZUST", "ZAD", "TAYO", "KAFI", "ZF", "HAMDI"] as const;
+import { activeOrgIds } from "./org-registry";
+const ORG_IDS = { get list() { return activeOrgIds(); } };
 
 export function looksLikeAdvisorReport(fileName: string, dataType: string, text: string): boolean {
   const head = text.slice(0, 3000);
@@ -37,7 +38,7 @@ const SCHEMA = {
       items: {
         type: "object", additionalProperties: false,
         required: ["org", "label", "strengths", "weaknesses", "recommendations", "nextMilestone"],
-        properties: { org: { type: "string", enum: [...ORG_IDS] }, label: str, strengths: strArr, weaknesses: strArr, recommendations: strArr, nextMilestone: str },
+        properties: { org: { type: "string", enum: [...ORG_IDS.list] }, label: str, strengths: strArr, weaknesses: strArr, recommendations: strArr, nextMilestone: str },
       },
     },
     program: {
@@ -45,7 +46,7 @@ const SCHEMA = {
       items: {
         type: "object", additionalProperties: false,
         required: ["org", "domain", "status", "note"],
-        properties: { org: { type: "string", enum: [...ORG_IDS] }, domain: str, status: { type: "string", enum: ["done", "inProgress", "delayed", "notYet"] }, note: str },
+        properties: { org: { type: "string", enum: [...ORG_IDS.list] }, domain: str, status: { type: "string", enum: ["done", "inProgress", "delayed", "notYet"] }, note: str },
       },
     },
   },
@@ -112,7 +113,7 @@ ORG codes: ZUST (Zamzam University), ZAD, TAYO, KAFI, ZF (Zamzam Foundation), HA
 export async function processAdvisorReport(uploadId: string, fileName: string, text: string) {
   const x = await extractWithAI(text, fileName);
   const keep = (o: Record<string, unknown> | undefined) =>
-    Object.fromEntries(Object.entries(o ?? {}).filter(([k]) => (ORG_IDS as readonly string[]).includes(k)));
+    Object.fromEntries(Object.entries(o ?? {}).filter(([k]) => ORG_IDS.list.includes(k)));
 
   // Carry forward organizations not covered by this report from the latest earlier snapshot.
   const { data: prev } = await supabaseAdmin
