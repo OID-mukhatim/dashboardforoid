@@ -197,7 +197,7 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
     const STATUS_PTS: Record<string, number> = { done: 5, inProgress: 3, delayed: 1.5, notYet: 1 };
     const { data: advRows } = await sb
       .from("advisor_snapshots")
-      .select("period_order, done, program, updated_at, period_label")
+      .select("period_order, done, program, updated_at, period")
       .eq("done", true)
       .order("period_order", { ascending: true });
     const { data: finRows } = await sb
