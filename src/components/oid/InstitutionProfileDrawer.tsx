@@ -188,14 +188,21 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
     { label: t("profileDetail.policyGroups.university"), rows: universityPolicies },
     { label: t("profileDetail.policyGroups.education"), rows: educationPolicies },
   ];
+  // حالة كل سياسة من قاعدة البيانات فقط (governance_policies)
+  const policyStatusMap = useMemo(() => {
+    const m = new Map<string, PolicyStatus>();
+    for (const p of dbPolicies ?? []) m.set(p.policy_id as string, p.status as PolicyStatus);
+    return m;
+  }, [dbPolicies]);
   const orgPolicies = allPolicyGroups.flatMap((g) =>
     g.rows
-      .filter((r) => r.values[orgId])
-      .map((r) => ({ group: g.label, id: r.id, name: r.name, status: r.values[orgId] })),
+      .filter((r) => policyStatusMap.has(r.id))
+      .map((r) => ({ group: g.label, id: r.id, name: r.name, status: policyStatusMap.get(r.id)! })),
   );
 
-  const fin = (financialAssessment as any)[orgId] as undefined | typeof financialAssessment.ZUST;
-  const finProg = (financialProgram as any)[orgId] as undefined | typeof financialProgram.ZUST;
+  // التقييم والبرنامج المالي من أحدث تقرير مستشار مكتمل في قاعدة البيانات
+  const fin = (advisorSnap?.assessment as Record<string, any> | undefined)?.[orgId];
+  const finProg = (advisorSnap?.program as Record<string, any[]> | undefined)?.[orgId];
 
   // بيانات الهوية مدمجة (DB يغلب على الثابت)
   const identity = {
