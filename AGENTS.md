@@ -1,4 +1,5 @@
 # Architecture rules
+- Composite scoring and eligible-source completeness use the weights in the shared profile helper; excluded components retain standalone scores with zero weight so consumers remain consistent without altering source calculations.
 - Alerts share one authenticated loadAlerts endpoint and pure rule helpers; dashboard snapshot reads use a server-only helper to avoid nested server-function RPC calls.
 - Latest gap-period selection is shared by alert and initiative rules; initiative generation inserts missing codes with conflict-ignore to protect existing decisions.
 - Organization detection uses the shared org-aliases module for uploads, document mentions, and filenames to prevent inconsistent attribution.
