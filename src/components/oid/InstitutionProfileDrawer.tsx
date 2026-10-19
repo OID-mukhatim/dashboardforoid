@@ -510,7 +510,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
           )}
 
           {tab === "partnerships" && (
-            <Block title={tFormat("profileDetail.partnershipsTitle", { count: orgPartnerships.length })} subtitle={livePartnerships.length > 0 ? t("profileDetail.databaseSource") : t("profileDetail.staticSource")}>
+            <Block title={tFormat("profileDetail.partnershipsTitle", { count: orgPartnerships.length })} subtitle={livePartnerships.length > 0 ? t("profileDetail.databaseSource") : undefined}>
               {orgPartnerships.length === 0 ? (
                 <EmptyMini msg={t("profileDetail.noPartnerships")} />
               ) : (
@@ -528,7 +528,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
           )}
 
           {tab === "initiatives" && (
-            <Block title={tFormat("profileDetail.initiativesTitle", { count: orgInitiatives.length })} subtitle={liveInits.length > 0 ? t("profileDetail.databaseSource") : t("profileDetail.staticSource")}>
+            <Block title={tFormat("profileDetail.initiativesTitle", { count: orgInitiatives.length })} subtitle={liveInits.length > 0 ? t("profileDetail.databaseSource") : undefined}>
               {orgInitiatives.length === 0 ? (
                 <EmptyMini msg={t("profileDetail.noInitiatives")} />
               ) : (
