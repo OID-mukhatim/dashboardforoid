@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ORGS, q1Data, type OrgId } from "@/lib/oid-data";
+import { ORGS, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { loadQuarterlyActivities, loadActiveYears, setActiveYear } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -169,7 +169,8 @@ export function QuarterlySection() {
 
   const rows = useMemo(() => result?.rows ?? [], [result]);
   // عرض البيانات الثابتة التجريبية فقط عند فراغ قاعدة البيانات والاستخراجات
-  const showStaticFallback = !isLoading && rows.length === 0;
+  // لا نموذج ثابت: قاعدة البيانات هي المصدر الوحيد — عند فراغها تظهر رسالة "لا توجد بيانات"
+  const showStaticFallback = false;
 
   const live = useMemo(() => rows.filter((r) => {
     const okOrg = filters.org === "all" || r.orgCode === filters.org;
