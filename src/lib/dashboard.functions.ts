@@ -228,6 +228,23 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
       const fin =
         advisor !== null && budget !== null ? advisor * 0.6 + budget * 0.4 : advisor ?? budget;
       if (fin !== null) matrix[code].finScore = Math.round(fin * 100) / 100;
+      // مصدر المكوّن المالي: أحدث تحديث بين تقارير المستشار والتقارير المالية
+      const orgFin = (finRows ?? []).filter((f) => f.org_id === code);
+      const latestAdv = (advRows ?? []).reduce<string | null>(
+        (m, r) => (r.updated_at && (!m || r.updated_at > m) ? r.updated_at : m),
+        null,
+      );
+      const latestFin = orgFin.reduce<string | null>(
+        (m, f) => (f.updated_at && (!m || f.updated_at > m) ? f.updated_at : m),
+        null,
+      );
+      const latest = [latestAdv, latestFin].filter(Boolean).sort().pop() ?? null;
+      if (latest) {
+        matrix[code].sources.financial = {
+          label: latestAdv && latestAdv === latest ? "تقارير المستشار المالي" : "التقارير المالية",
+          updatedAt: latest,
+        };
+      }
     }
 
     // 3) totals: initiatives count + last upload timestamp (never throws)
