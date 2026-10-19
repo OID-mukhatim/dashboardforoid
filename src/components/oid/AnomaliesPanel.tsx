@@ -3,13 +3,16 @@
  */
 import { useMemo, useState } from "react";
 import { AlertTriangle, AlertCircle, Info, ShieldAlert, Filter, ClipboardList } from "lucide-react";
-import { ORGS, orgName, type OrgId } from "@/lib/oid-data";
+import { ORGS, orgName, GAP_AXES, type OrgId } from "@/lib/oid-data";
 import {
   detectAllAnomalies,
   getCategoryLabel,
   getSeverityMeta,
   type AnomalySeverity,
+  type AnomalyExtras,
 } from "@/lib/oid-anomalies";
+import { computeAllProfilesFromLive } from "@/lib/oid-composite";
+import { useDashboardSnapshotQuery, getLiveGapValue } from "@/routes/_authenticated/sections/_shared";
 import { openOrgProfile } from "@/lib/oid-drill";
 import { requestTaskCreate } from "@/lib/tasks-store";
 import { useLang } from "@/lib/lang-context";
@@ -23,18 +26,39 @@ const SEVERITY_ICON: Record<AnomalySeverity, React.ComponentType<{ size?: number
 export function AnomaliesPanel({ orgFilter = "all" as "all" | OrgId }: { orgFilter?: "all" | OrgId }) {
   const { lang, t } = useLang();
   const [sevFilter, setSevFilter] = useState<"all" | AnomalySeverity>("all");
+  const { data: snap } = useDashboardSnapshotQuery();
+
+  // ملفات حية من قاعدة البيانات + قيم المحاور الحية لكل مؤسسة
+  const { profiles, extras } = useMemo(() => {
+    const liveByOrg = Object.fromEntries(
+      ORGS.map((o) => [
+        o.id,
+        {
+          gapAvg: snap?.matrix?.[o.id]?.gapAvg ?? null,
+          govScore: snap?.matrix?.[o.id]?.govScore ?? null,
+          kpiScorePct: snap?.kpi?.[o.id]?.weightedAvgPct ?? null,
+          finScore: snap?.matrix?.[o.id]?.finScore ?? null,
+        },
+      ]),
+    ) as any;
+    const extrasByOrg: Partial<Record<OrgId, AnomalyExtras>> = {};
+    for (const o of ORGS) {
+      extrasByOrg[o.id] = { gapAxes: GAP_AXES.map((ax) => getLiveGapValue(snap, o.id, ax)) };
+    }
+    return { profiles: computeAllProfilesFromLive(liveByOrg), extras: extrasByOrg };
+  }, [snap]);
 
   const anomalies = useMemo(() => {
-    const all = detectAllAnomalies(lang);
+    const all = detectAllAnomalies(profiles, lang, extras);
     return all.filter(
       (a) =>
         (orgFilter === "all" || a.orgId === orgFilter) &&
         (sevFilter === "all" || a.severity === sevFilter),
     );
-  }, [orgFilter, sevFilter, lang]);
+  }, [orgFilter, sevFilter, lang, profiles, extras]);
 
   const counts = useMemo(() => {
-    const all = detectAllAnomalies(lang).filter((a) => orgFilter === "all" || a.orgId === orgFilter);
+    const all = detectAllAnomalies(profiles, lang, extras).filter((a) => orgFilter === "all" || a.orgId === orgFilter);
     return {
       high: all.filter((a) => a.severity === "high").length,
       medium: all.filter((a) => a.severity === "medium").length,
