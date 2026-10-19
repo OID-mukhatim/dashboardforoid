@@ -9,9 +9,15 @@
  *  - suggestion: إجراء مقترح
  */
 
-import { ORGS, type OrgId, gapScores, GAP_AXES, kpiData } from "./oid-data";
-import { computeProfile, type InstitutionProfile } from "./oid-composite";
+import { ORGS, type OrgId, GAP_AXES } from "./oid-data";
+import type { InstitutionProfile } from "./oid-composite";
 import type { Lang } from "./i18n";
+
+/** بيانات إضافية حية (من قاعدة البيانات) تُمرَّر من المستدعي عند توفرها. */
+export type AnomalyExtras = {
+  gapAxes?: (number | null)[]; // قيم المحاور السبعة الحية
+  stalledKpis?: number; // عدد المؤشرات المتوقفة (0%)
+};
 
 export type AnomalySeverity = "high" | "medium" | "low";
 
@@ -55,7 +61,7 @@ export function getSeverityMeta(s: AnomalySeverity) {
 }
 
 /** اكتشاف شذوذات مؤسسة واحدة. */
-export function detectAnomalies(orgId: OrgId, allProfiles: Record<OrgId, InstitutionProfile>, lang: Lang = "ar"): Anomaly[] {
+export function detectAnomalies(orgId: OrgId, allProfiles: Record<OrgId, InstitutionProfile>, lang: Lang = "ar", extras?: AnomalyExtras): Anomaly[] {
   const p = allProfiles[orgId];
   const out: Anomaly[] = [];
   if (!p) return out;
@@ -113,8 +119,8 @@ export function detectAnomalies(orgId: OrgId, allProfiles: Record<OrgId, Institu
     });
   }
 
-  // 4) صفر في محور حوكمة حرج
-  const axes = gapScores[orgId] ?? [];
+  // 4) صفر في محور حوكمة حرج (من قيم المحاور الحية إن وُجدت)
+  const axes = extras?.gapAxes ?? [];
   axes.forEach((v, i) => {
     if (v === 0) {
       out.push({
@@ -127,14 +133,14 @@ export function detectAnomalies(orgId: OrgId, allProfiles: Record<OrgId, Institu
     }
   });
 
-  // 5) KPIs متوقفة (progress = 0)
-  const stalled = kpiData.filter((k) => k.org === orgId && k.progress === 0 && (k as any).status !== "pending");
-  if (stalled.length > 0) {
+  // 5) KPIs متوقفة (progress = 0) — يُمرَّر العدد من بيانات قاعدة البيانات
+  const stalledCount = extras?.stalledKpis ?? 0;
+  if (stalledCount > 0) {
     out.push({
       id: `${orgId}-stalled`,
       orgId, severity: "medium", category: "zero_in_critical",
-      title: lang === "ar" ? `${stalled.length} مؤشر متوقف` : `${stalled.length} stalled indicators`,
-      message: lang === "ar" ? `${stalled.length} من مؤشرات الأداء عند 0% تقدّم.` : `${stalled.length} performance indicators are at 0% progress.`,
+      title: lang === "ar" ? `${stalledCount} مؤشر متوقف` : `${stalledCount} stalled indicators`,
+      message: lang === "ar" ? `${stalledCount} من مؤشرات الأداء عند 0% تقدّم.` : `${stalledCount} performance indicators are at 0% progress.`,
       suggestion: lang === "ar" ? "حدّد المسؤولين وأعد جدولة هذه المؤشرات." : "Assign owners and reschedule these indicators.",
     });
   }
@@ -162,11 +168,13 @@ export function detectAnomalies(orgId: OrgId, allProfiles: Record<OrgId, Institu
   return out;
 }
 
-export function detectAllAnomalies(lang: Lang = "ar"): Anomaly[] {
-  const profiles = {} as Record<OrgId, InstitutionProfile>;
-  for (const o of ORGS) profiles[o.id] = computeProfile(o.id);
+export function detectAllAnomalies(
+  profiles: Record<OrgId, InstitutionProfile>,
+  lang: Lang = "ar",
+  extrasByOrg?: Partial<Record<OrgId, AnomalyExtras>>,
+): Anomaly[] {
   const out: Anomaly[] = [];
-  for (const o of ORGS) out.push(...detectAnomalies(o.id, profiles, lang));
+  for (const o of ORGS) out.push(...detectAnomalies(o.id, profiles, lang, extrasByOrg?.[o.id]));
   const order: Record<AnomalySeverity, number> = { high: 0, medium: 1, low: 2 };
   return out.sort((a, b) => order[a.severity] - order[b.severity]);
 }
