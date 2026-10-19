@@ -1,4 +1,5 @@
 # Tasks
+- [x] Temporarily exclude KPIs from composite scoring, proportionally redistribute remaining weights, and verify institution card notes without altering source calculations.
 - [x] Build authenticated live alerts, exclude KPI signals from anomalies, and verify the displayed alert list.
 - [x] Generate nonduplicating initiatives from latest gap periods without overwriting approved initiatives.
 - [x] Share safe organization aliases between document extraction and upload preview; verify detection and preview.
