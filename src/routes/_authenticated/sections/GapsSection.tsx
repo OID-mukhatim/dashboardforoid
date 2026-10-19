@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend } from "recharts";
-import { ORGS, GAP_AXES, gapScores, criticalGaps, type OrgId } from "@/lib/oid-data";
+import { ORGS, GAP_AXES, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { loadGapScores, updateGapScore } from "@/lib/dashboard.functions";
 import { useLang } from "@/lib/lang-context";
-import { Card, CardHeader, useDashboardSnapshotQuery, getLiveGapValue, SectionTitle } from "./_shared";
+import { Card, CardHeader, EmptyData, useDashboardSnapshotQuery, getLiveGapValue, SectionTitle } from "./_shared";
 
 const PERIOD = "Q2-2026";
 const DOMAIN_NAMES = [
@@ -33,19 +33,45 @@ export function GapsSection() {
     staleTime: 60 * 1000,
   });
 
+  // أحدث فترة لكل مؤسسة بحسب updated_at — لا فترة ثابتة
+  const latestPeriodOf = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const g of (dbGaps ?? []) as any[]) {
+      const cur = map.get(g.org_id);
+      if (!cur || (g.updated_at ?? "") > (cur as any)) map.set(g.org_id, g.updated_at ?? "");
+    }
+    const period = new Map<string, string>();
+    for (const g of (dbGaps ?? []) as any[]) {
+      if ((g.updated_at ?? "") === map.get(g.org_id)) period.set(g.org_id, g.period);
+    }
+    return period;
+  }, [dbGaps]);
+
   const liveGapScores = useMemo(() => {
     const result: Record<string, (number | null)[]> = {};
     for (const o of ORGS) {
+      const period = latestPeriodOf.get(o.id);
       result[o.id] = Array.from({ length: 7 }, (_, i) => {
-        const row = (dbGaps ?? []).find((g: any) => g.org_id === o.id && g.domain_index === i && g.period === PERIOD);
+        const row = (dbGaps ?? []).find((g: any) => g.org_id === o.id && g.domain_index === i && g.period === period);
         if (row) return Number(row.score);
         const live = getLiveGapValue(snap, o.id as OrgId, GAP_AXES[i]);
-        if (typeof live === "number") return live;
-        return gapScores[o.id as OrgId]?.[i] ?? null;
+        return typeof live === "number" ? live : null;
       });
     }
     return result;
-  }, [dbGaps, snap]);
+  }, [dbGaps, snap, latestPeriodOf]);
+
+  // الفجوات الحرجة: تُحسب حياً من أدنى المحاور متوسطاً عبر المؤسسات
+  const liveCriticalGaps = useMemo(() => {
+    const rows = GAP_AXES.map((axis, i) => {
+      const vals = ORGS.map((o) => liveGapScores[o.id]?.[i]).filter((v): v is number => typeof v === "number");
+      if (vals.length === 0) return null;
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const affected = vals.filter((v) => v < 3).length;
+      return { axisIndex: i, avg, affected, total: vals.length };
+    }).filter((x): x is NonNullable<typeof x> => x !== null);
+    return rows.sort((a, b) => a.avg - b.avg).slice(0, 6);
+  }, [liveGapScores]);
 
   async function handleGapScoreChange(orgId: string, domainIndex: number, newScore: number) {
     queryClient.setQueryData(["gap-scores"], (old: any[] | undefined) => {
@@ -151,16 +177,22 @@ export function GapsSection() {
         <Card>
           <CardHeader title={t("gaps.criticalTitle")} />
           <div className="p-5 space-y-2">
-            {criticalGaps.map((g, i) => (
-              <div key={g.rank} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/20">
-                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">{g.rank}</div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium">{t(`gaps.items.${i}`)}</div>
-                  <div className="text-xs text-muted-foreground">{t("gaps.affectedLabel")} {g.affected} • {t("gaps.averageLabel")} {g.avg.toFixed(2)}</div>
+            {liveCriticalGaps.length === 0 ? (
+              <EmptyData msg={t("gaps.noData")} />
+            ) : liveCriticalGaps.map((g, i) => {
+              const priorityKey = g.avg < 2 ? "veryCritical" : g.avg < 3 ? "critical" : "high";
+              const tone = priorityKey === "veryCritical" ? "bg-red-100 text-red-700" : priorityKey === "critical" ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700";
+              return (
+                <div key={g.axisIndex} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/20">
+                  <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">{i + 1}</div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{t(`gaps.axes.${g.axisIndex}`)}</div>
+                    <div className="text-xs text-muted-foreground">{t("gaps.affectedLabel")} {g.affected}/{g.total} • {t("gaps.averageLabel")} {g.avg.toFixed(2)}</div>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${tone}`}>{t(`gaps.priorities.${priorityKey}`)}</span>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${g.priority.includes("جداً") ? "bg-red-100 text-red-700" : g.priority==="حرج" ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700"}`}>{t(`gaps.priorities.${g.priority.includes("جداً") ? "veryCritical" : g.priority === "حرج" ? "critical" : "high"}`)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       </div>

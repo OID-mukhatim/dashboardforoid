@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Users, Heart, Coins, TrendingUp, BarChart3, Target, Handshake, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Building2, Users, Heart, Coins, TrendingUp, BarChart3, Target, Handshake } from "lucide-react";
 import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend } from "recharts";
-import { ORGS, type OrgId, orgOverallScores, GAP_AXES, gapScores, institutions, alerts, partnerships as fallbackPartnerships } from "@/lib/oid-data";
+import { ORGS, type OrgId, GAP_AXES } from "@/lib/oid-data";
 import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
 import { DataStateLegend } from "@/components/oid/DataStateCell";
 import { AnomaliesPanel } from "@/components/oid/AnomaliesPanel";
@@ -58,23 +58,12 @@ export function DashboardSection() {
     return out;
   }, [snap]);
 
-  // هل هذه المؤسسة تعتمد على البيانات الثابتة (لا يوجد مصدر حي بعد)؟
-  const orgUsesFallback = (id: OrgId) => {
-    const m = snap?.matrix?.[id];
-    const k = snap?.kpi?.[id];
-    const hasLive =
-      (m && (m.gapAvg != null || m.govScore != null || m.finScore != null)) ||
-      (k && k.weightedAvgPct != null);
-    return !hasLive;
-  };
-  const globalFallback = !snap || ORGS.every((o) => orgUsesFallback(o.id));
-
   const axisKeys = ["strategy", "leadership", "performance", "operations", "finance", "infrastructure", "governance"];
   const radarData = GAP_AXES.map((axis, i) => {
     const row: any = { axis: t(`dashboard.axes.${axisKeys[i]}`) };
     ORGS.forEach((o) => {
       const liveGap = getLiveGapValue(snap, o.id, axis);
-      row[o.id] = typeof liveGap === "number" ? liveGap : (gapScores[o.id][i] ?? 0);
+      row[o.id] = typeof liveGap === "number" ? liveGap : 0;
     });
     return row;
   });
@@ -90,16 +79,26 @@ export function DashboardSection() {
   });
   const partnershipList = useMemo(() => {
     const rows = (partnershipRows ?? []) as any[];
-    const src = rows.length ? rows : (fallbackPartnerships as any[]);
-    return src.map((r) => ({
+    return rows.map((r) => ({
       status: r.status as string,
       linkedOrgs: (Array.isArray(r.linked_orgs) ? r.linked_orgs : Array.isArray(r.linkedOrgs) ? r.linkedOrgs : []) as string[],
     }));
   }, [partnershipRows]);
 
+  // بيانات المؤسسات (الموظفون/الموازنة/الفروع) من قاعدة البيانات فقط
+  const { data: dbInstitutions } = useQuery({
+    queryKey: ["institutions"],
+    queryFn: async () => {
+      const { data } = await supabase.from("institutions").select("id, staff_total, budget, branches");
+      return (data ?? []) as { id: string; staff_total: number | null; budget: number | null; branches: string | null }[];
+    },
+    staleTime: 60 * 1000,
+  });
+
   const stats = useMemo(() => {
-    const list = orgFilter === "all" ? institutions : institutions.filter((i) => i.id === orgFilter);
-    const staff = list.reduce((sum, i) => sum + (i.staff?.total ?? 0), 0);
+    const all = dbInstitutions ?? [];
+    const list = orgFilter === "all" ? all : all.filter((i) => i.id === orgFilter);
+    const staff = list.reduce((sum, i) => sum + (i.staff_total ?? 0), 0);
     const budget = list.reduce((sum, i) => sum + (i.budget ?? 0), 0);
     const beneficiaries = list.reduce((sum, i) => sum + extractBeneficiaries(i.branches), 0);
 
@@ -131,7 +130,7 @@ export function DashboardSection() {
       staff, budget, beneficiaries, avgScore, avgMaturity,
       kpisLive, activePartners,
     };
-  }, [orgFilter, liveProfiles, snap, partnershipList, lang, t]);
+  }, [orgFilter, liveProfiles, snap, partnershipList, dbInstitutions, lang, t]);
 
   return (
     <div className="space-y-6">
@@ -150,14 +149,6 @@ export function DashboardSection() {
           ))}
         </select>
       </div>
-
-      {globalFallback && (
-        <div className="flex justify-end">
-          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
-            {t("dashboard.demoData")}
-          </span>
-        </div>
-      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label={t("dashboard.totalOrgs")} value={String(stats.orgsCount)} sub={stats.orgsSub} icon={Building2} accent="#1d4ed8" />
@@ -184,7 +175,7 @@ export function DashboardSection() {
               .filter((o) => orgFilter === "all" || o.id === orgFilter)
               .map((o) => (
                 <div key={o.id} className="space-y-2">
-                  <CompositeScoreCard orgId={o.id} profile={liveProfiles[o.id]} usingFallback={orgUsesFallback(o.id)} />
+                  <CompositeScoreCard orgId={o.id} profile={liveProfiles[o.id]} sources={snap?.matrix?.[o.id]?.sources} />
                   <KPIPerformanceBreakdown perf={kpiPerf?.[o.id]} />
                 </div>
               ))}
@@ -276,23 +267,8 @@ export function DashboardSection() {
         <Card className="lg:col-span-2">
           <CardHeader title={t("dashboard.alertsTitle")} subtitle={t("dashboard.alertsSubtitle")} />
           <div className="p-5 space-y-2">
-            {alerts.map((a, i) => {
-              const styles: any = {
-                danger: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", icon: XCircle },
-                warning: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700", icon: AlertTriangle },
-                success: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", icon: CheckCircle2 },
-              }[a.level];
-              const Ic = styles.icon;
-              return (
-                <div key={i} className={`flex items-start gap-3 p-3 rounded-lg border ${styles.bg} ${styles.border}`}>
-                  <Ic size={18} className={styles.text} />
-                  <div className="flex-1">
-                     <div className={`text-sm font-medium ${styles.text}`}>{t(`dashboard.alertItems.${["hamdiLicense", "zadGovernance", "automation", "income", "zustAudit", "kafiGovernance"][i]}`)}</div>
-                     <div className="text-xs text-muted-foreground mt-0.5">{t(`dashboard.alertItems.${["renewNow", "urgent", "digitalProgram", "fundingFramework", "qualitativeStep", "roleModel"][i]}`)}</div>
-                  </div>
-                </div>
-              );
-            })}
+            {/* التنبيهات ستُبنى من محرك التنبيهات على بيانات قاعدة البيانات — حالياً لا توجد تنبيهات ثابتة */}
+            <EmptyData msg={t("dashboard.noAlerts")} />
           </div>
         </Card>
 
@@ -301,8 +277,7 @@ export function DashboardSection() {
           <div className="p-5 grid grid-cols-2 gap-3">
             {ORGS.map((o) => {
               const liveGov = snap?.matrix?.[o.id]?.govPct;
-              const fallback = orgOverallScores.find((s) => s.id === o.id)?.govPct ?? null;
-              const pct = typeof liveGov === "number" ? liveGov : fallback;
+              const pct = typeof liveGov === "number" ? liveGov : null;
               return (
                 <div key={o.id} className="border border-border rounded-lg p-3 text-center">
                   <div className="text-xs text-muted-foreground mb-1 whitespace-normal break-words">{lang === "ar" ? o.nameAr : o.nameEn}</div>
@@ -398,7 +373,7 @@ function BSCPerformanceMap() {
       const items = cleanRows.filter(r => r.entity_code === code && matchPerspective(r.sector) === p.key);
       const vals = items.map(r => {
         const n = Number(r.achievement_pct ?? 0);
-        return Number.isFinite(n) ? (n <= 1 ? n * 100 : n) : 0;
+        return Number.isFinite(n) ? n : 0;
       });
       const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
       return { code, name: allOrgs.find(o => o.code === code)?.name ?? code, count: items.length, avg: Math.round(avg) };

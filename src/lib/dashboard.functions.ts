@@ -9,6 +9,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export type OrgCode = "ZF" | "ZUST" | "ZAD" | "TAYO" | "KAFI" | "HAMDI";
 const VALID_ORGS: OrgCode[] = ["ZF", "ZUST", "ZAD", "TAYO", "KAFI", "HAMDI"];
 
+export type SourceRef = { label: string; updatedAt: string | null };
+
 export type LiveMatrixEntry = {
   gaps: Record<string, number>;
   gapAvg: number | null;
@@ -17,6 +19,7 @@ export type LiveMatrixEntry = {
   finScore: number | null;
   maturity: number | null;
   source: "extraction" | null;
+  sources: { gap?: SourceRef; governance?: SourceRef; kpi?: SourceRef; financial?: SourceRef };
 };
 
 export type LiveKpiEntry = {
@@ -39,7 +42,7 @@ export type DashboardSnapshot = {
 };
 
 function emptyMatrix(): LiveMatrixEntry {
-  return { gaps: {}, gapAvg: null, govScore: null, govPct: null, finScore: null, maturity: null, source: null };
+  return { gaps: {}, gapAvg: null, govScore: null, govPct: null, finScore: null, maturity: null, source: null, sources: {} };
 }
 
 export const loadDashboardSnapshot = createServerFn({ method: "GET" })
@@ -47,28 +50,37 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sb = context.supabase;
 
-    // 1) KPI aggregates per org
-    const { data: kpis, error: kpiErr } = await sb
-      .from("kpis")
-      .select("entity_code, achievement_pct, overall_pct, weight");
+    // 1) KPI aggregates per org — السنة النشطة فقط لكل مؤسسة (org_active_years)
+    const [{ data: kpis, error: kpiErr }, { data: activeYearRows }] = await Promise.all([
+      sb.from("kpis").select("entity_code, achievement_pct, overall_pct, weight, plan_year, upload_id"),
+      sb.from("org_active_years").select("org_id, active_year"),
+    ]);
     if (kpiErr) throw kpiErr;
+    const activeYearOf = new Map<string, number>();
+    for (const r of activeYearRows ?? []) activeYearOf.set(String(r.org_id), Number(r.active_year));
 
     const kpiAgg: Record<string, LiveKpiEntry> = {};
     for (const code of VALID_ORGS) kpiAgg[code] = { weightedAvgPct: null, weightedAvgScore: null, count: 0 };
 
     const byOrg = new Map<string, { wSum: number; wxSum: number; count: number }>();
+    const kpiOrgUploads = new Map<string, Set<string>>();
     for (const r of kpis ?? []) {
       const code = String(r.entity_code ?? "");
       if (!VALID_ORGS.includes(code as OrgCode)) continue;
+      const activeYear = activeYearOf.get(code);
+      if (activeYear === undefined || Number(r.plan_year) !== activeYear) continue;
+      if (r.upload_id) {
+        if (!kpiOrgUploads.has(code)) kpiOrgUploads.set(code, new Set());
+        kpiOrgUploads.get(code)!.add(String(r.upload_id));
+      }
       const pctRaw = r.achievement_pct ?? r.overall_pct;
       if (pctRaw == null) continue;
-      const pct = Number(pctRaw);
+      const pct = Number(pctRaw); // النسب تُخزَّن 0–100 كما هي — لا تحويل تلقائي
       if (!Number.isFinite(pct)) continue;
-      const pct100 = pct <= 1 ? pct * 100 : pct;
       const w = Number(r.weight ?? 1) || 1;
       const cur = byOrg.get(code) ?? { wSum: 0, wxSum: 0, count: 0 };
       cur.wSum += w;
-      cur.wxSum += pct100 * w;
+      cur.wxSum += pct * w;
       cur.count += 1;
       byOrg.set(code, cur);
     }
@@ -81,10 +93,21 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
       };
     }
 
+    // أسماء ملفات المؤشرات لشارة المصدر
+    const kpiUploadIds = [...new Set([...kpiOrgUploads.values()].flatMap((s) => [...s]))];
+    const uploadMeta = new Map<string, { file_name: string | null; created_at: string | null }>();
+    if (kpiUploadIds.length > 0) {
+      const { data: ups } = await sb
+        .from("uploads")
+        .select("id, file_name, created_at")
+        .in("id", kpiUploadIds);
+      for (const u of ups ?? []) uploadMeta.set(String(u.id), { file_name: u.file_name, created_at: u.created_at });
+    }
+
     // 2) Institutional matrix from document_extractions
     const { data: extractions, error: exErr } = await sb
       .from("document_extractions")
-      .select("kind, entity_code, payload, created_at")
+      .select("kind, entity_code, payload, created_at, file_name")
       .eq("kind", "institutional_matrix")
       .order("created_at", { ascending: false });
     if (exErr) throw exErr;
@@ -123,31 +146,42 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
     }
 
     // 2b) Live governance policies + gap scores tables take precedence
-    const { data: govRows } = await sb.from("governance_policies").select("org_id, status");
+    const { data: govRows } = await sb.from("governance_policies").select("org_id, status, updated_at");
     const { data: gapRows } = await sb
       .from("gap_scores")
-      .select("org_id, domain_index, domain_name, score")
-      .eq("period", "Q2-2026");
+      .select("org_id, domain_index, domain_name, score, period, updated_at")
+      .order("updated_at", { ascending: false });
 
+    // الأوزان المعتمدة: فعّالة 1.0 / غير مفعّلة 0.75 / تحتاج مراجعة 0.6 / قيد التطوير 0.4 / غير موجودة 0
     const GOV_WEIGHTS: Record<string, number> = {
-      active: 0.9, inactive: 0.5, review: 0.4, inDev: 0.3, missing: 0, pending: 0,
+      active: 1.0, inactive: 0.75, review: 0.6, inDev: 0.4, missing: 0,
     };
 
     for (const code of VALID_ORGS) {
       const cur = matrix[code];
-      const orgPolicies = (govRows ?? []).filter((p) => p.org_id === code);
+      // pending يُستبعد كلياً من البسط والمقام؛ إن كانت كل السياسات pending → null
+      const orgPolicies = (govRows ?? []).filter((p) => p.org_id === code && String(p.status) !== "pending");
       if (orgPolicies.length > 0) {
         const raw = orgPolicies.reduce((s, p) => s + (GOV_WEIGHTS[String(p.status)] ?? 0), 0) / orgPolicies.length;
         cur.govScore = Math.round(raw * 5 * 100) / 100;
+        const latest = orgPolicies.reduce<string | null>(
+          (m, p) => (p.updated_at && (!m || p.updated_at > m) ? p.updated_at : m),
+          null,
+        );
+        cur.sources.governance = { label: "تحديث السياسات", updatedAt: latest };
       }
-      const orgGaps = (gapRows ?? []).filter((g) => g.org_id === code);
-      if (orgGaps.length > 0) {
-        for (const g of orgGaps) {
+      // أحدث فترة للمؤسسة بحسب updated_at — لا فلترة بفترة ثابتة
+      const orgGapRows = (gapRows ?? []).filter((g) => g.org_id === code);
+      if (orgGapRows.length > 0) {
+        const latestPeriod = orgGapRows[0].period as string; // مرتبة تنازلياً بـ updated_at
+        const periodRows = orgGapRows.filter((g) => g.period === latestPeriod);
+        for (const g of periodRows) {
           const n = Number(g.score);
           if (Number.isFinite(n)) cur.gaps[String(g.domain_name)] = n;
         }
         cur.gapAvg =
-          Math.round((orgGaps.reduce((s, g) => s + Number(g.score), 0) / orgGaps.length) * 100) / 100;
+          Math.round((periodRows.reduce((s, g) => s + Number(g.score), 0) / periodRows.length) * 100) / 100;
+        cur.sources.gap = { label: `تقييم الفجوات — ${latestPeriod}`, updatedAt: orgGapRows[0].updated_at ?? null };
       }
       if (cur.govScore !== null) cur.govPct = Math.round((cur.govScore / 5) * 100);
     }
@@ -163,12 +197,12 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
     const STATUS_PTS: Record<string, number> = { done: 5, inProgress: 3, delayed: 1.5, notYet: 1 };
     const { data: advRows } = await sb
       .from("advisor_snapshots")
-      .select("period_order, done, program")
+      .select("period_order, done, program, updated_at, period_label")
       .eq("done", true)
       .order("period_order", { ascending: true });
     const { data: finRows } = await sb
       .from("financial_reports")
-      .select("org_id, approved_budget, actual_spending");
+      .select("org_id, approved_budget, actual_spending, updated_at");
     for (const code of VALID_ORGS) {
       let wSum = 0, wxSum = 0, idx = 0;
       for (const r of advRows ?? []) {
@@ -194,6 +228,41 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
       const fin =
         advisor !== null && budget !== null ? advisor * 0.6 + budget * 0.4 : advisor ?? budget;
       if (fin !== null) matrix[code].finScore = Math.round(fin * 100) / 100;
+      // مصدر المكوّن المالي: أحدث تحديث بين تقارير المستشار والتقارير المالية
+      const orgFin = (finRows ?? []).filter((f) => f.org_id === code);
+      const latestAdv = (advRows ?? []).reduce<string | null>(
+        (m, r) => (r.updated_at && (!m || r.updated_at > m) ? r.updated_at : m),
+        null,
+      );
+      const latestFin = orgFin.reduce<string | null>(
+        (m, f) => (f.updated_at && (!m || f.updated_at > m) ? f.updated_at : m),
+        null,
+      );
+      const latest = [latestAdv, latestFin].filter(Boolean).sort().pop() ?? null;
+      if (latest) {
+        matrix[code].sources.financial = {
+          label: latestAdv && latestAdv === latest ? "تقارير المستشار المالي" : "التقارير المالية",
+          updatedAt: latest,
+        };
+      }
+    }
+
+    // شارات المصدر المتبقية: الفجوات من الاستخراجات (عند غياب gap_scores) والمؤشرات من ملفات الرفع
+    for (const code of VALID_ORGS) {
+      const cur = matrix[code];
+      if (!cur.sources.gap && Object.keys(cur.gaps).length > 0) {
+        const ex = (extractions ?? []).find((r) => String(r.entity_code ?? "") === code);
+        cur.sources.gap = { label: ex?.file_name ?? "ملف البيانات المؤسسية", updatedAt: ex?.created_at ?? null };
+      }
+      const upIds = kpiOrgUploads.get(code);
+      if (upIds && upIds.size > 0) {
+        let best: { file_name: string | null; created_at: string | null } | null = null;
+        for (const id of upIds) {
+          const m = uploadMeta.get(id);
+          if (m && (!best || (m.created_at ?? "") > (best.created_at ?? ""))) best = m;
+        }
+        if (best) cur.sources.kpi = { label: best.file_name ?? "مصفوفة المؤشرات", updatedAt: best.created_at };
+      }
     }
 
     // 3) totals: initiatives count + last upload timestamp (never throws)
@@ -395,24 +464,28 @@ export const loadKpiAggregates = createServerFn({ method: "GET" })
     const out: Record<string, KpiAggregate> = {};
     for (const code of VALID_ORGS) out[code] = { weightedPct: null, count: 0 };
 
-    const { data, error } = await context.supabase
-      .from("kpis")
-      .select("entity_code, achievement_pct, overall_pct, weight");
+    const [{ data, error }, { data: activeYearRows }] = await Promise.all([
+      context.supabase.from("kpis").select("entity_code, achievement_pct, overall_pct, weight, plan_year"),
+      context.supabase.from("org_active_years").select("org_id, active_year"),
+    ]);
     if (error || !data) return out;
+    const activeYearOf = new Map<string, number>();
+    for (const r of activeYearRows ?? []) activeYearOf.set(String(r.org_id), Number(r.active_year));
 
     const acc = new Map<string, { wSum: number; wxSum: number; count: number }>();
     for (const r of data) {
       const code = String(r.entity_code ?? "");
       if (!VALID_ORGS.includes(code as OrgCode)) continue;
+      const activeYear = activeYearOf.get(code);
+      if (activeYear === undefined || Number(r.plan_year) !== activeYear) continue;
       const raw = r.achievement_pct ?? r.overall_pct;
       if (raw == null) continue;
-      const pct = Number(raw);
+      const pct = Number(raw); // النسب تُخزَّن 0–100 كما هي — لا تحويل تلقائي
       if (!Number.isFinite(pct)) continue;
-      const pct100 = pct <= 1 ? pct * 100 : pct;
       const w = Number(r.weight ?? 1) || 1;
       const cur = acc.get(code) ?? { wSum: 0, wxSum: 0, count: 0 };
       cur.wSum += w;
-      cur.wxSum += pct100 * w;
+      cur.wxSum += pct * w;
       cur.count += 1;
       acc.set(code, cur);
     }
@@ -496,7 +569,7 @@ export const loadGapScores = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("gap_scores")
-      .select("org_id, domain_index, domain_name, score, period, note")
+      .select("org_id, domain_index, domain_name, score, period, note, updated_at")
       .order("domain_index", { ascending: true });
     if (error) return [];
     return data ?? [];

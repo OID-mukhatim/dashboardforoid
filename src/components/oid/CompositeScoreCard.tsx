@@ -2,8 +2,10 @@
  * بطاقة الدرجة المركّبة (المحور 1) — تعرض 4 مكوّنات + الدرجة الكلية.
  */
 import { ORGS, type OrgId } from "@/lib/oid-data";
+import type { LiveMatrixEntry } from "@/lib/dashboard.functions";
 import { ORG_LOGOS } from "@/lib/oid-logos";
-import { computeProfile, type InstitutionProfile } from "@/lib/oid-composite";
+import { computeProfileFromLive, type InstitutionProfile } from "@/lib/oid-composite";
+import type { SourceRef } from "@/lib/dashboard.functions";
 import { DATA_STATES } from "@/lib/oid-data-states";
 import { formatScore, formatPct } from "@/lib/oid-formatting";
 import { openOrgProfile } from "@/lib/oid-drill";
@@ -12,15 +14,33 @@ import { TrendBadge } from "./TrendBadge";
 import { AlertTriangle } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 
+const STALE_DAYS = 120;
+
+function SourceLine({ source }: { source?: SourceRef }) {
+  const { lang, t } = useLang();
+  if (!source) return null;
+  const date = source.updatedAt ? new Date(source.updatedAt) : null;
+  const stale = date ? (Date.now() - date.getTime()) / 86400000 > STALE_DAYS : false;
+  const dateStr = date
+    ? date.toLocaleDateString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { year: "numeric", month: "2-digit", day: "2-digit" })
+    : "—";
+  return (
+    <div className={`text-[9px] whitespace-normal break-words ${stale ? "text-amber-600 font-medium" : "text-muted-foreground/70"}`}>
+      {t("dashboard.sourceLabel")}: {source.label} — {dateStr}
+      {stale && ` ⚠ ${t("dashboard.staleData")}`}
+    </div>
+  );
+}
+
 export function CompositeScoreCard({
   orgId,
   profile,
-  usingFallback,
-}: { orgId: OrgId; profile?: InstitutionProfile; usingFallback?: boolean }) {
+  sources,
+}: { orgId: OrgId; profile?: InstitutionProfile; sources?: LiveMatrixEntry["sources"] }) {
   const { lang, t, tFormat } = useLang();
   const org = ORGS.find((o) => o.id === orgId);
   if (!org) return null;
-  const p = profile ?? computeProfile(orgId);
+  const p = profile ?? computeProfileFromLive(orgId, {});
   const trend = computeTrend(orgId, "composite");
   const logo = ORG_LOGOS[orgId];
 
@@ -42,11 +62,6 @@ export function CompositeScoreCard({
           <div className="min-w-0">
             <div className="font-bold text-sm whitespace-normal break-words">{lang === "ar" ? org.nameAr : org.nameEn}</div>
             {lang === "ar" && <div className="text-[11px] text-muted-foreground whitespace-normal break-words" dir="ltr">{org.nameEn}</div>}
-            {usingFallback && (
-              <span className="mt-1 inline-block text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
-                {t("dashboard.demoData")}
-              </span>
-            )}
           </div>
         </div>
         <div className="text-right shrink-0">
@@ -63,21 +78,24 @@ export function CompositeScoreCard({
           const filled = c.score !== null ? (c.score / 5) * 100 : 0;
           const meta = c.state !== "achieved" ? DATA_STATES[c.state] : null;
           return (
-            <div key={c.source} className="flex items-center gap-2 text-xs">
-              <span className="w-32 whitespace-normal break-words text-muted-foreground">{t(`dashboard.components.${c.source}`)}</span>
-              <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${filled}%`, background: org.color }}
-                />
+            <div key={c.source}>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-32 whitespace-normal break-words text-muted-foreground">{t(`dashboard.components.${c.source}`)}</span>
+                <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${filled}%`, background: org.color }}
+                  />
+                </div>
+                <span className="w-14 text-left tabular-nums font-medium" dir="ltr">
+                  {c.score !== null ? formatScore(c.score) : (
+                    <span style={{ color: meta?.color }} title={meta?.tooltip}>
+                      {meta?.icon} {meta?.display}
+                    </span>
+                  )}
+                </span>
               </div>
-              <span className="w-14 text-left tabular-nums font-medium" dir="ltr">
-                {c.score !== null ? formatScore(c.score) : (
-                  <span style={{ color: meta?.color }} title={meta?.tooltip}>
-                    {meta?.icon} {meta?.display}
-                  </span>
-                )}
-              </span>
+              <SourceLine source={sources?.[c.source]} />
             </div>
           );
         })}
