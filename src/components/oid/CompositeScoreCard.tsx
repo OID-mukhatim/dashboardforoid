@@ -2,8 +2,10 @@
  * بطاقة الدرجة المركّبة (المحور 1) — تعرض 4 مكوّنات + الدرجة الكلية.
  */
 import { ORGS, type OrgId } from "@/lib/oid-data";
+import type { LiveMatrixEntry } from "@/lib/dashboard.functions";
 import { ORG_LOGOS } from "@/lib/oid-logos";
-import { computeProfile, type InstitutionProfile } from "@/lib/oid-composite";
+import { computeProfileFromLive, type InstitutionProfile } from "@/lib/oid-composite";
+import type { SourceRef } from "@/lib/dashboard.functions";
 import { DATA_STATES } from "@/lib/oid-data-states";
 import { formatScore, formatPct } from "@/lib/oid-formatting";
 import { openOrgProfile } from "@/lib/oid-drill";
@@ -12,15 +14,34 @@ import { TrendBadge } from "./TrendBadge";
 import { AlertTriangle } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 
+const STALE_DAYS = 120;
+
+function SourceLine({ source }: { source?: SourceRef }) {
+  const { lang, t } = useLang();
+  if (!source) return null;
+  const date = source.updatedAt ? new Date(source.updatedAt) : null;
+  const stale = date ? (Date.now() - date.getTime()) / 86400000 > STALE_DAYS : false;
+  const dateStr = date
+    ? date.toLocaleDateString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { year: "numeric", month: "2-digit", day: "2-digit" })
+    : "—";
+  return (
+    <div className={`text-[9px] whitespace-normal break-words ${stale ? "text-amber-600 font-medium" : "text-muted-foreground/70"}`}>
+      {t("dashboard.sourceLabel")}: {source.label} — {dateStr}
+      {stale && ` ⚠ ${t("dashboard.staleData")}`}
+    </div>
+  );
+}
+
 export function CompositeScoreCard({
   orgId,
   profile,
   usingFallback,
-}: { orgId: OrgId; profile?: InstitutionProfile; usingFallback?: boolean }) {
+  sources,
+}: { orgId: OrgId; profile?: InstitutionProfile; usingFallback?: boolean; sources?: LiveMatrixEntry["sources"] }) {
   const { lang, t, tFormat } = useLang();
   const org = ORGS.find((o) => o.id === orgId);
   if (!org) return null;
-  const p = profile ?? computeProfile(orgId);
+  const p = profile ?? computeProfileFromLive(orgId, {});
   const trend = computeTrend(orgId, "composite");
   const logo = ORG_LOGOS[orgId];
 
@@ -78,6 +99,7 @@ export function CompositeScoreCard({
                   </span>
                 )}
               </span>
+              <SourceLine source={sources?.[c.source]} />
             </div>
           );
         })}
