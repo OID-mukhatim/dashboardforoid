@@ -108,18 +108,13 @@ export async function readDashboardSnapshot(sb: SupabaseClient<Database>): Promi
       .select("org_id, domain_index, domain_name, score, period, updated_at")
       .order("updated_at", { ascending: false });
 
-    // الأوزان المعتمدة: فعّالة 1.0 / غير مفعّلة 0.75 / تحتاج مراجعة 0.6 / قيد التطوير 0.4 / غير موجودة 0
-    const GOV_WEIGHTS: Record<string, number> = {
-      active: 1.0, inactive: 0.75, review: 0.6, inDev: 0.4, missing: 0,
-    };
-
     for (const code of VALID_ORGS) {
       const cur = matrix[code];
-      // pending يُستبعد كلياً من البسط والمقام؛ إن كانت كل السياسات pending → null
-      const orgPolicies = (govRows ?? []).filter((p) => p.org_id === code && String(p.status) !== "pending");
+      // سلم GOV_LIKERT المشترك؛ pending وغير المعروف يُستبعدان من البسط والمقام
+      const orgPolicies = (govRows ?? []).filter((p) => p.org_id === code && govStatusScore(p.status) !== null);
       if (orgPolicies.length > 0) {
-        const raw = orgPolicies.reduce((s, p) => s + (GOV_WEIGHTS[String(p.status)] ?? 0), 0) / orgPolicies.length;
-        cur.govScore = Math.round(raw * 5 * 100) / 100;
+        const raw = govAverage(orgPolicies.map((p) => govStatusScore(p.status)))!;
+        cur.govScore = Math.round(raw * 100) / 100;
         const latest = orgPolicies.reduce<string | null>(
           (m, p) => (p.updated_at && (!m || p.updated_at > m) ? p.updated_at : m),
           null,

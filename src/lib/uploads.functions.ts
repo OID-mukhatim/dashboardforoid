@@ -75,13 +75,7 @@ export function looksLikeGovFile(name: string): boolean {
 }
 
 // Textual scales used in survey-style sheets
-export const GOV_TEXT_SCORE: Array<[RegExp, number]> = [
-  [/موجود\s*ومفعّ?ل|existing\s*and\s*activated/i, 5],
-  [/موجود\s*وغير\s*مفعّ?ل|existing\s*but\s*not\s*activated/i, 3],
-  [/بحاجة\s*إلى\s*تحديث|needs\s*review/i, 2],
-  [/قيد\s*الإعداد|under\s*development/i, 1.5],
-  [/غير\s*موجود|not\s*exist/i, 0],
-];
+export const GOV_TEXT_SCORE: Array<[RegExp, number]> = GOV_TEXT_STATUS.map(([re, s]) => [re, GOV_LIKERT[s]]);
 export const AGREE_TEXT_SCORE: Array<[RegExp, number]> = [
   [/موافق\s*جدًا|strongly\s*agree/i, 5],
   [/غير\s*موافق\s*(إطلاقًا|تمامًا)|strongly\s*disagree/i, 1],
