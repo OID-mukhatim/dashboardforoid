@@ -1,3 +1,4 @@
+import { nearestGovStatus } from "@/lib/gov-likert";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -51,14 +52,7 @@ export function GovernanceSection() {
     return ALL_POLICIES;
   }, [cat]);
 
-  const statusFromGovScore = (score: number | null | undefined): PolicyStatus | null => {
-    if (typeof score !== "number" || !Number.isFinite(score)) return null;
-    if (score >= 4) return "active";
-    if (score >= 3) return "inactive";
-    if (score >= 2) return "review";
-    if (score >= 1) return "inDev";
-    return "missing";
-  };
+  const statusFromGovScore = (score: number | null | undefined): PolicyStatus | null => nearestGovStatus(score);
 
   // الحالة من قاعدة البيانات فقط؛ عند غيابها تُشتق مؤقتاً من درجة الحوكمة الحية
   const effectivePolicyStatus = (policyId: string, orgId: OrgId): PolicyStatus => {
