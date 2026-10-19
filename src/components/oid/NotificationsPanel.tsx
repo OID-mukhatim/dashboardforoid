@@ -1,8 +1,14 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { Bell, XCircle, AlertTriangle, Info, CheckCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { institutions, kpiData, alerts as staticAlerts, type OrgId } from "@/lib/oid-data";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
+import { ORGS, type OrgId } from "@/lib/oid-data";
 import { detectAllAnomalies } from "@/lib/oid-anomalies";
+import { computeAllProfilesFromLive } from "@/lib/oid-composite";
+import { loadActiveKPIs } from "@/lib/dashboard.functions";
+import { useDashboardSnapshotQuery } from "@/routes/_authenticated/sections/_shared";
 
 export type SectionId =
   | "dashboard" | "kpis" | "quarterly" | "gaps" | "governance"
@@ -38,25 +44,44 @@ function parseDate(v: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** توليد التنبيهات تلقائياً من البيانات الموجودة */
+/** توليد التنبيهات تلقائياً من بيانات قاعدة البيانات فقط */
 export function useAutoNotifications(): Notification[] {
+  const { data: snap } = useDashboardSnapshotQuery();
+  const activeKpisFn = useServerFn(loadActiveKPIs);
+
+  const { data: dbInstitutions } = useQuery({
+    queryKey: ["institutions-licenses"],
+    queryFn: async () => {
+      const { data } = await supabase.from("institutions").select("id, name_ar, license_expiry");
+      return (data ?? []) as { id: string; name_ar: string | null; license_expiry: string | null }[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: activeKpis } = useQuery({
+    queryKey: ["kpis-active"],
+    queryFn: () => activeKpisFn(),
+    staleTime: 60 * 1000,
+  });
+
   return useMemo(() => {
     const notifs: Notification[] = [];
     const now = new Date();
 
-    // 1) التراخيص المنتهية أو التي تقترب من الانتهاء
-    for (const inst of institutions) {
-      if (!inst.licenseExpiry) continue;
-      const expiry = parseDate(inst.licenseExpiry);
+    // 1) التراخيص المنتهية أو التي تقترب من الانتهاء (من قاعدة البيانات)
+    for (const inst of dbInstitutions ?? []) {
+      if (!inst.license_expiry) continue;
+      const expiry = parseDate(inst.license_expiry);
       if (!expiry) continue;
+      const name = inst.name_ar ?? ORGS.find((o) => o.id === inst.id)?.nameAr ?? inst.id;
       const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / 86400000);
       if (daysLeft < 0) {
         notifs.push({
           id: `license-expired-${inst.id}`,
           type: "license_expiry",
           severity: "critical",
-          title: `ترخيص ${inst.nameAr} منتهٍ`,
-          message: `انتهى ترخيص ${inst.nameAr} منذ ${Math.abs(daysLeft)} يوم — يحتاج تجديداً فورياً`,
+          title: `ترخيص ${name} منتهٍ`,
+          message: `انتهى ترخيص ${name} منذ ${Math.abs(daysLeft)} يوم — يحتاج تجديداً فورياً`,
           orgId: inst.id as OrgId,
           createdAt: now,
           read: false,
@@ -67,8 +92,8 @@ export function useAutoNotifications(): Notification[] {
           id: `license-expiring-${inst.id}`,
           type: "license_expiry",
           severity: "warning",
-          title: `ترخيص ${inst.nameAr} ينتهي قريباً`,
-          message: `يتبقى ${daysLeft} يوم على انتهاء ترخيص ${inst.nameAr}`,
+          title: `ترخيص ${name} ينتهي قريباً`,
+          message: `يتبقى ${daysLeft} يوم على انتهاء ترخيص ${name}`,
           orgId: inst.id as OrgId,
           createdAt: now,
           read: false,
@@ -77,8 +102,21 @@ export function useAutoNotifications(): Notification[] {
       }
     }
 
-    // 2) الشذوذات عالية الخطورة
-    for (const anomaly of detectAllAnomalies().filter((a) => a.severity === "high")) {
+    // 2) الشذوذات عالية الخطورة (من الملفات الحية)
+    const profiles = computeAllProfilesFromLive(
+      Object.fromEntries(
+        ORGS.map((o) => [
+          o.id,
+          {
+            gapAvg: snap?.matrix?.[o.id]?.gapAvg ?? null,
+            govScore: snap?.matrix?.[o.id]?.govScore ?? null,
+            kpiScorePct: snap?.kpi?.[o.id]?.weightedAvgPct ?? null,
+            finScore: snap?.matrix?.[o.id]?.finScore ?? null,
+          },
+        ]),
+      ) as any,
+    );
+    for (const anomaly of detectAllAnomalies(profiles).filter((a) => a.severity === "high")) {
       notifs.push({
         id: `anomaly-${anomaly.id}`,
         type: "anomaly",
@@ -92,38 +130,26 @@ export function useAutoNotifications(): Notification[] {
       });
     }
 
-    // 3) مؤشرات تحت 30% من المستهدف
-    for (const kpi of kpiData) {
-      if (typeof kpi.progress !== "number" || kpi.progress >= 30) continue;
+    // 3) مؤشرات تحت 30% من المستهدف (مؤشرات السنة النشطة)
+    for (const kpi of (activeKpis ?? []) as any[]) {
+      const pct = Number(kpi.achievement_pct);
+      if (!Number.isFinite(pct) || pct >= 30) continue;
       notifs.push({
-        id: `kpi-low-${kpi.code}`,
+        id: `kpi-low-${kpi.kpi_code}`,
         type: "kpi_below_target",
         severity: "warning",
-        title: `مؤشر متأخر: ${kpi.code}`,
-        message: `${kpi.kpi} — ${kpi.progress}% فقط من المستهدف`,
-        orgId: kpi.org as OrgId,
+        title: `مؤشر متأخر: ${kpi.kpi_code}`,
+        message: `${kpi.kpi_name ?? ""} — ${pct}% فقط من المستهدف`,
+        orgId: kpi.entity_code as OrgId,
         createdAt: now,
         read: false,
         action: { label: "عرض المؤشرات", sectionId: "kpis" },
       });
     }
 
-    // 4) تنبيهات عامة قائمة
-    staticAlerts.forEach((a, i) => {
-      notifs.push({
-        id: `alert-${i}`,
-        type: "quarterly_due",
-        severity: a.level === "danger" ? "critical" : a.level === "warning" ? "warning" : "info",
-        title: a.title,
-        message: a.action,
-        createdAt: now,
-        read: false,
-      });
-    });
-
     const order = { critical: 0, warning: 1, info: 2 } as const;
     return notifs.sort((a, b) => order[a.severity] - order[b.severity]);
-  }, []);
+  }, [dbInstitutions, snap, activeKpis]);
 }
 
 const STORAGE_KEY = "oid.notifications.read";
