@@ -177,16 +177,22 @@ export function GapsSection() {
         <Card>
           <CardHeader title={t("gaps.criticalTitle")} />
           <div className="p-5 space-y-2">
-            {criticalGaps.map((g, i) => (
-              <div key={g.rank} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/20">
-                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">{g.rank}</div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium">{t(`gaps.items.${i}`)}</div>
-                  <div className="text-xs text-muted-foreground">{t("gaps.affectedLabel")} {g.affected} • {t("gaps.averageLabel")} {g.avg.toFixed(2)}</div>
+            {liveCriticalGaps.length === 0 ? (
+              <EmptyData msg={t("gaps.noData")} />
+            ) : liveCriticalGaps.map((g, i) => {
+              const priorityKey = g.avg < 2 ? "veryCritical" : g.avg < 3 ? "critical" : "high";
+              const tone = priorityKey === "veryCritical" ? "bg-red-100 text-red-700" : priorityKey === "critical" ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700";
+              return (
+                <div key={g.axisIndex} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/20">
+                  <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">{i + 1}</div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{t(`gaps.axes.${g.axisIndex}`)}</div>
+                    <div className="text-xs text-muted-foreground">{t("gaps.affectedLabel")} {g.affected}/{g.total} • {t("gaps.averageLabel")} {g.avg.toFixed(2)}</div>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${tone}`}>{t(`gaps.priorities.${priorityKey}`)}</span>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${g.priority.includes("جداً") ? "bg-red-100 text-red-700" : g.priority==="حرج" ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700"}`}>{t(`gaps.priorities.${g.priority.includes("جداً") ? "veryCritical" : g.priority === "حرج" ? "critical" : "high"}`)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       </div>
