@@ -141,7 +141,7 @@ export function DashboardSection() {
       staff, budget, beneficiaries, avgScore, avgMaturity,
       kpisLive, activePartners,
     };
-  }, [orgFilter, liveProfiles, snap, partnershipList, lang, t]);
+  }, [orgFilter, liveProfiles, snap, partnershipList, dbInstitutions, lang, t]);
 
   return (
     <div className="space-y-6">
