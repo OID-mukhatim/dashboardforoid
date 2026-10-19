@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Users, Heart, Coins, TrendingUp, BarChart3, Target, Handshake, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Building2, Users, Heart, Coins, TrendingUp, BarChart3, Target, Handshake } from "lucide-react";
 import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend } from "recharts";
 import { ORGS, type OrgId, GAP_AXES } from "@/lib/oid-data";
 import { CompositeScoreCard } from "@/components/oid/CompositeScoreCard";
@@ -57,17 +57,6 @@ export function DashboardSection() {
     }
     return out;
   }, [snap]);
-
-  // هل هذه المؤسسة تعتمد على البيانات الثابتة (لا يوجد مصدر حي بعد)؟
-  const orgUsesFallback = (id: OrgId) => {
-    const m = snap?.matrix?.[id];
-    const k = snap?.kpi?.[id];
-    const hasLive =
-      (m && (m.gapAvg != null || m.govScore != null || m.finScore != null)) ||
-      (k && k.weightedAvgPct != null);
-    return !hasLive;
-  };
-  const globalFallback = !snap || ORGS.every((o) => orgUsesFallback(o.id));
 
   const axisKeys = ["strategy", "leadership", "performance", "operations", "finance", "infrastructure", "governance"];
   const radarData = GAP_AXES.map((axis, i) => {
@@ -161,14 +150,6 @@ export function DashboardSection() {
         </select>
       </div>
 
-      {globalFallback && (
-        <div className="flex justify-end">
-          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
-            {t("dashboard.demoData")}
-          </span>
-        </div>
-      )}
-
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label={t("dashboard.totalOrgs")} value={String(stats.orgsCount)} sub={stats.orgsSub} icon={Building2} accent="#1d4ed8" />
         <StatCard label={t("dashboard.totalStaff")} value={stats.staff ? `${fmtNum(stats.staff)}+` : "—"} sub={orgFilter === "all" ? t("dashboard.acrossNetwork") : t("dashboard.inOrg")} icon={Users} accent="#15803d" />
@@ -194,7 +175,7 @@ export function DashboardSection() {
               .filter((o) => orgFilter === "all" || o.id === orgFilter)
               .map((o) => (
                 <div key={o.id} className="space-y-2">
-                  <CompositeScoreCard orgId={o.id} profile={liveProfiles[o.id]} usingFallback={orgUsesFallback(o.id)} />
+                  <CompositeScoreCard orgId={o.id} profile={liveProfiles[o.id]} sources={snap?.matrix?.[o.id]?.sources} />
                   <KPIPerformanceBreakdown perf={kpiPerf?.[o.id]} />
                 </div>
               ))}
