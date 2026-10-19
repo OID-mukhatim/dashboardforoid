@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { ChevronRight, ImageUp, Loader2 } from "lucide-react";
-import { type OrgId, institutions } from "@/lib/oid-data";
+import { ORGS, type OrgId } from "@/lib/oid-data";
 import { OrgLogo } from "@/components/oid/OrgLogo";
 import { openOrgProfile } from "@/lib/oid-drill";
 import { loadInstitutionalProfiles } from "@/lib/dashboard.functions";
@@ -50,10 +50,10 @@ export function ProfilesSection() {
     },
   });
 
-  // 2) دمج: قاعدة البيانات تتغلب على البيانات الثابتة
+  // 2) دمج: الهوية من ORGS (أسماء/ألوان) + كل الحقول من قاعدة البيانات والاستمارات المرفوعة
   const merged = useMemo(
     () =>
-      institutions.map((s) => {
+      ORGS.map((s) => {
         const d = dbInstitutions?.find((x) => x.id === s.id);
         return { ...s, db: d ?? null };
       }),
