@@ -286,23 +286,8 @@ export function DashboardSection() {
         <Card className="lg:col-span-2">
           <CardHeader title={t("dashboard.alertsTitle")} subtitle={t("dashboard.alertsSubtitle")} />
           <div className="p-5 space-y-2">
-            {alerts.map((a, i) => {
-              const styles: any = {
-                danger: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", icon: XCircle },
-                warning: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700", icon: AlertTriangle },
-                success: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", icon: CheckCircle2 },
-              }[a.level];
-              const Ic = styles.icon;
-              return (
-                <div key={i} className={`flex items-start gap-3 p-3 rounded-lg border ${styles.bg} ${styles.border}`}>
-                  <Ic size={18} className={styles.text} />
-                  <div className="flex-1">
-                     <div className={`text-sm font-medium ${styles.text}`}>{t(`dashboard.alertItems.${["hamdiLicense", "zadGovernance", "automation", "income", "zustAudit", "kafiGovernance"][i]}`)}</div>
-                     <div className="text-xs text-muted-foreground mt-0.5">{t(`dashboard.alertItems.${["renewNow", "urgent", "digitalProgram", "fundingFramework", "qualitativeStep", "roleModel"][i]}`)}</div>
-                  </div>
-                </div>
-              );
-            })}
+            {/* التنبيهات ستُبنى من محرك التنبيهات على بيانات قاعدة البيانات — حالياً لا توجد تنبيهات ثابتة */}
+            <EmptyData msg={t("dashboard.noAlerts")} />
           </div>
         </Card>
 
@@ -311,8 +296,7 @@ export function DashboardSection() {
           <div className="p-5 grid grid-cols-2 gap-3">
             {ORGS.map((o) => {
               const liveGov = snap?.matrix?.[o.id]?.govPct;
-              const fallback = orgOverallScores.find((s) => s.id === o.id)?.govPct ?? null;
-              const pct = typeof liveGov === "number" ? liveGov : fallback;
+              const pct = typeof liveGov === "number" ? liveGov : null;
               return (
                 <div key={o.id} className="border border-border rounded-lg p-3 text-center">
                   <div className="text-xs text-muted-foreground mb-1 whitespace-normal break-words">{lang === "ar" ? o.nameAr : o.nameEn}</div>
@@ -408,7 +392,7 @@ function BSCPerformanceMap() {
       const items = cleanRows.filter(r => r.entity_code === code && matchPerspective(r.sector) === p.key);
       const vals = items.map(r => {
         const n = Number(r.achievement_pct ?? 0);
-        return Number.isFinite(n) ? (n <= 1 ? n * 100 : n) : 0;
+        return Number.isFinite(n) ? n : 0;
       });
       const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
       return { code, name: allOrgs.find(o => o.code === code)?.name ?? code, count: items.length, avg: Math.round(avg) };
