@@ -414,6 +414,7 @@ export const UI_STRINGS = {
       exportExcel: "تصدير Excel",
     },
     gaps: {
+      noData: "لا توجد بيانات فجوات بعد — ارفع تقييم الفجوات",
       title: "تحليل الفجوات المؤسسية",
       heatmap: "خريطة الحرارة",
       radar: "مخطط الرادار",
@@ -1107,6 +1108,7 @@ export const UI_STRINGS = {
       exportExcel: "Export Excel",
     },
     gaps: {
+      noData: "No gap data yet — upload the gap assessment",
       title: "Institutional Gap Analysis",
       heatmap: "Heat Map",
       radar: "Radar Chart",
