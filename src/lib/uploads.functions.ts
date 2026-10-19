@@ -456,6 +456,26 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
     if (exErr) throw exErr;
     const existing = (existingData ?? []) as unknown as Array<Record<string, string | number | null>>;
 
+    // سنة الأساس = أقدم سنة متاحة للمؤسسة (قاعدة البيانات + الملف الحالي) — لا سنة ثابتة
+    {
+      const { data: allYears } = await supabaseAdmin
+        .from("kpis")
+        .select("entity_code, plan_year")
+        .in("entity_code", entityCodes.length ? entityCodes : [""]);
+      const minYear = new Map<string, number>();
+      for (const r of (allYears ?? []) as Array<{ entity_code: string; plan_year: number | null }>) {
+        const y = Number(r.plan_year);
+        if (!Number.isFinite(y)) continue;
+        minYear.set(r.entity_code, Math.min(y, minYear.get(r.entity_code) ?? y));
+      }
+      for (const row of uniq) {
+        const ent = String(row.entity_code);
+        const py = Number(row.plan_year);
+        const base = Math.min(py, minYear.get(ent) ?? py);
+        (row as { is_baseline?: boolean }).is_baseline = py === base;
+      }
+    }
+
     const exMap = new Map(
       existing.map((r) => [`${r.entity_code}__${r.kpi_code}__${r.period}`, r]),
     );
