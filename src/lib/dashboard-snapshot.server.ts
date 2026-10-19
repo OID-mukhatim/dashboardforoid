@@ -1,3 +1,4 @@
+import { govStatusScore, govAverage } from "./gov-likert";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { DashboardSnapshot, LiveMatrixEntry, LiveKpiEntry, OrgCode } from "./dashboard.functions";
