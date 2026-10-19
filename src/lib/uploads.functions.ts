@@ -428,7 +428,7 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
           sector: lastSector,
           objective: toStr(row[cols.objective]), kpi_code: kpiCodeWithYear(code, planYear), kpi_name: name, kpi_type: toStr(row[cols.type]),
           unit: cols.unit >= 0 ? toStr(row[cols.unit]) : null, polarity: cols.polarity >= 0 ? toStr(row[cols.polarity]) : null, frequency: cols.frequency >= 0 ? toStr(row[cols.frequency]) : null,
-          plan_year: planYear, is_baseline: planYear === baselineYear, fiscal_type: ACADEMIC_ORGS.has(rowEntity) ? "academic" : "calendar",
+          plan_year: planYear, is_baseline: false, fiscal_type: ACADEMIC_ORGS.has(rowEntity) ? "academic" : "calendar",
           weight: toNum(row[cols.weight]), baseline: toNum(row[cols.baseline]), annual_target: toNum(row[cols.target]),
           q1_planned: toNum(row[cols.q1p]), q2_planned: toNum(row[cols.q2p]), q3_planned: toNum(row[cols.q3p]), q4_planned: toNum(row[cols.q4p]),
           total_planned: toNum(row[cols.totalPlanned]),
