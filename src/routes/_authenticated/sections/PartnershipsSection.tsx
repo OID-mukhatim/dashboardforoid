@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, Plus, X } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from "recharts";
-import { ORGS, type OrgId, partnerships as fallbackPartnerships } from "@/lib/oid-data";
+import { ORGS, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { Card, CardHeader, EmptyData, SectionTitle, OrgChip, FilterSelect } from "./_shared";
 import { useLang } from "@/lib/lang-context";
@@ -167,14 +167,8 @@ export function PartnershipsSection() {
     },
   });
 
-  // 2) استخدام بيانات قاعدة البيانات إن توفرت، وإلا fallback إلى oid-data.ts
-  const activePartnerships: UnifiedPartnership[] = useMemo(() => {
-    if (dbPartnerships && dbPartnerships.length >= 0) return dbPartnerships;
-    return fallbackPartnerships.map(p => ({
-      id: p.id, name: p.name, type: p.type, status: p.status,
-      geography: p.geography, linkedOrgs: p.linkedOrgs, name_en: null, description: null, contact: null,
-    }));
-  }, [dbPartnerships]);
+  // 2) قاعدة البيانات هي المصدر الوحيد — لا بيانات ثابتة
+  const activePartnerships: UnifiedPartnership[] = useMemo(() => dbPartnerships ?? [], [dbPartnerships]);
 
   // 3) حالة الفلاتر
   const [filters, setFilters] = useState({ type: "all", status: "all", geography: "all", org: "all" });

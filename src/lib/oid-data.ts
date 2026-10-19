@@ -102,6 +102,75 @@ export const educationPolicies: PolicyRow[] = [
   { id: "EP-05", name: "لائحة الكادر التعليمي والإداري" },
 ];
 
+/* ============ التقويم المالي / الأكاديمي لكل مؤسسة ============ */
+export const ORG_FISCAL_YEAR: Record<OrgId, "calendar" | "academic"> = {
+  ZF: "calendar",
+  ZAD: "calendar",
+  KAFI: "calendar",
+  ZUST: "academic",
+  TAYO: "academic",
+  HAMDI: "academic",
+};
+
+export const FISCAL_QUARTERS: Record<
+  "calendar" | "academic",
+  { q: string; label: string; months: string }[]
+> = {
+  calendar: [
+    { q: "Q1", label: "الربع الأول", months: "يناير - مارس" },
+    { q: "Q2", label: "الربع الثاني", months: "أبريل - يونيو" },
+    { q: "Q3", label: "الربع الثالث", months: "يوليو - سبتمبر" },
+    { q: "Q4", label: "الربع الرابع", months: "أكتوبر - ديسمبر" },
+  ],
+  academic: [
+    { q: "Q1", label: "الربع الأول", months: "أكتوبر - ديسمبر" },
+    { q: "Q2", label: "الربع الثاني", months: "يناير - مارس" },
+    { q: "Q3", label: "الربع الثالث", months: "أبريل - يونيو" },
+    { q: "Q4", label: "الربع الرابع", months: "يوليو - سبتمبر" },
+  ],
+};
+
+/** الأشهر التي يغطيها ربع معيّن لمؤسسة معيّنة (أو null إذا كان الربع غير معروف). */
+export const quarterMonths = (orgId: string | null | undefined, q: string | null | undefined): string | null => {
+  if (!q) return null;
+  const type = ORG_FISCAL_YEAR[orgId as OrgId] ?? "calendar";
+  return FISCAL_QUARTERS[type].find((x) => x.q === q)?.months ?? null;
+};
+
+export const getQuarterLabel = (orgId: OrgId | string, q: string): string => {
+  const months = quarterMonths(orgId, q);
+  return months ? `${q} (${months})` : q;
+};
+
+/* ============ حالات بنود برنامج الإدارة المالية ============ */
+export type ProgramStatus = "done" | "inProgress" | "delayed" | "notYet";
+export const PROGRAM_STATUS_META: Record<ProgramStatus, { label: string; color: string }> = {
+  done: { label: "مكتمل", color: "bg-green-100 text-green-700 border-green-300" },
+  inProgress: { label: "قيد التنفيذ", color: "bg-blue-100 text-blue-700 border-blue-300" },
+  delayed: { label: "مؤجل", color: "bg-orange-100 text-orange-700 border-orange-300" },
+  notYet: { label: "لم يبدأ", color: "bg-gray-100 text-gray-600 border-gray-300" },
+};
+
+/* ============ قواعد الأوزان النسبية للمؤشرات ============ */
+export const WEIGHT_RULES = {
+  perspectiveWeight: 25,
+  totalWeight: 100,
+  tolerance: 0.01,
+};
+
+const pickField = (row: Record<string, unknown>, keys: string[]): string => {
+  for (const k of keys) {
+    const v = row[k];
+    if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+  }
+  return "";
+};
+
+const toWeight = (v: string): number => {
+  const n = parseFloat(v.replace("%", "").replace(",", "."));
+  if (!Number.isFinite(n)) return 0;
+  // وزن مخزَّن ككسر (0.05) يُحوَّل إلى نسبة مئوية
+  return n > 0 && n <= 1 ? n * 100 : n;
 };
 
 /** التحقق من أن كل منظور = 25% والمجموع الكلي = 100%. */

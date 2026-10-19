@@ -1,13 +1,13 @@
 import { useMemo, useRef, useState } from "react";
 import { ChevronRight, ImageUp, Loader2 } from "lucide-react";
-import { type OrgId, institutions } from "@/lib/oid-data";
+import { ORGS, type OrgId } from "@/lib/oid-data";
 import { OrgLogo } from "@/components/oid/OrgLogo";
 import { openOrgProfile } from "@/lib/oid-drill";
 import { loadInstitutionalProfiles } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, EmptyData, SectionTitle, Row } from "./_shared";
+import { Card, SectionTitle, Row, useDashboardSnapshotQuery } from "./_shared";
 import { useLang } from "@/lib/lang-context";
 import { TranslatableText } from "@/components/oid/TranslatableText";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ type DbInstitution = {
 export function ProfilesSection() {
   const { lang, t, tFormat } = useLang();
   const qc = useQueryClient();
+  const { data: snap } = useDashboardSnapshotQuery();
   const profilesFn = useServerFn(loadInstitutionalProfiles);
   const { data: liveProfiles = {} } = useQuery({
     queryKey: ["institutional-profiles"],
@@ -50,10 +51,10 @@ export function ProfilesSection() {
     },
   });
 
-  // 2) دمج: قاعدة البيانات تتغلب على البيانات الثابتة
+  // 2) دمج: الهوية من ORGS (أسماء/ألوان) + كل الحقول من قاعدة البيانات والاستمارات المرفوعة
   const merged = useMemo(
     () =>
-      institutions.map((s) => {
+      ORGS.map((s) => {
         const d = dbInstitutions?.find((x) => x.id === s.id);
         return { ...s, db: d ?? null };
       }),
@@ -98,16 +99,18 @@ export function ProfilesSection() {
         {merged.map(o => {
           const db = o.db;
           const live = liveProfiles[o.id];
-          const founded = db?.founded ?? pick(o.id, /تاريخ\s*التأسيس/) ?? o.founded;
-          const license = db?.license_number ?? pick(o.id, /رقم\s*الترخيص/) ?? o.license;
-          const expiry = db?.license_expiry ?? pick(o.id, /تاريخ\s*الصلاحية/) ?? o.licenseExpiry;
-          const exec = db?.exec_name_ar ?? pick(o.id, /المدير\s*التنفيذي.*العرب/, /المدير\s*التنفيذي/) ?? o.execAr;
+          const founded = db?.founded ?? pick(o.id, /تاريخ\s*التأسيس/);
+          const license = db?.license_number ?? pick(o.id, /رقم\s*الترخيص/);
+          const expiry = db?.license_expiry ?? pick(o.id, /تاريخ\s*الصلاحية/);
+          const exec = db?.exec_name_ar ?? pick(o.id, /المدير\s*التنفيذي.*العرب/, /المدير\s*التنفيذي/);
           const email = db?.exec_email ?? pick(o.id, /الإيميل/, /email/i);
           const phone = db?.exec_phone ?? pick(o.id, /رقم\s*التواصل/, /phone/i);
           const site = extractUrl(db?.website ?? pick(o.id, /الموقع\s*الالكتروني|website/i));
           const address = db?.address ?? pick(o.id, /عنوان\s*المقر|address/i);
-          const staffTotal = db?.staff_total ?? o.staff.total;
-          const budget = db?.budget ?? o.budget;
+          const staffTotal = db?.staff_total ?? null;
+          const budget = db?.budget ?? null;
+          const gapScore = snap?.matrix?.[o.id as OrgId]?.gapAvg ?? null;
+          const govScore = snap?.matrix?.[o.id as OrgId]?.govScore ?? null;
           return (
           <Card key={o.id} className="p-5 hover:shadow-md hover:border-primary/40 transition">
             <div onClick={() => openOrgProfile(o.id as OrgId)} role="button" tabIndex={0} className="cursor-pointer"
@@ -124,7 +127,7 @@ export function ProfilesSection() {
                 </span>
               )}
             </div>
-            <div className="text-xs text-muted-foreground mb-3"><TranslatableText text={db?.sector ?? o.sector} /></div>
+            <div className="text-xs text-muted-foreground mb-3"><TranslatableText text={db?.sector ?? null} /></div>
             <dl className="space-y-1.5 text-xs">
               <Row k={t("profiles.founded")} v={<TranslatableText text={founded} />} />
               <Row k={t("profiles.license")} v={<TranslatableText text={license} />} />
@@ -140,18 +143,12 @@ export function ProfilesSection() {
             <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
               <span className="text-xs">{t("profiles.performance")}</span>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${o.color}15`, color: o.color }}>
-                {o.score !== null ? o.score.toFixed(2) : "—"}
+                {gapScore !== null ? gapScore.toFixed(2) : "—"}
               </span>
               <span className="text-xs ml-1">{t("profiles.governance")}</span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted">{o.govScore !== null ? `${o.govScore.toFixed(2)}` : "—"}</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted">{govScore !== null ? `${govScore.toFixed(2)}` : "—"}</span>
               {live && <span className="text-[10px] text-muted-foreground ml-auto">{tFormat("profiles.uploadedFields", { count: live.fieldCount })}</span>}
             </div>
-            {o.alerts && o.alerts.length > 0 && (
-              <div className="mt-3 space-y-1">
-                {o.alerts.map((a, i) => <div key={i} className="text-xs p-2 rounded bg-red-50 text-red-700 border border-red-200"><TranslatableText text={a} /></div>)}
-              </div>
-            )}
-            {(o as any).dataStatus === "pending" && !live && !db && <div className="mt-3"><EmptyData msg={t("profiles.incomplete")} /></div>}
             </div>
             <Button variant="outline" onClick={() => openOrgProfile(o.id as OrgId)} className="mt-4 w-full text-xs text-primary">{t("profiles.detailedReport")} <ChevronRight size={14} className={lang === "ar" ? "rotate-180" : ""} /></Button>
           </Card>

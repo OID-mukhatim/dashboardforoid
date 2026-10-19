@@ -15,13 +15,12 @@ import {
 } from "recharts";
 import { X, Building2, Users, Coins, Calendar, ShieldCheck, Phone, Mail, AlertTriangle, Printer } from "lucide-react";
 import {
-  ORGS, type OrgId, GAP_AXES, gapScores, institutions,
-  partnerships, initiatives, financialAssessment, financialProgram,
+  ORGS, type OrgId, GAP_AXES,
   generalPolicies, humanitarianPolicies, universityPolicies, educationPolicies,
-  POLICY_STATUS_META,
+  POLICY_STATUS_META, type PolicyStatus,
 } from "@/lib/oid-data";
 import { ORG_LOGOS } from "@/lib/oid-logos";
-import { computeProfile, computeProfileFromLive, type LiveInputs } from "@/lib/oid-composite";
+import { computeProfileFromLive, type LiveInputs } from "@/lib/oid-composite";
 import { detectAnomalies, getSeverityMeta, getCategoryLabel } from "@/lib/oid-anomalies";
 import { computeTrend, getSeries, type TimelineDomain } from "@/lib/oid-timeline";
 import { useOrgDrill, closeOrgProfile } from "@/lib/oid-drill";
@@ -29,7 +28,7 @@ import { DATA_STATES } from "@/lib/oid-data-states";
 import { quarterMonths } from "@/lib/oid-data";
 import { formatScore, formatBudget, formatPct, formatCount } from "@/lib/oid-formatting";
 import { TrendBadge } from "./TrendBadge";
-import { useDashboardSnapshotQuery } from "@/routes/_authenticated/sections/_shared";
+import { useDashboardSnapshotQuery, getLiveGapValue } from "@/routes/_authenticated/sections/_shared";
 import { loadInstitutionalProfiles } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useLang } from "@/lib/lang-context";
@@ -60,7 +59,6 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
   const [tab, setTab] = useState<TabKey>("overview");
   const org = ORGS.find((o) => o.id === orgId);
   if (!org) return null;
-  const inst = institutions.find((i) => i.id === orgId);
   const trend = computeTrend(orgId, "composite");
 
   // ---- Live data from DB ----
@@ -104,6 +102,29 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
     },
     enabled: !!orgId,
   });
+  // سياسات الحوكمة الحية لهذه المؤسسة
+  const { data: dbPolicies } = useQuery({
+    queryKey: ["governance-policies", orgId],
+    queryFn: async () => {
+      const { data } = await supabase.from("governance_policies").select("policy_id, status").eq("org_id", orgId);
+      return data ?? [];
+    },
+    enabled: !!orgId,
+  });
+  // أحدث snapshot مكتمل لأعمال المستشار المالي (التقييم + البرنامج)
+  const { data: advisorSnap } = useQuery({
+    queryKey: ["advisor-latest"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("advisor_snapshots")
+        .select("assessment, program")
+        .eq("done", true)
+        .order("period_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
 
   // ---- Composite score from live snapshot ----
   const live: LiveInputs = {
@@ -115,13 +136,28 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
   const profile = computeProfileFromLive(orgId, live);
 
   const allProfiles = useMemo(() => {
-    const m = {} as Record<OrgId, ReturnType<typeof computeProfile>>;
-    for (const o of ORGS) m[o.id] = computeProfile(o.id);
+    const m = {} as Record<OrgId, ReturnType<typeof computeProfileFromLive>>;
+    for (const o of ORGS) {
+      m[o.id] = computeProfileFromLive(o.id, {
+        gapAvg: snap?.matrix?.[o.id]?.gapAvg ?? undefined,
+        govScore: snap?.matrix?.[o.id]?.govScore ?? undefined,
+        kpiScorePct: snap?.kpi?.[o.id]?.weightedAvgPct ?? undefined,
+        finScore: snap?.matrix?.[o.id]?.finScore ?? undefined,
+      });
+    }
     return m;
-  }, []);
-  const anomalies = useMemo(() => detectAnomalies(orgId, allProfiles), [orgId, allProfiles]);
+  }, [snap]);
+  // قيم المحاور السبعة الحية لهذه المؤسسة (من snapshot)
+  const liveGapAxes = useMemo(
+    () => GAP_AXES.map((ax) => getLiveGapValue(snap, orgId, ax)),
+    [snap, orgId],
+  );
+  const anomalies = useMemo(
+    () => detectAnomalies(orgId, allProfiles, lang, { gapAxes: liveGapAxes }),
+    [orgId, allProfiles, lang, liveGapAxes],
+  );
 
-  // الشراكات: حية من قاعدة البيانات + fallback ثابت
+  // الشراكات: من قاعدة البيانات فقط
   const livePartnerships = (dbPartnerships ?? []).map((p: any) => ({
     id: p.id ?? p.name,
     name: p.name,
@@ -130,12 +166,9 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
     geography: p.geography,
     description: p.description,
   }));
-  const orgPartnerships =
-    livePartnerships.length > 0
-      ? livePartnerships
-      : partnerships.filter((p) => p.linkedOrgs.includes(orgId as any));
+  const orgPartnerships = livePartnerships;
 
-  // المبادرات: حية + fallback ثابت
+  // المبادرات: من قاعدة البيانات فقط
   const liveInits = (dbInitiatives ?? []).map((i: any) => ({
     id: i.code ?? i.id,
     priority: i.priority,
@@ -146,12 +179,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
     cost: i.cost,
     timeline: i.timeline,
   }));
-  const orgInitiatives =
-    liveInits.length > 0
-      ? liveInits
-      : initiatives.filter(
-          (i) => i.orgs.includes(org.nameAr) || i.orgs.includes(orgId as any) || i.orgs.includes("الجميع"),
-        );
+  const orgInitiatives = liveInits;
 
   // سياسات تخص المؤسسة (من كل المجموعات)
   const allPolicyGroups = [
@@ -160,36 +188,43 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
     { label: t("profileDetail.policyGroups.university"), rows: universityPolicies },
     { label: t("profileDetail.policyGroups.education"), rows: educationPolicies },
   ];
+  // حالة كل سياسة من قاعدة البيانات فقط (governance_policies)
+  const policyStatusMap = useMemo(() => {
+    const m = new Map<string, PolicyStatus>();
+    for (const p of dbPolicies ?? []) m.set(p.policy_id as string, p.status as PolicyStatus);
+    return m;
+  }, [dbPolicies]);
   const orgPolicies = allPolicyGroups.flatMap((g) =>
     g.rows
-      .filter((r) => r.values[orgId])
-      .map((r) => ({ group: g.label, id: r.id, name: r.name, status: r.values[orgId] })),
+      .filter((r) => policyStatusMap.has(r.id))
+      .map((r) => ({ group: g.label, id: r.id, name: r.name, status: policyStatusMap.get(r.id)! })),
   );
 
-  const fin = (financialAssessment as any)[orgId] as undefined | typeof financialAssessment.ZUST;
-  const finProg = (financialProgram as any)[orgId] as undefined | typeof financialProgram.ZUST;
+  // التقييم والبرنامج المالي من أحدث تقرير مستشار مكتمل في قاعدة البيانات
+  const fin = (advisorSnap?.assessment as Record<string, any> | undefined)?.[orgId];
+  const finProg = (advisorSnap?.program as Record<string, any[]> | undefined)?.[orgId];
 
-  // بيانات الهوية مدمجة (DB يغلب على الثابت)
+  // بيانات الهوية: قاعدة البيانات ثم الاستمارة المرفوعة فقط
   const identity = {
-    founded: dbInst?.founded ?? pick(/تاريخ\s*التأسيس/) ?? inst?.founded,
-    license: dbInst?.license_number ?? pick(/رقم\s*الترخيص/) ?? inst?.license,
-    licenseExpiry: dbInst?.license_expiry ?? pick(/تاريخ\s*الصلاحية/) ?? inst?.licenseExpiry,
-    execAr: dbInst?.exec_name_ar ?? pick(/المدير\s*التنفيذي.*العرب/, /المدير\s*التنفيذي/) ?? inst?.execAr,
+    founded: dbInst?.founded ?? pick(/تاريخ\s*التأسيس/),
+    license: dbInst?.license_number ?? pick(/رقم\s*الترخيص/),
+    licenseExpiry: dbInst?.license_expiry ?? pick(/تاريخ\s*الصلاحية/),
+    execAr: dbInst?.exec_name_ar ?? pick(/المدير\s*التنفيذي.*العرب/, /المدير\s*التنفيذي/),
     deputyName: dbInst?.deputy_name_ar ?? pick(/نائب\s*المدير/),
-    staffTotal: dbInst?.staff_total ?? inst?.staff?.total,
-    budget: dbInst?.budget ?? inst?.budget,
-    sector: dbInst?.sector ?? inst?.sector,
-    branches: dbInst?.branches ?? inst?.branches,
+    staffTotal: dbInst?.staff_total ?? null,
+    budget: dbInst?.budget ?? null,
+    sector: dbInst?.sector ?? null,
+    branches: dbInst?.branches ?? null,
     address: dbInst?.address ?? pick(/عنوان\s*المقر|address/i),
     website: extractUrl(dbInst?.website ?? pick(/الموقع\s*الالكتروني|website/i)),
-    phone: dbInst?.exec_phone ?? pick(/رقم\s*التواصل/, /phone/i) ?? inst?.phone,
-    email: dbInst?.exec_email ?? pick(/الإيميل/, /email/i) ?? inst?.email,
+    phone: dbInst?.exec_phone ?? pick(/رقم\s*التواصل/, /phone/i),
+    email: dbInst?.exec_email ?? pick(/الإيميل/, /email/i),
   };
 
-  // رادار الفجوات لهذه المؤسسة
+  // رادار الفجوات لهذه المؤسسة (قيم حية)
   const radarData = GAP_AXES.map((ax, i) => ({
     axis: t(`gaps.axes.${i}`),
-    score: gapScores[orgId][i] ?? 0,
+    score: liveGapAxes[i] ?? 0,
   }));
 
   // السجل الزمني — مخطط خطي متعدد المجالات
@@ -344,13 +379,6 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
                   <Field icon={Phone} k={t("profileDetail.phone")} v={identity.phone} dir="ltr" />
                   <Field icon={Mail} k={t("profileDetail.email")} v={identity.email} dir="ltr" />
                 </div>
-                {inst?.alerts && inst.alerts.length > 0 && (
-                  <div className="mt-3 space-y-1">
-                    {inst.alerts.map((a, i) => (
-                       <div key={i} className="text-xs p-2 rounded bg-red-50 text-red-700 border border-red-200"><TranslatableText text={a} /></div>
-                    ))}
-                  </div>
-                )}
               </Block>
 
               {/* Financial */}
@@ -442,7 +470,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
               <Block title={t("profileDetail.detailedValues")}>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {GAP_AXES.map((ax, i) => {
-                    const v = gapScores[orgId][i];
+                    const v = liveGapAxes[i];
                     const color = v === null ? "#94a3b8" : v < 2 ? "#dc2626" : v < 3 ? "#ea580c" : v < 4 ? "#d97706" : "#15803d";
                     return (
                       <div key={ax} className="border border-border rounded-lg p-3 text-center">
@@ -482,7 +510,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
           )}
 
           {tab === "partnerships" && (
-            <Block title={tFormat("profileDetail.partnershipsTitle", { count: orgPartnerships.length })} subtitle={livePartnerships.length > 0 ? t("profileDetail.databaseSource") : t("profileDetail.staticSource")}>
+            <Block title={tFormat("profileDetail.partnershipsTitle", { count: orgPartnerships.length })} subtitle={livePartnerships.length > 0 ? t("profileDetail.databaseSource") : undefined}>
               {orgPartnerships.length === 0 ? (
                 <EmptyMini msg={t("profileDetail.noPartnerships")} />
               ) : (
@@ -500,7 +528,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
           )}
 
           {tab === "initiatives" && (
-            <Block title={tFormat("profileDetail.initiativesTitle", { count: orgInitiatives.length })} subtitle={liveInits.length > 0 ? t("profileDetail.databaseSource") : t("profileDetail.staticSource")}>
+            <Block title={tFormat("profileDetail.initiativesTitle", { count: orgInitiatives.length })} subtitle={liveInits.length > 0 ? t("profileDetail.databaseSource") : undefined}>
               {orgInitiatives.length === 0 ? (
                 <EmptyMini msg={t("profileDetail.noInitiatives")} />
               ) : (

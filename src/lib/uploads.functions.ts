@@ -404,7 +404,16 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
       const cols = kpiColumnMap(aoa, headerIdx);
       let lastSector: string | null = null;
       const rowsToParse = headerIdx >= 0 ? aoa.slice(headerIdx + 1) : aoa;
-      for (const row of rowsToParse) {
+      // كشف النسبة من تنسيق خلية Excel (cell.z يحتوي %) — بديل القاعدة التلقائية ≤1×100
+      const pctVal = (row: unknown[], ri: number, colIdx: number): number | null => {
+        if (colIdx < 0) return null;
+        const n = toNum(row[colIdx]);
+        if (n === null) return null;
+        const sheetRow = (headerIdx >= 0 ? headerIdx + 1 : 0) + ri;
+        const cell = (ws as Record<string, { z?: string } | undefined>)[XLSX.utils.encode_cell({ r: sheetRow, c: colIdx })];
+        return typeof cell?.z === "string" && cell.z.includes("%") ? n * 100 : n;
+      };
+      for (const [ri, row] of rowsToParse.entries()) {
         if (!Array.isArray(row)) continue;
         if (!isValidKpiRow(row, cols)) { if (row[cols.name] || row[cols.code]) rejected++; continue; }
         const code = toStr(row[cols.code]);
@@ -419,13 +428,13 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
           sector: lastSector,
           objective: toStr(row[cols.objective]), kpi_code: kpiCodeWithYear(code, planYear), kpi_name: name, kpi_type: toStr(row[cols.type]),
           unit: cols.unit >= 0 ? toStr(row[cols.unit]) : null, polarity: cols.polarity >= 0 ? toStr(row[cols.polarity]) : null, frequency: cols.frequency >= 0 ? toStr(row[cols.frequency]) : null,
-          plan_year: planYear, is_baseline: planYear === 2026, fiscal_type: ACADEMIC_ORGS.has(rowEntity) ? "academic" : "calendar",
+          plan_year: planYear, is_baseline: false, fiscal_type: ACADEMIC_ORGS.has(rowEntity) ? "academic" : "calendar",
           weight: toNum(row[cols.weight]), baseline: toNum(row[cols.baseline]), annual_target: toNum(row[cols.target]),
           q1_planned: toNum(row[cols.q1p]), q2_planned: toNum(row[cols.q2p]), q3_planned: toNum(row[cols.q3p]), q4_planned: toNum(row[cols.q4p]),
           total_planned: toNum(row[cols.totalPlanned]),
           q1_actual: toNum(row[cols.q1a]), q2_actual: toNum(row[cols.q2a]), q3_actual: toNum(row[cols.q3a]), q4_actual: toNum(row[cols.q4a]),
           total_actual: toNum(row[cols.totalActual]),
-          achievement_pct: toNum(row[cols.achievement]), overall_pct: toNum(row[cols.overall]), final_output: toStr(row[cols.output]),
+          achievement_pct: pctVal(row, ri, cols.achievement), overall_pct: pctVal(row, ri, cols.overall), final_output: toStr(row[cols.output]),
           period,
         });
       }
@@ -446,6 +455,26 @@ export const previewKpiUpload = createServerFn({ method: "POST" })
       .eq("period", period);
     if (exErr) throw exErr;
     const existing = (existingData ?? []) as unknown as Array<Record<string, string | number | null>>;
+
+    // سنة الأساس = أقدم سنة متاحة للمؤسسة (قاعدة البيانات + الملف الحالي) — لا سنة ثابتة
+    {
+      const { data: allYears } = await supabaseAdmin
+        .from("kpis")
+        .select("entity_code, plan_year")
+        .in("entity_code", entityCodes.length ? entityCodes : [""]);
+      const minYear = new Map<string, number>();
+      for (const r of (allYears ?? []) as Array<{ entity_code: string; plan_year: number | null }>) {
+        const y = Number(r.plan_year);
+        if (!Number.isFinite(y)) continue;
+        minYear.set(r.entity_code, Math.min(y, minYear.get(r.entity_code) ?? y));
+      }
+      for (const row of uniq) {
+        const ent = String(row.entity_code);
+        const py = Number(row.plan_year);
+        const base = Math.min(py, minYear.get(ent) ?? py);
+        (row as { is_baseline?: boolean }).is_baseline = py === base;
+      }
+    }
 
     const exMap = new Map(
       existing.map((r) => [`${r.entity_code}__${r.kpi_code}__${r.period}`, r]),

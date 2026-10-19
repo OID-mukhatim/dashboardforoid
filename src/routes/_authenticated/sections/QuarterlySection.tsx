@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ORGS, q1Data, type OrgId } from "@/lib/oid-data";
+import { ORGS, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { loadQuarterlyActivities, loadActiveYears, setActiveYear } from "@/lib/dashboard.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -169,7 +169,8 @@ export function QuarterlySection() {
 
   const rows = useMemo(() => result?.rows ?? [], [result]);
   // عرض البيانات الثابتة التجريبية فقط عند فراغ قاعدة البيانات والاستخراجات
-  const showStaticFallback = !isLoading && rows.length === 0;
+  // لا نموذج ثابت: قاعدة البيانات هي المصدر الوحيد — عند فراغها تظهر رسالة "لا توجد بيانات"
+  const showStaticFallback = false;
 
   const live = useMemo(() => rows.filter((r) => {
     const okOrg = filters.org === "all" || r.orgCode === filters.org;
@@ -263,38 +264,6 @@ export function QuarterlySection() {
       </div>
 
       {isLoading && <Card className="p-8 text-center text-sm text-muted-foreground">جارٍ تحميل التقارير…</Card>}
-
-      {/* ===== بيانات تجريبية ثابتة عند فراغ قاعدة البيانات ===== */}
-      {showStaticFallback && (
-        <Card>
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
-            <div className="text-sm font-medium">أنشطة الربع الأول (نموذج)</div>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">بيانات تجريبية — تُستبدل فور رفع التقارير</span>
-          </div>
-          <ScrollableTable minWidth={1110} maxHeight="calc(100vh - 180px)">
-            <table className="oid-table oid-table-fixed" style={{ tableLayout: "fixed", width: "100%" }}>
-              <QuarterlyColgroup />
-              <QuarterlyHead />
-              <tbody>
-                {q1Data.map((r, i) => (
-                  <tr key={r.id} className="border-t border-border hover:bg-muted/20 align-top">
-                    <td className="seq-col">{i + 1}</td>
-                    <td className="text-xs leading-relaxed" style={quarterlyColumnStyle(QUARTERLY_COLUMNS[1], true)}>{r.title}</td>
-                    <td className="numeric font-mono text-xs text-primary" title={r.kpiCode}>{r.kpiCode}</td>
-                    <td className="text-center"><OrgChip id={r.org as OrgId} /></td>
-                    <td className="numeric">{r.target}</td>
-                    <td className="numeric">{r.done}</td>
-                    <td className="numeric"><AchievementCell pct={r.pct} /></td>
-                    <td className="numeric" title={String(r.beneficiaries ?? "")}>{r.beneficiaries}</td>
-                    <td className="text-ellipsis-cell text-xs" title="">—</td>
-                    <td className="text-xs leading-relaxed text-muted-foreground" style={quarterlyColumnStyle(QUARTERLY_COLUMNS[9], true)}>—</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </ScrollableTable>
-        </Card>
-      )}
 
       {/* ===== الإنجازات والمشاريع ===== */}
       {!isLoading && !showStaticFallback && (filters.type === "all" || filters.type === "ach") && (

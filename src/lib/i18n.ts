@@ -44,6 +44,7 @@ export const UI_STRINGS = {
       filterByOrg: "فلترة حسب المؤسسة:",
       allOrgs: "كل المؤسسات",
       demoData: "بيانات تجريبية — ارفع ملفاً لتحديثها",
+      noAlerts: "لا توجد تنبيهات حالياً", sourceLabel: "المصدر", staleData: "بيانات قديمة — تحتاج تحديثاً",
       mainOrgs: "مؤسسات رئيسية",
       acrossNetwork: "عبر الشبكة",
       inOrg: "في المؤسسة",
@@ -414,6 +415,7 @@ export const UI_STRINGS = {
       exportExcel: "تصدير Excel",
     },
     gaps: {
+      noData: "لا توجد بيانات فجوات بعد — ارفع تقييم الفجوات",
       title: "تحليل الفجوات المؤسسية",
       heatmap: "خريطة الحرارة",
       radar: "مخطط الرادار",
@@ -739,6 +741,7 @@ export const UI_STRINGS = {
       filterByOrg: "Filter by institution:",
       allOrgs: "All institutions",
       demoData: "Demo data — upload a file to update it",
+      noAlerts: "No alerts currently", sourceLabel: "Source", staleData: "Outdated data — needs refresh",
       mainOrgs: "Main institutions",
       acrossNetwork: "Across the network",
       inOrg: "In the institution",
@@ -1107,6 +1110,7 @@ export const UI_STRINGS = {
       exportExcel: "Export Excel",
     },
     gaps: {
+      noData: "No gap data yet — upload the gap assessment",
       title: "Institutional Gap Analysis",
       heatmap: "Heat Map",
       radar: "Radar Chart",

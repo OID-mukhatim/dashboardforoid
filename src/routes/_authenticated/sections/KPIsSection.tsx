@@ -54,8 +54,7 @@ const fmtPct = (v: number | null | undefined, decimals = 0) => {
   if (v === null || v === undefined) return "—";
   const n = Number(v);
   if (!Number.isFinite(n)) return "—";
-  const pct = n <= 1 && n >= -1 ? n * 100 : n;
-  return `${Number(pct.toFixed(decimals))}%`;
+  return `${Number(n.toFixed(decimals))}%`;
 };
 const fmtNum = (v: number | null | undefined) =>
   v === null || v === undefined ? "—" : String(Math.round(Number(v) * 100) / 100);
@@ -172,7 +171,7 @@ export function KPIsSection() {
     const items = orgScoped.filter((r: any) => r.perspective === p.label);
     const vals = items.map((r: any) => {
       const n = Number(r.achievement_pct ?? 0);
-      return Number.isFinite(n) ? (n <= 1 ? n * 100 : n) : 0;
+      return Number.isFinite(n) ? n : 0;
     });
     const avg = vals.length ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : 0;
     return { name: p.label, color: p.color, count: items.length, avg: Math.round(avg) };
