@@ -45,6 +45,15 @@ export const importKPIMatrix = createServerFn({ method: "POST" })
     }
 
     const fiscalType = ORG_FISCAL_YEAR[orgId as OrgId] ?? "calendar";
+    // سنة الأساس = أقدم سنة متاحة للمؤسسة (وليست سنة ثابتة)
+    const { data: yearRows } = await context.supabase
+      .from("kpis")
+      .select("plan_year")
+      .eq("entity_code", orgId);
+    const existingYears = (yearRows ?? [])
+      .map((r) => Number(r.plan_year))
+      .filter(Number.isFinite);
+    const baselineYear = Math.min(year, ...(existingYears.length ? existingYears : [year]));
     const records = rows.map((row) => {
       const baseCode = pick(row, ["الكود", "ID", "kpi_code", "code"]);
       const code = /-20\d{2}$/.test(baseCode) ? baseCode : `${baseCode}-${year}`;
@@ -58,7 +67,7 @@ export const importKPIMatrix = createServerFn({ method: "POST" })
         period: `PLAN-${year}`,
         fiscal_type: fiscalType,
         fiscal_year_type: fiscalType,
-        is_baseline: year === 2026,
+        is_baseline: year === baselineYear,
         sector: pick(row, ["المنظور", "Sector"]),
         objective: pick(row, ["الهدف", "الهدف الاستراتيجي", "objective"]),
         kpi_name: pick(row, ["مؤشر الأداء", "المؤشر", "KPI"]),
