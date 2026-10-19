@@ -86,6 +86,7 @@ export function GapsSection() {
         data: { orgId, domainIndex, domainName: DOMAIN_NAMES[domainIndex], score: newScore, period: PERIOD },
       });
       queryClient.invalidateQueries({ queryKey: ["dashboard-snapshot"] });
+      queryClient.invalidateQueries({ queryKey: ["live-alerts"] });
     } finally {
       queryClient.invalidateQueries({ queryKey: ["gap-scores"] });
     }
