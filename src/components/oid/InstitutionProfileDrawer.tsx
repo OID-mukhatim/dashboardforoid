@@ -15,13 +15,12 @@ import {
 } from "recharts";
 import { X, Building2, Users, Coins, Calendar, ShieldCheck, Phone, Mail, AlertTriangle, Printer } from "lucide-react";
 import {
-  ORGS, type OrgId, GAP_AXES, gapScores, institutions,
-  partnerships, initiatives, financialAssessment, financialProgram,
+  ORGS, type OrgId, GAP_AXES,
   generalPolicies, humanitarianPolicies, universityPolicies, educationPolicies,
-  POLICY_STATUS_META,
+  POLICY_STATUS_META, type PolicyStatus,
 } from "@/lib/oid-data";
 import { ORG_LOGOS } from "@/lib/oid-logos";
-import { computeProfile, computeProfileFromLive, type LiveInputs } from "@/lib/oid-composite";
+import { computeProfileFromLive, type LiveInputs } from "@/lib/oid-composite";
 import { detectAnomalies, getSeverityMeta, getCategoryLabel } from "@/lib/oid-anomalies";
 import { computeTrend, getSeries, type TimelineDomain } from "@/lib/oid-timeline";
 import { useOrgDrill, closeOrgProfile } from "@/lib/oid-drill";
@@ -60,7 +59,6 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
   const [tab, setTab] = useState<TabKey>("overview");
   const org = ORGS.find((o) => o.id === orgId);
   if (!org) return null;
-  const inst = institutions.find((i) => i.id === orgId);
   const trend = computeTrend(orgId, "composite");
 
   // ---- Live data from DB ----
