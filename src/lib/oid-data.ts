@@ -102,8 +102,6 @@ export const educationPolicies: PolicyRow[] = [
   { id: "EP-05", name: "لائحة الكادر التعليمي والإداري" },
 ];
 
-};
-
 /** التحقق من أن كل منظور = 25% والمجموع الكلي = 100%. */
 export const validateWeights = (
   rows: Record<string, unknown>[],
