@@ -197,12 +197,12 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
     const STATUS_PTS: Record<string, number> = { done: 5, inProgress: 3, delayed: 1.5, notYet: 1 };
     const { data: advRows } = await sb
       .from("advisor_snapshots")
-      .select("period_order, done, program")
+      .select("period_order, done, program, updated_at, period_label")
       .eq("done", true)
       .order("period_order", { ascending: true });
     const { data: finRows } = await sb
       .from("financial_reports")
-      .select("org_id, approved_budget, actual_spending");
+      .select("org_id, approved_budget, actual_spending, updated_at");
     for (const code of VALID_ORGS) {
       let wSum = 0, wxSum = 0, idx = 0;
       for (const r of advRows ?? []) {
