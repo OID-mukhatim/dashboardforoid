@@ -136,13 +136,28 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
   const profile = computeProfileFromLive(orgId, live);
 
   const allProfiles = useMemo(() => {
-    const m = {} as Record<OrgId, ReturnType<typeof computeProfile>>;
-    for (const o of ORGS) m[o.id] = computeProfile(o.id);
+    const m = {} as Record<OrgId, ReturnType<typeof computeProfileFromLive>>;
+    for (const o of ORGS) {
+      m[o.id] = computeProfileFromLive(o.id, {
+        gapAvg: snap?.matrix?.[o.id]?.gapAvg ?? undefined,
+        govScore: snap?.matrix?.[o.id]?.govScore ?? undefined,
+        kpiScorePct: snap?.kpi?.[o.id]?.weightedAvgPct ?? undefined,
+        finScore: snap?.matrix?.[o.id]?.finScore ?? undefined,
+      });
+    }
     return m;
-  }, []);
-  const anomalies = useMemo(() => detectAnomalies(orgId, allProfiles), [orgId, allProfiles]);
+  }, [snap]);
+  // قيم المحاور السبعة الحية لهذه المؤسسة (من snapshot)
+  const liveGapAxes = useMemo(
+    () => GAP_AXES.map((ax) => getLiveGapValue(snap, orgId, ax)),
+    [snap, orgId],
+  );
+  const anomalies = useMemo(
+    () => detectAnomalies(orgId, allProfiles, lang, { gapAxes: liveGapAxes }),
+    [orgId, allProfiles, lang, liveGapAxes],
+  );
 
-  // الشراكات: حية من قاعدة البيانات + fallback ثابت
+  // الشراكات: من قاعدة البيانات فقط
   const livePartnerships = (dbPartnerships ?? []).map((p: any) => ({
     id: p.id ?? p.name,
     name: p.name,
@@ -151,12 +166,9 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
     geography: p.geography,
     description: p.description,
   }));
-  const orgPartnerships =
-    livePartnerships.length > 0
-      ? livePartnerships
-      : partnerships.filter((p) => p.linkedOrgs.includes(orgId as any));
+  const orgPartnerships = livePartnerships;
 
-  // المبادرات: حية + fallback ثابت
+  // المبادرات: من قاعدة البيانات فقط
   const liveInits = (dbInitiatives ?? []).map((i: any) => ({
     id: i.code ?? i.id,
     priority: i.priority,
@@ -167,12 +179,7 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
     cost: i.cost,
     timeline: i.timeline,
   }));
-  const orgInitiatives =
-    liveInits.length > 0
-      ? liveInits
-      : initiatives.filter(
-          (i) => i.orgs.includes(org.nameAr) || i.orgs.includes(orgId as any) || i.orgs.includes("الجميع"),
-        );
+  const orgInitiatives = liveInits;
 
   // سياسات تخص المؤسسة (من كل المجموعات)
   const allPolicyGroups = [
