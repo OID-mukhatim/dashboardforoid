@@ -102,6 +102,29 @@ function DrawerContent({ orgId }: { orgId: OrgId }) {
     },
     enabled: !!orgId,
   });
+  // سياسات الحوكمة الحية لهذه المؤسسة
+  const { data: dbPolicies } = useQuery({
+    queryKey: ["governance-policies", orgId],
+    queryFn: async () => {
+      const { data } = await supabase.from("governance_policies").select("policy_id, status").eq("org_id", orgId);
+      return data ?? [];
+    },
+    enabled: !!orgId,
+  });
+  // أحدث snapshot مكتمل لأعمال المستشار المالي (التقييم + البرنامج)
+  const { data: advisorSnap } = useQuery({
+    queryKey: ["advisor-latest"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("advisor_snapshots")
+        .select("assessment, program")
+        .eq("done", true)
+        .order("period_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
 
   // ---- Composite score from live snapshot ----
   const live: LiveInputs = {
