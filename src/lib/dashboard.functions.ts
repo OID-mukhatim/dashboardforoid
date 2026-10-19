@@ -247,6 +247,24 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
       }
     }
 
+    // شارات المصدر المتبقية: الفجوات من الاستخراجات (عند غياب gap_scores) والمؤشرات من ملفات الرفع
+    for (const code of VALID_ORGS) {
+      const cur = matrix[code];
+      if (!cur.sources.gap && Object.keys(cur.gaps).length > 0) {
+        const ex = (extractions ?? []).find((r) => String(r.entity_code ?? "") === code);
+        cur.sources.gap = { label: ex?.file_name ?? "ملف البيانات المؤسسية", updatedAt: ex?.created_at ?? null };
+      }
+      const upIds = kpiOrgUploads.get(code);
+      if (upIds && upIds.size > 0) {
+        let best: { file_name: string | null; created_at: string | null } | null = null;
+        for (const id of upIds) {
+          const m = uploadMeta.get(id);
+          if (m && (!best || (m.created_at ?? "") > (best.created_at ?? ""))) best = m;
+        }
+        if (best) cur.sources.kpi = { label: best.file_name ?? "مصفوفة المؤشرات", updatedAt: best.created_at };
+      }
+    }
+
     // 3) totals: initiatives count + last upload timestamp (never throws)
     const { count: initiativesCount } = await sb
       .from("initiatives")
