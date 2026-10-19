@@ -41,10 +41,6 @@ export type DashboardSnapshot = {
   generatedAt: string;
 };
 
-function emptyMatrix(): LiveMatrixEntry {
-  return { gaps: {}, gapAvg: null, govScore: null, govPct: null, finScore: null, maturity: null, source: null, sources: {} };
-}
-
 export const loadDashboardSnapshot = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

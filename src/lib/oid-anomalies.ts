@@ -144,7 +144,7 @@ export function detectAnomalies(orgId: OrgId, allProfiles: Record<OrgId, Institu
         severity: diff < 0 ? "high" : "low",
         category: "outlier_vs_peers",
         title: lang === "ar" ? (diff < 0 ? "أداء أدنى من متوسط الشبكة بفارق كبير" : "أداء يتجاوز متوسط الشبكة") : (diff < 0 ? "Performance is significantly below the network average" : "Performance exceeds the network average"),
-        message: lang === "ar" ? `الدرجة ${score?.toFixed(2)} مقابل متوسط الشبكة ${mean.toFixed(2)} (فرق ${diff > 0 ? "+" : ""}${diff.toFixed(2)}).` : `Score ${score?.toFixed(2)} versus network average ${mean.toFixed(2)} (difference ${diff > 0 ? "+" : ""}${diff.toFixed(2)}).`,
+        message: lang === "ar" ? `الدرجة دون المؤشرات ${score?.toFixed(2)} مقابل متوسط الشبكة دون المؤشرات ${mean.toFixed(2)} (فرق ${diff > 0 ? "+" : ""}${diff.toFixed(2)}).` : `Score excluding KPIs ${score?.toFixed(2)} versus network average excluding KPIs ${mean.toFixed(2)} (difference ${diff > 0 ? "+" : ""}${diff.toFixed(2)}).`,
         suggestion: lang === "ar" ? (diff < 0 ? "أدرج هذه المؤسسة ضمن أولويات الدعم." : "ادرس ممارساتها كنموذج للمشاركة مع باقي الشبكة.") : (diff < 0 ? "Prioritize this institution for support." : "Study its practices as a model to share across the network."),
       });
     }

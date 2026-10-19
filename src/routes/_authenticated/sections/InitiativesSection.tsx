@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Card, SectionTitle } from "./_shared";
 import { useLang } from "@/lib/lang-context";
 import { TranslatableText } from "@/components/oid/TranslatableText";
+import { ORGS } from "@/lib/oid-data";
 
 /* ============================ INITIATIVES ============================ */
 type InitiativeStatus = "مقترح" | "قيد التنفيذ" | "مكتمل";
@@ -22,7 +23,7 @@ const STATUS_KEYS: Record<InitiativeStatus, string> = { "مقترح": "proposed"
 const PRIORITY_KEYS: Record<string, string> = { "حرج": "critical", "عالٍ": "high", "متوسط": "medium", "منخفض": "low", "جارٍ": "ongoing" };
 
 export function InitiativesSection() {
-  const { t, tFormat } = useLang();
+  const { t, tFormat, lang } = useLang();
   const { isEditor } = useAuth();
   const qc = useQueryClient();
   const listFn = useServerFn(listInitiatives);
@@ -165,7 +166,10 @@ export function InitiativesSection() {
                       <div className="flex flex-wrap gap-1 text-[10px] mb-2">
                          {i.domain && <span className="px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={i.domain} /></span>}
                          {i.timeline && <span className="px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={i.timeline} /></span>}
-                         {i.orgs?.slice(0,3).map((o, idx) => <span key={idx} className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700"><TranslatableText text={o} /></span>)}
+                         {i.orgs?.slice(0,3).map((o, idx) => {
+                           const org = ORGS.find((item) => item.id === o);
+                           return <span key={idx} className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">{org ? (lang === "ar" ? org.nameAr : org.nameEn) : <TranslatableText text={o} />}</span>;
+                         })}
                       </div>
                        {i.cost && <div className="text-xs font-bold text-primary mb-2"><TranslatableText text={i.cost} /></div>}
                       {isEditor && (
