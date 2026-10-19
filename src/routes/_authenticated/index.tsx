@@ -143,6 +143,12 @@ function Header({ onNavigate }: { onNavigate: (s: SectionId) => void }) {
     }
     return out;
   }, [snap]);
+  // قيم محاور الفجوات الحية لكل مؤسسة (لمصفوفة النضج في التقرير)
+  const liveGaps = useMemo(() => {
+    const out = {} as Record<OrgId, (number | null)[]>;
+    for (const o of ORGS) out[o.id] = GAP_AXES.map((ax) => getLiveGapValue(snap, o.id, ax));
+    return out;
+  }, [snap]);
   async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
@@ -165,7 +171,7 @@ function Header({ onNavigate }: { onNavigate: (s: SectionId) => void }) {
           <span className="text-xs px-2 py-1 rounded-md bg-white/15 border border-white/20">v1.0 — 2026</span>
           <IconBtn icon={Download} label={t("header.exportPDF")} onClick={() => window.print()} />
           <button
-            onClick={() => generateExecutiveReport("Q2", 2026, liveProfiles)}
+            onClick={() => generateExecutiveReport("Q2", 2026, liveProfiles, liveGaps)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition"
             title={t("header.execReport")}
           >
