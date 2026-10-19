@@ -16,7 +16,6 @@ import type { Lang } from "./i18n";
 /** بيانات إضافية حية (من قاعدة البيانات) تُمرَّر من المستدعي عند توفرها. */
 export type AnomalyExtras = {
   gapAxes?: (number | null)[]; // قيم المحاور السبعة الحية
-  stalledKpis?: number; // عدد المؤشرات المتوقفة (0%)
 };
 
 export type AnomalySeverity = "high" | "medium" | "low";
@@ -66,8 +65,19 @@ export function detectAnomalies(orgId: OrgId, allProfiles: Record<OrgId, Institu
   const out: Anomaly[] = [];
   if (!p) return out;
 
+  // Exclude KPI completely from anomaly completeness, imbalance and peer scores.
+  const eligible = p.components.filter((c) => c.source !== "kpi");
+  const achieved = eligible.filter((c) => c.state === "achieved" && c.score !== null);
+  const completeness = achieved.length / eligible.length;
+  const scoreWithoutKpi = (profile: InstitutionProfile): number | null => {
+    const parts = profile.components.filter((c) => c.source !== "kpi" && c.state === "achieved" && c.score !== null);
+    const weight = parts.reduce((sum, c) => sum + c.weight, 0);
+    return weight > 0 ? parts.reduce((sum, c) => sum + Number(c.score) * c.weight, 0) / weight : null;
+  };
+  const score = scoreWithoutKpi(p);
+
   // 1) بيانات غير مكتملة
-  if (p.dataCompleteness === 0) {
+  if (completeness === 0) {
     out.push({
       id: `${orgId}-no-data`,
       orgId, severity: "high", category: "incomplete_data",
@@ -77,26 +87,26 @@ export function detectAnomalies(orgId: OrgId, allProfiles: Record<OrgId, Institu
     });
     return out;
   }
-  if (p.dataCompleteness < 0.5 && p.compositeScore !== null) {
+  if (completeness < 0.5 && score !== null) {
     out.push({
       id: `${orgId}-partial`,
       orgId, severity: "medium", category: "incomplete_data",
       title: lang === "ar" ? "درجة محسوبة من بيانات جزئية" : "Score calculated from partial data",
-      message: lang === "ar" ? `الدرجة المركّبة (${p.compositeScore.toFixed(2)}) محسوبة من ${p.components.filter(c=>c.state==="achieved").length} مصادر فقط من 4.` : `The composite score (${p.compositeScore.toFixed(2)}) is calculated from only ${p.components.filter(c=>c.state==="achieved").length} of 4 sources.`,
+      message: lang === "ar" ? `الدرجة المركّبة (${score?.toFixed(2)}) محسوبة من ${achieved.length} مصادر فقط من 3.` : `The composite score (${score?.toFixed(2)}) is calculated from only ${achieved.length} of 3 sources.`,
       suggestion: lang === "ar" ? "أكمل المصادر الناقصة لرفع موثوقية الدرجة." : "Complete the missing sources to improve score reliability.",
     });
   }
 
   // 2) اختلال بين المكوّنات (فرق > 1.5 بين أعلى وأدنى)
-  const valid = p.components.filter((c) => c.state === "achieved" && c.score !== null);
+  const valid = achieved;
   if (valid.length >= 2) {
     const scores = valid.map((c) => c.score as number);
     const max = Math.max(...scores);
     const min = Math.min(...scores);
     if (max - min >= 1.5) {
-      const top = valid.find((c) => c.score === max)!;
-      const bot = valid.find((c) => c.score === min)!;
-      out.push({
+      const top = valid.find((c) => c.score === max);
+      const bot = valid.find((c) => c.score === min);
+      if (top && bot) out.push({
         id: `${orgId}-imbalance`,
         orgId, severity: "medium", category: "component_imbalance",
         title: lang === "ar" ? "اختلال واضح بين المكوّنات" : "Clear imbalance between components",
@@ -104,19 +114,6 @@ export function detectAnomalies(orgId: OrgId, allProfiles: Record<OrgId, Institu
         suggestion: lang === "ar" ? `ركّز على رفع أداء "${bot.label}" لموازنة الملف المؤسسي.` : "Focus on improving the lowest component to balance the institutional profile.",
       });
     }
-  }
-
-  // 3) تناقض KPI ↔ Gap في المالي/الحوكمة
-  const kpiC = p.components.find((c) => c.source === "kpi");
-  const gapC = p.components.find((c) => c.source === "gap");
-  if (kpiC?.state === "achieved" && gapC?.state === "achieved" && kpiC.score! - gapC.score! >= 1.2) {
-    out.push({
-      id: `${orgId}-kpi-gap`,
-      orgId, severity: "low", category: "kpi_gap_contradiction",
-      title: lang === "ar" ? "تقدّم KPI لا يعكسه تقييم الفجوات" : "KPI progress is not reflected in the gap assessment",
-      message: lang === "ar" ? `مؤشرات الأداء (${kpiC.score?.toFixed(2)}) أعلى من تقييم الفجوات (${gapC.score?.toFixed(2)}) — قد يدل على قياس سطحي.` : `KPI performance (${kpiC.score?.toFixed(2)}) exceeds the gap assessment (${gapC.score?.toFixed(2)}), which may indicate shallow measurement.`,
-      suggestion: lang === "ar" ? "راجع منهجية حساب KPIs للتحقق من عمق القياس." : "Review the KPI calculation method to verify measurement depth.",
-    });
   }
 
   // 4) صفر في محور حوكمة حرج (من قيم المحاور الحية إن وُجدت)
@@ -133,25 +130,13 @@ export function detectAnomalies(orgId: OrgId, allProfiles: Record<OrgId, Institu
     }
   });
 
-  // 5) KPIs متوقفة (progress = 0) — يُمرَّر العدد من بيانات قاعدة البيانات
-  const stalledCount = extras?.stalledKpis ?? 0;
-  if (stalledCount > 0) {
-    out.push({
-      id: `${orgId}-stalled`,
-      orgId, severity: "medium", category: "zero_in_critical",
-      title: lang === "ar" ? `${stalledCount} مؤشر متوقف` : `${stalledCount} stalled indicators`,
-      message: lang === "ar" ? `${stalledCount} من مؤشرات الأداء عند 0% تقدّم.` : `${stalledCount} performance indicators are at 0% progress.`,
-      suggestion: lang === "ar" ? "حدّد المسؤولين وأعد جدولة هذه المؤشرات." : "Assign owners and reschedule these indicators.",
-    });
-  }
-
   // 6) خروج عن متوسط الشبكة (composite يبتعد > 1.0 عن المتوسط)
   const all = Object.values(allProfiles)
-    .filter((x) => x.compositeScore !== null)
-    .map((x) => x.compositeScore as number);
-  if (all.length >= 3 && p.compositeScore !== null) {
+    .map(scoreWithoutKpi)
+    .filter((x): x is number => x !== null);
+  if (all.length >= 3 && score !== null) {
     const mean = all.reduce((a, b) => a + b, 0) / all.length;
-    const diff = p.compositeScore - mean;
+    const diff = score - mean;
     if (Math.abs(diff) >= 1.0) {
       out.push({
         id: `${orgId}-outlier`,
@@ -159,7 +144,7 @@ export function detectAnomalies(orgId: OrgId, allProfiles: Record<OrgId, Institu
         severity: diff < 0 ? "high" : "low",
         category: "outlier_vs_peers",
         title: lang === "ar" ? (diff < 0 ? "أداء أدنى من متوسط الشبكة بفارق كبير" : "أداء يتجاوز متوسط الشبكة") : (diff < 0 ? "Performance is significantly below the network average" : "Performance exceeds the network average"),
-        message: lang === "ar" ? `الدرجة ${p.compositeScore.toFixed(2)} مقابل متوسط الشبكة ${mean.toFixed(2)} (فرق ${diff > 0 ? "+" : ""}${diff.toFixed(2)}).` : `Score ${p.compositeScore.toFixed(2)} versus network average ${mean.toFixed(2)} (difference ${diff > 0 ? "+" : ""}${diff.toFixed(2)}).`,
+        message: lang === "ar" ? `الدرجة دون المؤشرات ${score?.toFixed(2)} مقابل متوسط الشبكة دون المؤشرات ${mean.toFixed(2)} (فرق ${diff > 0 ? "+" : ""}${diff.toFixed(2)}).` : `Score excluding KPIs ${score?.toFixed(2)} versus network average excluding KPIs ${mean.toFixed(2)} (difference ${diff > 0 ? "+" : ""}${diff.toFixed(2)}).`,
         suggestion: lang === "ar" ? (diff < 0 ? "أدرج هذه المؤسسة ضمن أولويات الدعم." : "ادرس ممارساتها كنموذج للمشاركة مع باقي الشبكة.") : (diff < 0 ? "Prioritize this institution for support." : "Study its practices as a model to share across the network."),
       });
     }

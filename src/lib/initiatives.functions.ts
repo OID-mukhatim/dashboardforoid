@@ -92,7 +92,7 @@ export const updateInitiativeStatus = createServerFn({ method: "POST" })
   });
 
 /**
- * Auto-generate initiatives from the critical gaps catalogue.
+ * Auto-generate initiatives from the latest live gap assessments.
  * Idempotent by `code` — won't duplicate already-generated rows.
  */
 export const autoGenerateInitiatives = createServerFn({ method: "POST" })
@@ -103,34 +103,17 @@ export const autoGenerateInitiatives = createServerFn({ method: "POST" })
     const isEditor = (roleRows ?? []).length > 0;
     if (!isEditor) throw new Error("صلاحيات غير كافية");
 
-    const gaps = [
-      { rank: 1, name: "أتمتة العمليات", avg: 1.87, affected: "6/6", priority: "حرج", domain: "تقني", orgs: ["الجميع"], timeline: "12-18 شهراً", cost: "$45,000-$80,000" },
-      { rank: 2, name: "الحوكمة — زاد للتنمية", avg: 0.87, affected: "1/6", priority: "حرج", domain: "حوكمة", orgs: ["زاد للتنمية"], timeline: "12 شهراً", cost: "$6,000-$10,000" },
-      { rank: 3, name: "أدلة الإجراءات (SOPs)", avg: 2.3, affected: "5/6", priority: "حرج", domain: "حوكمة", orgs: ["زاد", "تيو", "حمدي"], timeline: "6 أشهر", cost: "$8,000-$15,000" },
-      { rank: 4, name: "تنوع مصادر الدخل", avg: 2.47, affected: "6/6", priority: "عالٍ", domain: "مالي", orgs: ["تيو", "جامعة زمزم", "زاد"], timeline: "18 شهراً", cost: "$10,000-$18,000" },
-      { rank: 5, name: "الحوكمة — تيو للتعليم", avg: 2.17, affected: "1/6", priority: "عالٍ", domain: "حوكمة", orgs: ["تيو للتعليم"], timeline: "9 أشهر", cost: "$5,000-$8,000" },
-      { rank: 6, name: "نظام إدارة البيانات", avg: 2.27, affected: "6/6", priority: "عالٍ", domain: "بيانات", orgs: ["الجميع"], timeline: "12 شهراً", cost: "$15,000-$25,000" },
-    ];
-
-    const rows = gaps.map((g) => ({
-      code: `AUTO-G${g.rank.toString().padStart(3, "0")}`,
-      title: `معالجة فجوة: ${g.name}`,
-      objective: `رفع المؤشر من ${g.avg}/5 إلى 3.5+/5`,
-      gap: `${g.name} — متوسط ${g.avg}/5 — يؤثر على ${g.affected}`,
-      priority: g.priority,
-      status: "مقترح",
-      domain: g.domain,
-      orgs: g.orgs,
-      timeline: g.timeline,
-      cost: g.cost,
-      source: "auto",
-      created_by: context.userId,
-    }));
-
-    const { data, error } = await (context.supabase as any)
-      .from("initiatives")
-      .upsert(rows, { onConflict: "code", ignoreDuplicates: false })
-      .select();
-    if (error) throw new Error(error.message);
+    const [{ data: gaps, error: gapError }, { data: existing, error: existingError }] = await Promise.all([
+      context.supabase.from("gap_scores").select("org_id, domain_index, domain_name, score, period, updated_at"),
+      context.supabase.from("initiatives").select("code, status"),
+    ]);
+    if (gapError) throw gapError;
+    if (existingError) throw existingError;
+    const { newGapInitiatives } = await import("./live-gap-rules");
+    const rows = newGapInitiatives(gaps ?? [], existing ?? []).map((r) => ({ ...r, created_by: context.userId }));
+    if (!rows.length) return { inserted: 0 };
+    const { data, error } = await context.supabase.from("initiatives")
+      .upsert(rows, { onConflict: "code", ignoreDuplicates: true }).select("id");
+    if (error) throw error;
     return { inserted: data?.length ?? 0 };
   });

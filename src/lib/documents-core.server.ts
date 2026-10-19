@@ -7,24 +7,10 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-/** Strict entity matching — avoid false positives from generic Arabic words.
- *  "كافي" alone means "enough"; "زاد" means "increased"; "تيو" can appear in
- *  unrelated contexts. Require a qualifier ("للتنمية" / "مؤسسة" / "شركة") or
- *  an explicit section header pattern (e.g. "رابعا: كافي للتنمية"). */
+import { matchOrganization, matchOrganizations } from "./org-aliases";
 function isValidEntity(name: string): { id: string; name: string } | null {
-  const s = (name ?? "").trim();
-  const aliases: Array<{ id: string; patterns: RegExp[] }> = [
-    { id: "TAYO", patterns: [/مؤسسة\s*تيو/, /شركة\s*تيو/, /تيو\s*للتنمية/, /\bTAYO\b/] },
-    { id: "KAFI", patterns: [/كافي\s*للتنمية/, /مؤسسة\s*كافي/, /شركة\s*كافي/, /\bKAFI\b/] },
-    { id: "ZF", patterns: [/مؤسسة\s*زمزم/, /شركة\s*زمزم/, /زمزم\s*للتنمية/, /\bZamzam\b/, /^\s*ZF\s*$/] },
-    { id: "ZUST", patterns: [/جامعة\s*زمزم/, /\bZUST\b/] },
-    { id: "ZAD", patterns: [/مؤسسة\s*زاد/, /شركة\s*زاد/, /زاد\s*للتنمية/, /\bZAD\b/] },
-    { id: "HAMDI", patterns: [/مؤسسة\s*حمد[يى]/, /شركة\s*حمد[يى]/, /حمد[يى]\s*للتنمية/, /\bHAMDI\b/i] },
-  ];
-  for (const a of aliases) {
-    if (a.patterns.some((re) => re.test(s))) return { id: a.id, name: s };
-  }
-  return null;
+  const match = matchOrganization(name);
+  return match ? { id: match.id, name: (name ?? "").trim() } : null;
 }
 
 /** Extract text from Word .docx by unzipping and reading document.xml.
@@ -199,13 +185,7 @@ export async function runDocumentExtraction(uploadId: string, filePath: string) 
     // institution ("كافي للتنمية" / "مؤسسة كافي" / uppercase code KAFI). A bare
     // word like "كافي" is NOT enough; it means "enough" in Arabic and would
     // wrongly attribute unrelated reports to كافي للتنمية.
-    const filenameOrgs = new Set<string>();
-    if (/كافي\s*للتنمية|مؤسسة\s*كافي|\bKAFI\b/.test(fileName)) filenameOrgs.add("KAFI");
-    if (/مؤسسة\s*تيو|تيو\s*للتنمية|\bTAYO\b/.test(fileName)) filenameOrgs.add("TAYO");
-    if (/مؤسسة\s*زاد|زاد\s*للتنمية|\bZAD\b/.test(fileName)) filenameOrgs.add("ZAD");
-    if (/مؤسسة\s*حمد[يى]|حمد[يى]\s*للتنمية|\bHAMDI\b/i.test(fileName)) filenameOrgs.add("HAMDI");
-    if (/جامعة\s*زمزم|\bZUST\b/.test(fileName)) filenameOrgs.add("ZUST");
-    if ((/مؤسسة\s*زمزم|زمزم\s*للتنمية|\bZamzam\b|(^|[^A-Za-z])ZF([^A-Za-z]|$)/.test(fileName)) && !filenameOrgs.has("ZUST")) filenameOrgs.add("ZF");
+    const filenameOrgs = new Set<string>(matchOrganizations(fileName).map((org) => org.id));
     // NOTE: financial reports are no longer auto-attributed to كافي. Attribution
     // now requires the file name or content to explicitly reference the org.
 
