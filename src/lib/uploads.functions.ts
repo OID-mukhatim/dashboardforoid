@@ -33,32 +33,16 @@ export function toStr(v: unknown): string | null {
   return s.length ? s : null;
 }
 
-// Map raw sheet/entity names (Arabic short or English variants) to canonical org IDs.
-export const ENTITY_ALIASES: Array<{ id: string; name: string; patterns: RegExp[] }> = [
-  { id: "TAYO", name: "تيو للتعليم", patterns: [/تيو/, /tayo/i] },
-  { id: "KAFI", name: "كافي للتنمية", patterns: [/كافي/, /kafi/i] },
-  { id: "ZF", name: "مؤسسة زمزم", patterns: [/^\s*زمزم\s*$/, /مؤسسة\s*زمزم/, /zamzam\s*foundation/i, /^\s*zf\s*$/i] },
-  { id: "ZUST", name: "جامعة زمزم للعلوم والتكنولوجيا", patterns: [/جامعة\s*زمزم/, /^\s*(ال)?جامعة\s*$/, /zust/i] },
-  { id: "ZAD", name: "زاد للتنمية", patterns: [/^\s*زاد/, /\bzad\b/i] },
-  { id: "HAMDI", name: "منظمة حمدي للتنمية", patterns: [/حمد[يى]/, /hamdi/i] },
-];
+export { ENTITY_ALIASES } from "./org-aliases";
+import { matchOrganization } from "./org-aliases";
 export function normalizeEntity(raw: string): { code: string; name: string } {
-  const s = (raw ?? "").trim();
-  for (const a of ENTITY_ALIASES) {
-    if (a.patterns.some((re) => re.test(s))) return { code: a.id, name: a.name };
-  }
-  return { code: s, name: s };
+  const match = matchOrganization(raw);
+  const text = (raw ?? "").trim();
+  return match ? { code: match.id, name: match.name } : { code: text, name: text };
 }
-
-// Recognise a known org from any free-text cell (used when org is in a column,
-// not the sheet name — e.g. the consolidated "Networks" sheet).
 export function detectKnownOrg(raw: unknown): { code: string; name: string } | null {
-  const s = String(raw ?? "").trim();
-  if (!s) return null;
-  for (const a of ENTITY_ALIASES) {
-    if (a.patterns.some((re) => re.test(s))) return { code: a.id, name: a.name };
-  }
-  return null;
+  const match = matchOrganization(raw);
+  return match ? { code: match.id, name: match.name } : null;
 }
 
 // Classify a header (axis name) into one of the institutional matrix buckets.
