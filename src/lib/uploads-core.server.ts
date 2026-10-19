@@ -478,9 +478,20 @@ export async function runParseUpload(data: { uploadId: string; filePath: string;
 
         const cols = kpiColumnMap(aoa, kpiHeaderIdx);
         const rowsToParse = kpiHeaderIdx >= 0 ? aoa.slice(kpiHeaderIdx + 1) : aoa;
-        for (const row of rowsToParse) {
+        // كشف النسبة من تنسيق خلية Excel (cell.z يحتوي %) — بديل القاعدة التلقائية ≤1×100
+        const pctCell = (sheetRow: number, colIdx: number): number | null => {
+          if (colIdx < 0) return null;
+          const cell = (ws as Record<string, { z?: string } | undefined>)[XLSX.utils.encode_cell({ r: sheetRow, c: colIdx })];
+          return typeof cell?.z === "string" && cell.z.includes("%") ? 100 : 1;
+        };
+        const pctVal = (row: unknown[], sheetRow: number, colIdx: number): number | null => {
+          const n = toNum(row[colIdx]);
+          return n === null ? null : n * (pctCell(sheetRow, colIdx) ?? 1);
+        };
+        for (const [ri, row] of rowsToParse.entries()) {
           if (!Array.isArray(row)) continue;
           if (!isValidKpiRow(row, cols)) continue;
+          const sheetRow = (kpiHeaderIdx >= 0 ? kpiHeaderIdx + 1 : 0) + ri;
           const code = toStr(row[cols.code]);
           const name = toStr(row[cols.name]);
 
@@ -517,8 +528,8 @@ export async function runParseUpload(data: { uploadId: string; filePath: string;
             q3_actual: toNum(row[cols.q3a]),
             q4_actual: toNum(row[cols.q4a]),
             total_actual: toNum(row[cols.totalActual]),
-            achievement_pct: toNum(row[cols.achievement]),
-            overall_pct: toNum(row[cols.overall]),
+            achievement_pct: pctVal(row, sheetRow, cols.achievement),
+            overall_pct: pctVal(row, sheetRow, cols.overall),
             final_output: toStr(row[cols.output]),
             period,
             raw: { row } as unknown as never,
