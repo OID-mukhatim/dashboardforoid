@@ -6,7 +6,7 @@ import { ORGS, GAP_AXES, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { loadGapScores, updateGapScore } from "@/lib/dashboard.functions";
 import { useLang } from "@/lib/lang-context";
-import { Card, CardHeader, useDashboardSnapshotQuery, getLiveGapValue, SectionTitle } from "./_shared";
+import { Card, CardHeader, EmptyData, useDashboardSnapshotQuery, getLiveGapValue, SectionTitle } from "./_shared";
 
 const PERIOD = "Q2-2026";
 const DOMAIN_NAMES = [
