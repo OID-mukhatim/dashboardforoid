@@ -50,28 +50,37 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sb = context.supabase;
 
-    // 1) KPI aggregates per org
-    const { data: kpis, error: kpiErr } = await sb
-      .from("kpis")
-      .select("entity_code, achievement_pct, overall_pct, weight");
+    // 1) KPI aggregates per org — السنة النشطة فقط لكل مؤسسة (org_active_years)
+    const [{ data: kpis, error: kpiErr }, { data: activeYearRows }] = await Promise.all([
+      sb.from("kpis").select("entity_code, achievement_pct, overall_pct, weight, plan_year, upload_id"),
+      sb.from("org_active_years").select("org_id, active_year"),
+    ]);
     if (kpiErr) throw kpiErr;
+    const activeYearOf = new Map<string, number>();
+    for (const r of activeYearRows ?? []) activeYearOf.set(String(r.org_id), Number(r.active_year));
 
     const kpiAgg: Record<string, LiveKpiEntry> = {};
     for (const code of VALID_ORGS) kpiAgg[code] = { weightedAvgPct: null, weightedAvgScore: null, count: 0 };
 
     const byOrg = new Map<string, { wSum: number; wxSum: number; count: number }>();
+    const kpiOrgUploads = new Map<string, Set<string>>();
     for (const r of kpis ?? []) {
       const code = String(r.entity_code ?? "");
       if (!VALID_ORGS.includes(code as OrgCode)) continue;
+      const activeYear = activeYearOf.get(code);
+      if (activeYear === undefined || Number(r.plan_year) !== activeYear) continue;
+      if (r.upload_id) {
+        if (!kpiOrgUploads.has(code)) kpiOrgUploads.set(code, new Set());
+        kpiOrgUploads.get(code)!.add(String(r.upload_id));
+      }
       const pctRaw = r.achievement_pct ?? r.overall_pct;
       if (pctRaw == null) continue;
-      const pct = Number(pctRaw);
+      const pct = Number(pctRaw); // النسب تُخزَّن 0–100 كما هي — لا تحويل تلقائي
       if (!Number.isFinite(pct)) continue;
-      const pct100 = pct <= 1 ? pct * 100 : pct;
       const w = Number(r.weight ?? 1) || 1;
       const cur = byOrg.get(code) ?? { wSum: 0, wxSum: 0, count: 0 };
       cur.wSum += w;
-      cur.wxSum += pct100 * w;
+      cur.wxSum += pct * w;
       cur.count += 1;
       byOrg.set(code, cur);
     }
@@ -84,10 +93,21 @@ export const loadDashboardSnapshot = createServerFn({ method: "GET" })
       };
     }
 
+    // أسماء ملفات المؤشرات لشارة المصدر
+    const kpiUploadIds = [...new Set([...kpiOrgUploads.values()].flatMap((s) => [...s]))];
+    const uploadMeta = new Map<string, { file_name: string | null; created_at: string | null }>();
+    if (kpiUploadIds.length > 0) {
+      const { data: ups } = await sb
+        .from("uploads")
+        .select("id, file_name, created_at")
+        .in("id", kpiUploadIds);
+      for (const u of ups ?? []) uploadMeta.set(String(u.id), { file_name: u.file_name, created_at: u.created_at });
+    }
+
     // 2) Institutional matrix from document_extractions
     const { data: extractions, error: exErr } = await sb
       .from("document_extractions")
-      .select("kind, entity_code, payload, created_at")
+      .select("kind, entity_code, payload, created_at, file_name")
       .eq("kind", "institutional_matrix")
       .order("created_at", { ascending: false });
     if (exErr) throw exErr;
