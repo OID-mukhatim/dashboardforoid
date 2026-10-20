@@ -26,4 +26,4 @@ export type Report = {
 };
 export type Plan = { id: string; org_id: string; plan_year: number; fiscal_type: string; status: 'draft' | 'objectives_approved' | 'matrix_approved'; updated_at: string; source_upload_id: string | null; prepared_by: string | null; approved_by: string | null };
 export type Issue = { code: string; row?: number; kpi?: string; detail?: string };
-export type ParsedTemplate = { orgName: string; period: Quarter; prepared_by: string | null; approved_by: string | null; kpis: KPI[]; activities: Activity[]; report: Report; errors: Issue[]; warnings: Issue[]; cached: Record<string, { annual_achieved: number | null; annual_pct: number | null; weighted: number | null; total_bt: number | null }>; };
+export type ParsedTemplate = { orgName: string; period: Quarter; prepared_by: string | null; approved_by: string | null; kpis: KPI[]; fileCodes: Record<string,string>; activities: Activity[]; report: Report; errors: Issue[]; warnings: Issue[]; cached: Record<string, { annual_achieved: number | null; annual_pct: number | null; weighted: number | null; total_bt: number | null }>; };

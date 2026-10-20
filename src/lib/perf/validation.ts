@@ -31,3 +31,10 @@ export function definitionDiffs(existing: KPI[], incoming: KPI[]): DefinitionDif
   for (const old of existing) if (!incoming.some(k => k.code === old.code)) changes.push({code:old.code,field:'removed',before:old.name,after:null});
   return changes;
 }
+
+export function mergeActuals(existing: KPI[], incoming: KPI[]) {
+ return existing.map(old => {
+  const row=incoming.find(k=>k.code===old.code);
+  return row ? {...old,q1_actual:row.q1_actual,q2_actual:row.q2_actual,q3_actual:row.q3_actual,q4_actual:row.q4_actual} : old;
+ });
+}

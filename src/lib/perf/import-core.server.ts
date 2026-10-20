@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 import { parseTemplate } from './parser';
 import { normalize } from './dictionary';
-import { definitionDiffs, validateMatrix } from './validation';
+import { definitionDiffs, validateMatrix, mergeActuals } from './validation';
 import { scorePlan } from './engine';
 import type { KPI } from './types';
 export async function buildPreview(sb:SupabaseClient<Database>,userId:string,input:{uploadId:string;year:number}) {
@@ -27,13 +27,16 @@ export async function buildPreview(sb:SupabaseClient<Database>,userId:string,inp
  if(plan?.status==='matrix_approved') {
   const mappings=new Map<string,string>();
   for(const k of parsed.kpis) {
-   const match=existing.find(e=>e.name===k.name) ?? existing.find(e=>e.code===k.code);
+   const originalCode=parsed.fileCodes[k.code];
+   const match=existing.find(e=>e.code===originalCode);
    if(match){mappings.set(k.code,match.code);k.code=match.code;}
+   else if(originalCode){mappings.set(k.code,originalCode);k.code=originalCode;}
+   else parsed.errors.push({code:'identity_missing',kpi:k.code});
   }
   for(const a of parsed.activities)if(a.kpi_code)a.kpi_code=mappings.get(a.kpi_code) ?? a.kpi_code;
   for(const a of parsed.report.achievements)if(a.kpi_code)a.kpi_code=mappings.get(String(a.kpi_code)) ?? a.kpi_code;
  }
  const validation=validateMatrix(parsed.kpis,parsed.activities);
  const errors=[...parsed.errors,...validation.errors.filter(e=>!parsed.errors.some(p=>JSON.stringify(p)===JSON.stringify(e)))];
- return {org:{id:org.id,name_ar:org.name_ar,name_en:org.name_en,fiscal_type:org.fiscal_type},parsed,errors,warnings:parsed.warnings,diffs:plan?.status==='matrix_approved'?definitionDiffs(existing,parsed.kpis):[],approved:plan?.status==='matrix_approved',revision:plan?.updated_at ?? null,score:scorePlan(parsed.kpis,parsed.period)};
+ return {org:{id:org.id,name_ar:org.name_ar,name_en:org.name_en,fiscal_type:org.fiscal_type},parsed,errors,warnings:parsed.warnings,diffs:plan?.status==='matrix_approved'?definitionDiffs(existing,parsed.kpis):[],approved:plan?.status==='matrix_approved',revision:plan?.updated_at ?? null,score:scorePlan(plan?.status==='matrix_approved'?mergeActuals(existing,parsed.kpis):parsed.kpis,parsed.period),definitionScore:scorePlan(parsed.kpis,parsed.period)};
 }

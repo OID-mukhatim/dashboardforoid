@@ -101,5 +101,5 @@ export function parseTemplate(buffer: ArrayBuffer | Uint8Array, prefix: string):
     (report[section as 'annual_stats'|'achievements'|'challenges'|'proposals']).push(record);
   }
   const validation=validateMatrix(kpis,activities);errors.push(...validation.errors);warnings.push(...validation.warnings);
-  return {orgName,period,prepared_by:adjacent(data,/معد التقرير|report prepared by/),approved_by:adjacent(data,/مراجعة واعتماد|review.*approval/),kpis,activities,report,cached,errors,warnings};
+  return {orgName,period,prepared_by:adjacent(data,/معد التقرير|report prepared by/),approved_by:adjacent(data,/مراجعة واعتماد|review.*approval/),kpis,fileCodes:Object.fromEntries([...fileCodes].map(([file,generated])=>[generated,file])),activities,report,cached,errors,warnings};
 }
