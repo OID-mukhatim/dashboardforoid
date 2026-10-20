@@ -1,4 +1,9 @@
 # Tasks
+- [ ] Phase 2: approval events, database field locks and authenticated editor actions; preserve engine results.
+- [ ] Phase 2: editable matrix, quarterly actuals, indicator drawer with individual formula proposal/approval, and activities.
+- [ ] Phase 2: original-template XML export with import/export/import equality tests.
+- [ ] Phase 2: remove legacy KPI code and reads; retire legacy tables unless incompatible-change permission is enabled.
+- [ ] Phase 2: direct database lock tests and ZF 2099 end-to-end checks, screenshots/export delivery, then test-plan cleanup.
 - [x] Temporarily exclude KPIs from composite scoring, proportionally redistribute remaining weights, and verify institution card notes without altering source calculations.
 - [x] Build authenticated live alerts, exclude KPI signals from anomalies, and verify the displayed alert list.
 - [x] Generate nonduplicating initiatives from latest gap periods without overwriting approved initiatives.
