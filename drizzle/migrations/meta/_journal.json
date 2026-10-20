@@ -43,6 +43,13 @@
       "when": 1792481040823,
       "tag": "0005_performance_phase_two_approval_locks",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792481087562,
+      "tag": "0006_performance_import_respects_approval",
+      "breakpoints": true
     }
   ]
 }
