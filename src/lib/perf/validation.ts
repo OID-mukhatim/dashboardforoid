@@ -20,7 +20,7 @@ export function validateMatrix(kpis: KPI[], activities: Activity[]): { errors: I
   return {errors,warnings};
 }
 export const DEFINITION_FIELDS = ['perspective','seq','objective','name','measurement','role','unit','polarity','calc_method','weight','baseline','annual_target','q1_plan','q2_plan','q3_plan','q4_plan'] as const;
-export type DefinitionDiff = { code: string; field: string; before: unknown; after: unknown };
+export type DefinitionDiff = { code: string; field: string; before: string | number | null; after: string | number | null };
 export function definitionDiffs(existing: KPI[], incoming: KPI[]): DefinitionDiff[] {
   const changes: DefinitionDiff[] = [];
   for (const row of incoming) {

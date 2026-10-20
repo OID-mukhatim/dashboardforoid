@@ -17,11 +17,12 @@ export type Activity = {
   target_group: string | null; implementer: string | null; beneficiaries: number | null;
   planned: number | null; achieved: number | null; kpi_code: string | null; notes: string | null;
 };
+export type ReportValue = string | number | boolean | null;
 export type Report = {
   id?: string; plan_id?: string; period: Quarter; executive_summary: string | null; planned_beneficiaries: number | null;
-  annual_stats: Record<string, unknown>[]; achievements: Record<string, unknown>[];
-  challenges: Record<string, unknown>[]; proposals: Record<string, unknown>[];
-  status?: 'draft' | 'submitted'; submitted_at?: string | null; snapshot?: unknown;
+  annual_stats: Record<string, ReportValue>[]; achievements: Record<string, ReportValue>[];
+  challenges: Record<string, ReportValue>[]; proposals: Record<string, ReportValue>[];
+  status?: 'draft' | 'submitted'; submitted_at?: string | null;
 };
 export type Plan = { id: string; org_id: string; plan_year: number; fiscal_type: string; status: 'draft' | 'objectives_approved' | 'matrix_approved'; updated_at: string; source_upload_id: string | null; prepared_by: string | null; approved_by: string | null };
 export type Issue = { code: string; row?: number; kpi?: string; detail?: string };

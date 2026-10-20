@@ -92,7 +92,7 @@ export function parseTemplate(buffer: ArrayBuffer | Uint8Array, prefix: string):
     if(row[0]==='#') {sectionHeader=true;continue;}
     if(!sectionHeader || !text(row[1]))continue;
     const fields: Record<string,string[]>={annual_stats:['category','previous','current','_change','note'],achievements:['achievement','area','impact','kpi_code','note'],challenges:['challenge','category','impact','reasons','action','status','notes'],proposals:['proposal','justification','impact','priority','cost','timeline','notes']};
-    const record: Record<string,unknown>={};
+    const record: Record<string,string|number|null>={};
     (fields[section] ?? []).forEach((f,i)=>{if(f==='_change')return;record[f]=section==='annual_stats' && ['previous','current'].includes(f)?num(row[i+1]):text(row[i+1])||null;});
     if(section==='achievements' && record.kpi_code)record.kpi_code=fileCodes.get(String(record.kpi_code)) ?? record.kpi_code;
     (report[section as 'annual_stats'|'achievements'|'challenges'|'proposals']).push(record);
