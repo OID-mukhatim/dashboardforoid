@@ -116,11 +116,14 @@ export function exportTemplate(
         : null;
     }
   const rep = input.report;
+  // Summary amounts must be real numbers in the sheet, not numeric text.
+  const numeric = (v: unknown) =>
+    typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : v;
   const s: Record<string, unknown> = {
     D4: input.plan.prepared_by,
     E4: input.plan.approved_by,
     A6: rep?.executive_summary ?? null,
-    C18: rep?.planned_beneficiaries ?? null,
+    C18: numeric(rep?.planned_beneficiaries ?? null),
   };
   const sections = [
     {
