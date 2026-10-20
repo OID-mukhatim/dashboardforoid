@@ -1,11 +1,13 @@
 # Tasks
-- [ ] Approved repair scope: stable KPI identifiers, transactional contiguous numbering, formula approval metadata, strict XML export, mandatory database/round-trip acceptance tests and deliverables.
+- [x] Use the requesting user's mukhatim2@gmail.com account for the remaining acceptance journey without changing its permissions.
+- [x] Approved repair scope: stable KPI identifiers, transactional contiguous numbering, formula approval metadata, strict XML export, database/round-trip acceptance tests and deliverables.
+- [ ] Read-only account refusal acceptance: requires user authorization to test a viewer account; requested mukhatim2@gmail.com is admin and its permissions must not be changed for testing.
 - [x] Share a current fast, low-cost AI model between formula suggestions and content translation; verify live translation and cache through the authenticated app, and a live Arabic formula suggestion.
-- [ ] Phase 2: approval events, database field locks and authenticated editor actions; preserve engine results.
-- [ ] Phase 2: editable matrix, quarterly actuals, indicator drawer with individual formula proposal/approval, and activities.
-- [ ] Phase 2: original-template XML export with import/export/import equality tests.
-- [ ] Phase 2: remove legacy KPI code and reads; retire legacy tables unless incompatible-change permission is enabled.
-- [ ] Phase 2: direct database lock tests and ZF 2099 end-to-end checks, screenshots/export delivery, then test-plan cleanup.
+- [x] Phase 2: approval events, database field locks and authenticated editor actions; preserve engine results.
+- [x] Phase 2: editable matrix, quarterly actuals, indicator drawer with individual formula proposal/approval, and activities.
+- [x] Phase 2: original-template XML export with import/export/import equality tests.
+- [x] Phase 2: remove legacy KPI code and reads; leave legacy tables empty, retired, not deleted.
+- [x] Phase 2: direct database lock tests and ZF 2099 end-to-end checks, screenshots/export delivery, then test-plan cleanup (viewer-account refusal pending separately).
 - [x] Temporarily exclude KPIs from composite scoring, proportionally redistribute remaining weights, and verify institution card notes without altering source calculations.
 - [x] Build authenticated live alerts, exclude KPI signals from anomalies, and verify the displayed alert list.
 - [x] Generate nonduplicating initiatives from latest gap periods without overwriting approved initiatives.

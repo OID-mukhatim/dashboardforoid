@@ -34,6 +34,17 @@ describe("Original template round trip", () => {
     expect(scorePlan(parsed.kpis, "Q2").annual).toBeCloseTo(69.9987, 4);
     expect(scorePlan(parsed.kpis, "Q2").toDate).toBe(86.625);
   });
+  it("fills the blank original template with exact fixture input and identical results", () => {
+    const blank = new Uint8Array(readFileSync(new URL("../../../public/templates/performance-template.xlsx", import.meta.url)));
+    const exported = exportTemplate(blank, input);
+    const parsed = parseTemplate(exported, "ZF");
+    expect(parsed.kpis).toEqual(fixture.kpis);
+    expect(parsed.activities).toEqual(fixture.activities);
+    expect(parsed.report).toEqual(fixture.report);
+    expect(parsed.orgName).toBe(fixture.orgName);
+    expect(scorePlan(parsed.kpis, "Q2").annual).toBeCloseTo(69.9987, 4);
+    expect(scorePlan(parsed.kpis, "Q2").toDate).toBe(86.625);
+  });
   it("never changes original formulas, styles, validation or conditional formatting", () => {
     const before = unzipSync(original), after = unzipSync(exportTemplate(original, input));
     for (const path of Object.keys(before).filter(p => p.startsWith("xl/worksheets/") && p.endsWith(".xml"))) {
