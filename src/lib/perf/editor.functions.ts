@@ -13,7 +13,12 @@ export const createPerfPlan = createServerFn({ method: "POST" }).middleware([req
 });
 export const savePerfKpi = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d: unknown) => z.object({ id: id.optional(), planId: id, values }).parse(d)).handler(async ({ data, context }) => {
   const patch = Object.fromEntries(Object.entries(data.values).filter(([k]) => (EDIT_FIELDS as readonly string[]).includes(k)));
-  const result = data.id ? await context.supabase.from("perf_kpis").update(patch).eq("id", data.id).eq("plan_id", data.planId) : await context.supabase.from("perf_kpis").insert({ ...patch, plan_id: data.planId, code: "", name: "", perspective: "S", seq: 1, measurement: "num", role: "leading", unit: "number", polarity: "asc", calc_method: "q_independent", weight: 0, ...patch } as any);
+  const result = data.id ? await context.supabase.from("perf_kpis").update(patch).eq("id", data.id).eq("plan_id", data.planId) : await context.supabase.from("perf_kpis").insert({ plan_id: data.planId, code: "", name: "", perspective: "S", seq: 1, measurement: "num", role: "leading", unit: "number", polarity: "asc", calc_method: "q_independent", weight: 0, ...patch } as any);
+  if (result.error) throw new Error(result.error.message);
+  return { ok: true };
+});
+export const reorderPerfKpis = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d: unknown) => z.object({ planId: id, ids: z.array(id) }).parse(d)).handler(async ({ data, context }) => {
+  const result = await context.supabase.rpc("reorder_perf_kpis", { p_plan: data.planId, p_ids: data.ids });
   if (result.error) throw new Error(result.error.message);
   return { ok: true };
 });
