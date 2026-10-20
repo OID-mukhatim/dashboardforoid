@@ -14,6 +14,7 @@ import { Card, CardHeader, EmptyData, UploadProgressBar, SectionTitle, FilterSel
 import { useLang } from "@/lib/lang-context";
 import { TranslatableText } from "@/components/oid/TranslatableText";
 import { Button } from "@/components/ui/button";
+import { PerformanceImportPanel } from "@/components/perf/PerformanceImportPanel";
 
 function UploadText({ text }: { text: string | null | undefined }) {
   const { t, tFormat } = useLang();
@@ -30,12 +31,12 @@ function UploadText({ text }: { text: string | null | undefined }) {
   return <TranslatableText text={text} sourceLang={/[\u0600-\u06ff]/.test(text) ? "ar" : "en"} />;
 }
 
-const DATA_TYPES = ["الكل", "مؤشرات الأداء", "تقرير ربعي", "بيانات الفجوات", "بيانات الحوكمة", "البيانات المؤسسية", "التقرير المالي"];
+const DATA_TYPES = ["الكل", "قالب متابعة الأداء", "مؤشرات الأداء", "تقرير ربعي", "بيانات الفجوات", "بيانات الحوكمة", "البيانات المؤسسية", "التقرير المالي"];
 const PERIODS = ["الكل", "Q1 2026", "Q2 2026", "Q3 2026", "Q4 2026", "سنوي 2026"];
 
 export function UploadSection() {
   const { t, tFormat, lang, dir } = useLang();
-  const u = (text: string) => t(`upload.${text}`);
+  const u = (text: string) => text === "قالب متابعة الأداء" ? (lang === "ar" ? text : "Performance tracking template") : t(`upload.${text}`);
   const orgLabel = (id: string) => {
     if (id === "الكل") return u("الكل");
     const org = ORGS.find((o) => o.id === id);
@@ -118,6 +119,10 @@ export function UploadSection() {
   }
 
   async function handleReprocess(id: string, filePath: string) {
+    if (rows.some((r) => r.id === id && r.data_type === "قالب متابعة الأداء")) {
+      setMsg({ kind: "err", text: lang === "ar" ? "اختر قالب متابعة الأداء لمعاينة الاستيراد." : "Select Performance tracking template to preview the import." });
+      return;
+    }
     setReprocessing(id); setMsg(null);
     try {
       const r = await runProcessing(id, filePath) as { ok?: boolean; upserted?: number; fileType?: string; orgsFound?: string[]; numbersCount?: number };
@@ -329,6 +334,7 @@ export function UploadSection() {
             );
           })()}
 
+          {dataType === "قالب متابعة الأداء" ? <PerformanceImportPanel key={orgId} initialYear={activeYears[orgId] ?? uploadYear} /> : <>
           <input
             ref={inputRef} type="file" multiple
             accept=".xlsx,.xls,.csv,.pdf,.docx,.pptx,.doc,.ppt"
@@ -350,6 +356,8 @@ export function UploadSection() {
               {busy ? "..." : u("اختيار ملفات")}
             </Button>
           </div>
+
+          </>}
 
           {msg && (
             <div className={`mt-4 text-sm p-3 rounded-md ${msg.kind==="ok"?"bg-emerald-500/10 text-emerald-700":"bg-rose-500/10 text-rose-700"}`}>
