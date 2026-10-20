@@ -33,28 +33,20 @@ export const savePerfKpi = createServerFn({ method: "POST" })
     const patch = Object.fromEntries(
       Object.entries(data.values).filter(([k]) => (EDIT_FIELDS as readonly string[]).includes(k)),
     ) as Database["public"]["Tables"]["perf_kpis"]["Update"];
-    const result = data.id
-      ? await context.supabase
-          .from("perf_kpis")
-          .update(patch)
-          .eq("id", data.id)
-          .eq("plan_id", data.planId)
-      : await context.supabase
-          .from("perf_kpis")
-          .insert({
-            plan_id: data.planId,
-            code: "",
-            name: "",
-            perspective: "S",
-            seq: 1,
-            measurement: "num",
-            role: "leading",
-            unit: "number",
-            polarity: "asc",
-            calc_method: "q_independent",
-            weight: 0,
-            ...patch,
-          } as any);
+    if (!data.id || "perspective" in patch || "seq" in patch) {
+      const { changeStructure } = await import("./structure.server");
+      return changeStructure(context.supabase, data.planId, rows => {
+        if (!data.id) return [...rows, patch];
+        if (!rows.some(r => r.id === data.id)) throw new Error("identity_missing");
+        const changed = rows.find(r => r.id === data.id);
+        if (!changed) throw new Error("identity_missing");
+        const rest = rows.filter(r => r.id !== data.id);
+        const moved = { ...changed, ...patch };
+        // Moving perspective appends to the target perspective; seq/code never come from the browser.
+        return [...rest, moved];
+      });
+    }
+    const result = await context.supabase.from("perf_kpis").update(patch).eq("id", data.id).eq("plan_id", data.planId).select("id").single();
     if (result.error) throw new Error(result.error.message);
     return { ok: true };
   });
@@ -73,13 +65,11 @@ export const deletePerfKpi = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id, planId: id }).parse(d))
   .handler(async ({ data, context }) => {
-    const result = await context.supabase
-      .from("perf_kpis")
-      .delete()
-      .eq("id", data.id)
-      .eq("plan_id", data.planId);
-    if (result.error) throw new Error(result.error.message);
-    return { ok: true };
+    const { changeStructure } = await import("./structure.server");
+    return changeStructure(context.supabase, data.planId, rows => {
+      if (!rows.some(r => r.id === data.id)) throw new Error("identity_missing");
+      return rows.filter(r => r.id !== data.id);
+    });
   });
 export const transitionPerfPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -138,21 +128,23 @@ export const savePerfActivity = createServerFn({ method: "POST" })
           planned: z.number().finite().nullable(),
           achieved: z.number().finite().nullable(),
           kpi_code: z.string().nullable(),
+          kpi_id: id.nullable().optional(),
           notes: z.string().nullable(),
         }),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    const activityValues = { ...data.values, kpi_code: data.values.kpi_id ? null : data.values.kpi_code };
     const result = data.id
       ? await context.supabase
           .from("perf_activities")
-          .update(data.values)
+          .update(activityValues)
           .eq("id", data.id)
           .eq("plan_id", data.planId)
       : await context.supabase
           .from("perf_activities")
-          .insert({ ...data.values, plan_id: data.planId });
+          .insert({ ...activityValues, plan_id: data.planId });
     if (result.error) throw new Error(result.error.message);
     return { ok: true };
   });
