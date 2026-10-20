@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import * as XLSX from 'xlsx';
 import { parseTemplate } from './parser';
 import { annualResult, scorePlan, activityTotals, operationalSummary, rating, toDateResult, percentage } from './engine';
-import { validateMatrix, definitionDiffs } from './validation';
+import { validateMatrix, definitionDiffs, mergeActuals } from './validation';
 import { optionCode } from './dictionary';
 const fixture=parseTemplate(new Uint8Array(readFileSync(new URL('./fixture-zf-q2.xlsx',import.meta.url))),'ZF');
 const find=(code:string)=>{ const k=fixture.kpis.find(k=>k.code===code);if(!k)throw new Error(code);return k; };
@@ -45,4 +45,5 @@ describe('guide and validation rules',()=>{
  it('missing approval metadata stays null and never consumes the period label',()=>expect(fixture.approved_by).toBeNull());
  it('deleted unused rows do not change section attribution',()=>{const w=XLSX.read(readFileSync(new URL('./fixture-zf-q2.xlsx',import.meta.url)),{type:'buffer'});const s=w.Sheets['KPI Tracking'];if(!s)throw new Error('sheet');const data=XLSX.utils.sheet_to_json(s,{header:1,defval:null}) as unknown[][];w.Sheets['KPI Tracking']=XLSX.utils.aoa_to_sheet(data.filter(row=>!(row.filter(v=>v!==null).length===1&&typeof row[3]==='string')));const r=parseTemplate(XLSX.write(w,{type:'array',bookType:'xlsx'}),'ZF');expect(r.kpis.map(k=>k.code)).toEqual(fixture.kpis.map(k=>k.code));expect(r.errors).toEqual([]);});
  it('approved reimport differences ignore actual changes but include definitions',()=>{const before=find('ZF-S1');expect(definitionDiffs([before],[{...before,q1_actual:99}])).toEqual([]);expect(definitionDiffs([before],[{...before,weight:8}])).toEqual([{code:before.code,field:'weight',before:10,after:8}]);});
+ it('approved actual-only preview keeps frozen targets and weights',()=>{const before=find('ZF-S1');const merged=mergeActuals([before],[{...before,annual_target:160,weight:20,q1_actual:80}]);expect(merged[0]?.annual_target).toBe(80);expect(merged[0]?.weight).toBe(10);close(scorePlan(merged,'Q2').annual,10);});
 });
