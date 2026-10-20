@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { unzipSync, strFromU8, zipSync, strToU8 } from "fflate";
 import { XMLValidator } from "fast-xml-parser";
+import * as XLSX from "xlsx";
 import { exportTemplate } from "./export";
 import { parseTemplate } from "./parser";
 import { scorePlan } from "./engine";
