@@ -5,7 +5,7 @@ import { XMLValidator } from "fast-xml-parser";
 import { exportTemplate } from "./export";
 import { parseTemplate } from "./parser";
 import { scorePlan } from "./engine";
-import { fillSheet, readXml } from "./xml";
+import { fillSheet, readXml, writeXml } from "./xml";
 import { exportCapacity, fieldEditable } from "./edit-rules";
 const original = new Uint8Array(readFileSync(new URL("./fixture-zf-q2.xlsx", import.meta.url)));
 const fixture = parseTemplate(original, "ZF");
@@ -39,9 +39,11 @@ describe("Original template round trip", () => {
     for (const path of Object.keys(before).filter(p => p.startsWith("xl/worksheets/") && p.endsWith(".xml"))) {
       const a = readXml(strFromU8(before[path])), b = readXml(strFromU8(after[path]));
       expect(Array.from(b.getElementsByTagName("f")).map(f => f.textContent)).toEqual(Array.from(a.getElementsByTagName("f")).map(f => f.textContent));
+      const cells = new Map(Array.from(b.getElementsByTagName("c")).map(c => [c.getAttribute("r"), c]));
       for (const cell of Array.from(a.getElementsByTagName("c"))) {
-        if (cell.hasAttribute("s")) expect(Array.from(b.getElementsByTagName("c")).find(c => c.getAttribute("r") === cell.getAttribute("r"))?.getAttribute("s")).toBe(cell.getAttribute("s"));
+        if (cell.hasAttribute("s")) expect(cells.get(cell.getAttribute("r"))?.getAttribute("s")).toBe(cell.getAttribute("s"));
       }
+      for (const tag of ["dataValidations", "conditionalFormatting"]) expect(Array.from(b.getElementsByTagName(tag)).map(n => n.toString())).toEqual(Array.from(a.getElementsByTagName(tag)).map(n => n.toString()));
     }
   });
   it("stops when any required sheet is absent", () => {
@@ -49,8 +51,7 @@ describe("Original template round trip", () => {
     const doc = readXml(strFromU8(zip["xl/workbook.xml"]));
     const sheet = Array.from(doc.getElementsByTagName("sheet")).find(s => s.getAttribute("name") === "الملخص");
     sheet?.parentNode?.removeChild(sheet);
-    const { XMLSerializer } = require("@xmldom/xmldom");
-    zip["xl/workbook.xml"] = strToU8(new XMLSerializer().serializeToString(doc));
+    zip["xl/workbook.xml"] = strToU8(writeXml(doc));
     expect(() => exportTemplate(zipSync(zip), input)).toThrow("missing_sheets");
   });
   it("exports current linked codes, not stale compatibility text", () => {

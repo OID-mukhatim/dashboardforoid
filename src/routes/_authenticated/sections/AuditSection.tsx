@@ -9,7 +9,7 @@ import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { Card } from "./_shared";
 
 const TABLES: Record<string, [string, string]> = {
-  kpis: ["مؤشرات الأداء", "KPIs"], kpi_perspectives: ["منظورات المؤشرات", "KPI perspectives"], kpi_goals: ["أهداف المؤشرات", "KPI goals"],
+  perf_plans: ["خطط الأداء", "Performance plans"], perf_kpis: ["مؤشرات الأداء", "Performance indicators"], perf_activities: ["أنشطة الأداء", "Performance activities"], perf_reports: ["ملخصات الأداء", "Performance summaries"],
   gap_scores: ["درجات الفجوات", "Gap scores"], governance_policies: ["سياسات الحوكمة", "Governance policies"],
   quarterly_reports: ["التقارير الربعية", "Quarterly reports"], financial_reports: ["التقارير المالية", "Financial reports"],
   advisor_snapshots: ["أعمال المستشار المالي", "Financial advisor"], timeline_entries: ["البعد الزمني", "Timeline"],

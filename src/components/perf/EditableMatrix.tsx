@@ -105,7 +105,6 @@ export function EditableMatrix({
                           planId: plan.id,
                           values: {
                             perspective: p,
-                            seq: Math.max(0, ...group.map((r) => r.kpi.seq)) + 1,
                             name: "",
                             objective: "",
                           },
@@ -154,6 +153,7 @@ export function EditableMatrix({
                                 <span className="block text-xs text-muted-foreground">
                                   {t(k.calc_formula_status ?? "none")}
                                 </span>
+                                {editor && plan.status === "draft" && <PerfField field="perspective" row={k} value={k.perspective} disabled={busy} onChange={v => change(k, "perspective", v)} />}
                               </div>
                             ) : f === "name" ? (
                               <div className="flex items-center gap-2">
