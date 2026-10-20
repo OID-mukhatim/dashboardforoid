@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
+import * as XLSX from 'xlsx';
 import { parseTemplate } from './parser';
 import { annualResult, scorePlan, activityTotals, operationalSummary, rating, toDateResult, percentage } from './engine';
 import { validateMatrix, definitionDiffs } from './validation';
@@ -40,5 +41,8 @@ describe('guide and validation rules',()=>{
  it('blocks independent qualitative method',()=>expect(validateMatrix([{...find('ZF-L1'),calc_method:'q_independent'}],[]).errors.some(e=>e.code==='method_conflict')).toBe(true));
  it('blocks unknown activity KPI',()=>expect(validateMatrix(fixture.kpis,[{...fixture.activities[0],kpi_code:'ZF-UNKNOWN'} as typeof fixture.activities[number]]).errors.some(e=>e.code==='activity_code')).toBe(true));
  it('dictionary normalizes repeated spaces and rejects unknown text',()=>{expect(optionCode('activity_type','برنامج / مشروع / نشاط  Program / Project / Activity')).toBe('program');expect(optionCode('measurement','invalid')).toBeNull();});
+ it('rejects percent-formatted weight 0.05',()=>{const w=XLSX.read(readFileSync(new URL('./fixture-zf-q2.xlsx',import.meta.url)),{type:'buffer',cellNF:true});const s=w.Sheets['KPI Tracking'];if(!s)throw new Error('sheet');s.J6={t:'n',v:0.05,z:'0%'};const r=parseTemplate(XLSX.write(w,{type:'array',bookType:'xlsx'}),'ZF');expect(r.errors.some(e=>e.code==='percent_weight')).toBe(true);});
+ it('missing approval metadata stays null and never consumes the period label',()=>expect(fixture.approved_by).toBeNull());
+ it('deleted unused rows do not change section attribution',()=>{const w=XLSX.read(readFileSync(new URL('./fixture-zf-q2.xlsx',import.meta.url)),{type:'buffer'});const s=w.Sheets['KPI Tracking'];if(!s)throw new Error('sheet');const data=XLSX.utils.sheet_to_json(s,{header:1,defval:null}) as unknown[][];w.Sheets['KPI Tracking']=XLSX.utils.aoa_to_sheet(data.filter(row=>!(row.filter(v=>v!==null).length===1&&typeof row[3]==='string')));const r=parseTemplate(XLSX.write(w,{type:'array',bookType:'xlsx'}),'ZF');expect(r.kpis.map(k=>k.code)).toEqual(fixture.kpis.map(k=>k.code));expect(r.errors).toEqual([]);});
  it('approved reimport differences ignore actual changes but include definitions',()=>{const before=find('ZF-S1');expect(definitionDiffs([before],[{...before,q1_actual:99}])).toEqual([]);expect(definitionDiffs([before],[{...before,weight:8}])).toEqual([{code:before.code,field:'weight',before:10,after:8}]);});
 });
