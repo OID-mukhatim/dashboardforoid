@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { unzipSync, strFromU8, zipSync, strToU8 } from "fflate";
 import { XMLValidator } from "fast-xml-parser";
+import * as XLSX from "xlsx";
 import { exportTemplate } from "./export";
 import { parseTemplate } from "./parser";
 import { scorePlan } from "./engine";
@@ -44,6 +45,30 @@ describe("Original template round trip", () => {
     expect(parsed.orgName).toBe(fixture.orgName);
     expect(scorePlan(parsed.kpis, "Q2").annual).toBeCloseTo(69.9987, 4);
     expect(scorePlan(parsed.kpis, "Q2").toDate).toBe(86.625);
+  });
+  it("writes the objective on its group's first row only and summary amounts as numbers", () => {
+    const wb = XLSX.read(exportTemplate(original, input), { type: "array" });
+    const tracking = wb.Sheets["KPI Tracking"];
+    const objective = (ref: string) => tracking[ref]?.v;
+    // Fixture groups: S rows 6-8 (1-2 share, 3 alone), P rows 40-42 (all share), L rows 74-76 (2-3 share), F rows 108-109.
+    expect(objective("B6")).toBe("تحسين رضا المستفيدين عن الخدمات");
+    expect(objective("B7")).toBeUndefined();
+    expect(objective("B8")).toBe("تعزيز الشراكات");
+    expect(objective("B40")).toBe("رفع كفاءة الإجراءات");
+    expect(objective("B41")).toBeUndefined();
+    expect(objective("B42")).toBeUndefined();
+    expect(objective("B74")).toBe("تطوير بيئة العمل");
+    expect(objective("B75")).toBe("بناء القدرات");
+    expect(objective("B76")).toBeUndefined();
+    expect(objective("B108")).toBe("تنويع الإيرادات");
+    expect(objective("B109")).toBe("ضبط الإنفاق");
+    const summary = wb.Sheets["الملخص"];
+    for (const [ref, v] of [["C18", 600], ["C26", 4000], ["D26", 5000], ["F55", 5000]] as const) {
+      expect(summary[ref]?.t).toBe("n");
+      expect(summary[ref]?.v).toBe(v);
+    }
+    // The parser still inherits blanked objectives, so the round trip is unchanged.
+    expect(parseTemplate(exportTemplate(original, input), "ZF").kpis).toEqual(fixture.kpis);
   });
   it("never changes original formulas, styles, validation or conditional formatting", () => {
     const before = unzipSync(original), after = unzipSync(exportTemplate(original, input));
