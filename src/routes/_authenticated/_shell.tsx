@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/_shell")({
 });
 
 type SectionId =
-  | "dashboard" | "kpis" | "quarterly" | "gaps" | "governance"
+  | "dashboard" | "kpis" | "reports" | "activities" | "gaps" | "governance"
   | "financial" | "partnerships" | "profiles" | "initiatives" | "office" | "upload" | "terminology" | "audit" | "organizations";
 
 type NavItem = { id: SectionId; label: string; icon: any; adminOnly?: boolean };
@@ -34,7 +34,8 @@ const buildNav = (t: (p: string) => string): { group: string; items: NavItem[] }
   { group: t("nav.groupLeadership"), items: [
     { id: "dashboard", label: t("nav.dashboard"), icon: Home },
     { id: "kpis", label: t("nav.kpis"), icon: Target },
-    { id: "quarterly", label: t("nav.quarterly"), icon: FileText },
+    { id: "reports", label: t("nav.reports"), icon: FileText },
+    { id: "activities", label: t("nav.activities"), icon: ListChecks },
   ]},
   { group: t("nav.groupAssessment"), items: [
     { id: "gaps", label: t("nav.gaps"), icon: RadarIcon },
@@ -184,6 +185,7 @@ function parseLayout(saved: string[] | null): Layout {
   const def = defaultLayout();
   const all = def.flat();
   if (!saved || saved.length === 0) return def;
+  saved = saved.map((s) => (s === "quarterly" ? "activities" : s));
   const out: Layout = def.map(() => []);
   if (saved.some((s) => s.startsWith("@"))) {
     let gi = -1;

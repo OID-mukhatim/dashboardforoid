@@ -57,7 +57,6 @@ function UploadText({ text }: { text: string | null | undefined }) {
 const DATA_TYPES = [
   "الكل",
   "قالب متابعة الأداء",
-  "تقرير ربعي",
   "بيانات الفجوات",
   "بيانات الحوكمة",
   "البيانات المؤسسية",
