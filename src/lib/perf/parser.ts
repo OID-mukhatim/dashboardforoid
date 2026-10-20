@@ -8,7 +8,10 @@ const num = (v: unknown): number | null => { if (v === null || v === undefined |
 function rows(sheet: XLSX.WorkSheet): unknown[][] { return XLSX.utils.sheet_to_json(sheet,{header:1,defval:null,raw:true}) as unknown[][]; }
 function adjacent(data: unknown[][], matcher: RegExp): string | null {
   for (const row of data.slice(0,15)) for (let c=0;c<row.length;c++) if (matcher.test(normalize(row[c]))) {
-    for (let i=c+1;i<row.length;i++) if (text(row[i])) return text(row[i]);
+    for (let i=c+1;i<row.length;i++) if (text(row[i])) {
+      if (/^(اسم المؤسسة|institution|الفترة|period|مراجعة واعتماد|review.*approval|معد التقرير|report prepared by)/.test(normalize(row[i]))) return null;
+      return text(row[i]);
+    }
   }
   return null;
 }
