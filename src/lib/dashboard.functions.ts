@@ -31,7 +31,7 @@ export type LiveKpiEntry = {
 
 export type DashboardSnapshot = {
   matrix: Record<string, LiveMatrixEntry>;
-  kpi: Record<string, LiveKpiEntry>;
+  kpi: Record<string, LiveKpiEntry> | null;
   totals: {
     kpisCount: number;
     orgsWithKpis: number;

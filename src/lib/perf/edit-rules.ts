@@ -1,4 +1,4 @@
-import { PERSPECTIVES, type KPI, type Plan } from "./types";
+import { PERSPECTIVES, type KPI, type Plan, type Issue } from "./types";
 import { validateMatrix } from "./validation";
 export const CARD_FIELDS = ["description", "department", "calculation_formula", "data_sources", "related_kpis", "enablers", "notes"] as const;
 export const NUMERIC_FIELDS = ["weight", "baseline", "annual_target", "q1_plan", "q1_actual", "q2_plan", "q2_actual", "q3_plan", "q3_actual", "q4_plan", "q4_actual"] as const;
@@ -15,7 +15,7 @@ export function allowedMethods(kpi: Pick<KPI, "measurement" | "unit">) {
   return kpi.measurement === "qual" || kpi.unit === "likert" ? ["q_average", "h_average", "annual"] : ["q_independent", "q_cumulative", "q_average", "h_independent", "h_cumulative", "h_average", "annual"];
 }
 export function approvalIssues(kpis: KPI[], matrix: boolean) {
-  const issues = PERSPECTIVES.filter((p) => !kpis.some((k) => k.perspective === p)).map((p) => ({ code: "missing_perspective", detail: p }));
+  const issues: Issue[] = PERSPECTIVES.filter((p) => !kpis.some((k) => k.perspective === p)).map((p) => ({ code: "missing_perspective", detail: p }));
   for (const k of kpis) {
     if (!k.name.trim() || !k.objective.trim()) issues.push({ code: "objectives_incomplete", detail: k.code });
     if (matrix && k.annual_target === null) issues.push({ code: "target_required", detail: k.code });

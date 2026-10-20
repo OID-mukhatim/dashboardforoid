@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { EDIT_FIELDS } from "./edit-rules";
+import type { Database } from "@/integrations/supabase/types";
 const id = z.string().uuid();
 const values = z.record(z.union([z.string(), z.number().finite(), z.null()]));
 export const createPerfPlan = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d: unknown) => z.object({ orgId: z.string(), year: z.number().int().min(1900).max(2200) }).parse(d)).handler(async ({ data, context }) => {
@@ -12,7 +13,7 @@ export const createPerfPlan = createServerFn({ method: "POST" }).middleware([req
   return result.data;
 });
 export const savePerfKpi = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d: unknown) => z.object({ id: id.optional(), planId: id, values }).parse(d)).handler(async ({ data, context }) => {
-  const patch = Object.fromEntries(Object.entries(data.values).filter(([k]) => (EDIT_FIELDS as readonly string[]).includes(k)));
+  const patch = Object.fromEntries(Object.entries(data.values).filter(([k]) => (EDIT_FIELDS as readonly string[]).includes(k))) as Database["public"]["Tables"]["perf_kpis"]["Update"];
   const result = data.id ? await context.supabase.from("perf_kpis").update(patch).eq("id", data.id).eq("plan_id", data.planId) : await context.supabase.from("perf_kpis").insert({ plan_id: data.planId, code: "", name: "", perspective: "S", seq: 1, measurement: "num", role: "leading", unit: "number", polarity: "asc", calc_method: "q_independent", weight: 0, ...patch } as any);
   if (result.error) throw new Error(result.error.message);
   return { ok: true };
