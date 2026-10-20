@@ -35,6 +35,7 @@ export function parseTemplate(buffer: ArrayBuffer | Uint8Array, prefix: string):
     const row=data[r] ?? [];
     const marker=row.map(perspectiveOf).find(Boolean);
     if (marker) { perspective=marker; objective='';seq=0;seen.add(marker);continue; }
+    if (/^(مؤشر الأداء|kpi)(\s|$)/i.test(normalize(row[2]))) continue;
     if (row.some(v => /^(الإجمالي|total)(\s|\s*\/)/i.test(normalize(v)))) { perspective=null;continue; }
     if (!perspective || !text(row[2]) || /^(مؤشر الأداء|kpi)(\s|$)/i.test(normalize(row[2]))) continue;
     seq++; objective=text(row[1]) || objective;
