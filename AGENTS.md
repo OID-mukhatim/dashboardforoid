@@ -9,4 +9,5 @@
 - Institutions come only from the organizations table via the shared org-registry (filled in-place by OrgsGate on the client and loadOrgRegistry inside each server handler); archived rows stay in ALL_ORGS only, so lists, filters, alerts and calculations skip them while history keeps them.
 - Data changes are captured by one SECURITY DEFINER audit trigger into the append-only audit_log (admin read only, no client writes); update rows that change only updated_at are skipped.
 - Each section is its own route under the _authenticated/_shell pathless layout (header + sidebar + Outlet); "/" redirects to /dashboard and admin-only pages wrap their component in AdminOnly.
-- Performance phase-one logic lives in small src/lib/perf modules and separate read-only UI; imports reparse stored workbooks before a user-scoped transactional RPC, leaving legacy quarterly reports and composite scoring disconnected.
+- Performance logic lives in small src/lib/perf modules; database triggers enforce approval locks and record transitions, and imports reparse stored workbooks before a user-scoped transactional RPC to protect approved definitions.
+- Translation and individual formula suggestions share AI_TEXT_MODEL in src/lib/ai-model.ts so model changes have one source.

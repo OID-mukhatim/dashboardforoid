@@ -1,4 +1,5 @@
 # Tasks
+- [x] Share a current fast, low-cost AI model between formula suggestions and content translation; verify live translation and cache through the authenticated app, and a live Arabic formula suggestion.
 - [ ] Phase 2: approval events, database field locks and authenticated editor actions; preserve engine results.
 - [ ] Phase 2: editable matrix, quarterly actuals, indicator drawer with individual formula proposal/approval, and activities.
 - [ ] Phase 2: original-template XML export with import/export/import equality tests.

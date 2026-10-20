@@ -1,6 +1,7 @@
 /** ترجمة المحتوى المُدخَل مع تخزين النتائج لتفادي إعادة الترجمة. */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { AI_TEXT_MODEL } from "./ai-model";
 
 export type TranslateInput = {
   text: string;
@@ -43,7 +44,7 @@ export const translateContent = createServerFn({ method: "POST" })
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: AI_TEXT_MODEL,
         messages: [
           {
             role: "system",

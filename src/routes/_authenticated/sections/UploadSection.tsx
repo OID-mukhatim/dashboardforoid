@@ -5,11 +5,16 @@ import { ORGS, ORG_FISCAL_YEAR, FISCAL_QUARTERS, type OrgId } from "@/lib/oid-da
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseUpload, processUpload, previewKpiUpload, deleteUploads } from "@/lib/uploads.functions";
-import { loadActiveYears, setActiveYear } from "@/lib/dashboard.functions";
-import { Card, CardHeader, EmptyData, UploadProgressBar, SectionTitle, FilterSelect } from "./_shared";
-
-
+import { parseUpload, processUpload, deleteUploads } from "@/lib/uploads.functions";
+import { loadActiveYears } from "@/lib/dashboard.functions";
+import {
+  Card,
+  CardHeader,
+  EmptyData,
+  UploadProgressBar,
+  SectionTitle,
+  FilterSelect,
+} from "./_shared";
 
 import { useLang } from "@/lib/lang-context";
 import { TranslatableText } from "@/components/oid/TranslatableText";
@@ -18,10 +23,28 @@ import { PerformanceImportPanel } from "@/components/perf/PerformanceImportPanel
 
 function UploadText({ text }: { text: string | null | undefined }) {
   const { t, tFormat } = useLang();
-  const perspective = text?.match(/^منظور "(.+)": مجموع الأوزان ([\d.]+)% — يجب أن يساوي ([\d.]+)% بالضبط$/);
+  const perspective = text?.match(
+    /^منظور "(.+)": مجموع الأوزان ([\d.]+)% — يجب أن يساوي ([\d.]+)% بالضبط$/,
+  );
   const total = text?.match(/^المجموع الكلي للأوزان: ([\d.]+)% — يجب أن يساوي 100% بالضبط$/);
   const count = text?.match(/^عدد المناظير في الملف (\d+) — المتوقع 4 مناظير$/);
-  if (perspective) return <>{tFormat("upload.perspectiveWeightError", { name: "{perspective}", sum: perspective[2], expected: perspective[3] }).split("{perspective}").map((part, i) => <Fragment key={i}>{i > 0 && <UploadText text={perspective[1]} />}{part}</Fragment>)}</>;
+  if (perspective)
+    return (
+      <>
+        {tFormat("upload.perspectiveWeightError", {
+          name: "{perspective}",
+          sum: perspective[2],
+          expected: perspective[3],
+        })
+          .split("{perspective}")
+          .map((part, i) => (
+            <Fragment key={i}>
+              {i > 0 && <UploadText text={perspective[1]} />}
+              {part}
+            </Fragment>
+          ))}
+      </>
+    );
   if (total) return <>{tFormat("upload.totalWeightError", { sum: total[1] })}</>;
   if (count) return <>{tFormat("upload.perspectiveCountWarning", { count: count[1] })}</>;
   if (!text) return <>—</>;
@@ -31,12 +54,25 @@ function UploadText({ text }: { text: string | null | undefined }) {
   return <TranslatableText text={text} sourceLang={/[\u0600-\u06ff]/.test(text) ? "ar" : "en"} />;
 }
 
-const DATA_TYPES = ["الكل", "قالب متابعة الأداء", "مؤشرات الأداء", "تقرير ربعي", "بيانات الفجوات", "بيانات الحوكمة", "البيانات المؤسسية", "التقرير المالي"];
+const DATA_TYPES = [
+  "الكل",
+  "قالب متابعة الأداء",
+  "تقرير ربعي",
+  "بيانات الفجوات",
+  "بيانات الحوكمة",
+  "البيانات المؤسسية",
+  "التقرير المالي",
+];
 const PERIODS = ["الكل", "Q1 2026", "Q2 2026", "Q3 2026", "Q4 2026", "سنوي 2026"];
 
 export function UploadSection() {
   const { t, tFormat, lang, dir } = useLang();
-  const u = (text: string) => text === "قالب متابعة الأداء" ? (lang === "ar" ? text : "Performance tracking template") : t(`upload.${text}`);
+  const u = (text: string) =>
+    text === "قالب متابعة الأداء"
+      ? lang === "ar"
+        ? text
+        : "Performance tracking template"
+      : t(`upload.${text}`);
   const orgLabel = (id: string) => {
     if (id === "الكل") return u("الكل");
     const org = ORGS.find((o) => o.id === id);
@@ -52,9 +88,7 @@ export function UploadSection() {
   const inputRef = useRef<HTMLInputElement>(null);
   const parseFn = useServerFn(parseUpload);
   const processFn = useServerFn(processUpload);
-  const previewFn = useServerFn(previewKpiUpload);
   const deleteFn = useServerFn(deleteUploads);
-  const setActiveYearFn = useServerFn(setActiveYear);
   const activeYearsFn = useServerFn(loadActiveYears);
   const { data: activeYears = {} } = useQuery({
     queryKey: ["active-years"],
@@ -70,7 +104,8 @@ export function UploadSection() {
   function toggleOne(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -84,7 +119,8 @@ export function UploadSection() {
   async function handleDelete(ids: string[]) {
     if (ids.length === 0) return;
     if (!confirm(tFormat("upload.deleteConfirm", { count: ids.length }))) return;
-    setDeleting(true); setMsg(null);
+    setDeleting(true);
+    setMsg(null);
     try {
       await deleteFn({ data: { uploadIds: ids } });
       setSelected(new Set());
@@ -98,18 +134,6 @@ export function UploadSection() {
       setDeleting(false);
     }
   }
-  type PreviewState = {
-    uploadId: string;
-    filePath: string;
-    fileName: string;
-    loading: boolean;
-    error?: string;
-    result?: Awaited<ReturnType<typeof previewKpiUpload>>;
-  };
-  const [preview, setPreview] = useState<PreviewState | null>(null);
-  const [forceImport, setForceImport] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-
   async function runProcessing(uploadId: string, filePath: string) {
     const ext = filePath.split(".").pop()?.toLowerCase() || "";
     if (["xlsx", "xls", "csv"].includes(ext)) {
@@ -120,25 +144,43 @@ export function UploadSection() {
 
   async function handleReprocess(id: string, filePath: string) {
     if (rows.some((r) => r.id === id && r.data_type === "قالب متابعة الأداء")) {
-      setMsg({ kind: "err", text: lang === "ar" ? "اختر قالب متابعة الأداء لمعاينة الاستيراد." : "Select Performance tracking template to preview the import." });
+      setMsg({
+        kind: "err",
+        text:
+          lang === "ar"
+            ? "اختر قالب متابعة الأداء لمعاينة الاستيراد."
+            : "Select Performance tracking template to preview the import.",
+      });
       return;
     }
-    setReprocessing(id); setMsg(null);
+    setReprocessing(id);
+    setMsg(null);
     try {
-      const r = await runProcessing(id, filePath) as { ok?: boolean; upserted?: number; fileType?: string; orgsFound?: string[]; numbersCount?: number };
+      const r = (await runProcessing(id, filePath)) as {
+        ok?: boolean;
+        upserted?: number;
+        fileType?: string;
+        orgsFound?: string[];
+        numbersCount?: number;
+      };
       const isDoc = r.fileType && ["docx", "pptx", "pdf"].includes(r.fileType);
       setMsg({
         kind: "ok",
         text: isDoc
-          ? tFormat("upload.reprocessedDoc", { orgs: r.orgsFound?.length ?? 0, numbers: r.numbersCount ?? 0 })
-          : tFormat("upload.reprocessedKpi", { count: r.upserted ?? 0 })
+          ? tFormat("upload.reprocessedDoc", {
+              orgs: r.orgsFound?.length ?? 0,
+              numbers: r.numbersCount ?? 0,
+            })
+          : tFormat("upload.reprocessedKpi", { count: r.upserted ?? 0 }),
       });
       qc.invalidateQueries({ queryKey: ["uploads"] });
       qc.invalidateQueries({ queryKey: ["kpis"] });
       qc.invalidateQueries({ queryKey: ["document_extractions"] });
     } catch (e) {
       setMsg({ kind: "err", text: e instanceof Error ? e.message : u("فشلت إعادة المعالجة") });
-    } finally { setReprocessing(null); }
+    } finally {
+      setReprocessing(null);
+    }
   }
 
   const { data: rows = [] } = useQuery({
@@ -176,7 +218,8 @@ export function UploadSection() {
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    setBusy(true); setMsg(null);
+    setBusy(true);
+    setMsg(null);
     try {
       const slug = (s: string) => {
         const ascii = s.replace(/[^\w.\-]+/g, "_").replace(/^_+|_+$/g, "");
@@ -186,51 +229,30 @@ export function UploadSection() {
         const safeName = slug(file.name);
         const path = `${slug(orgId)}/${slug(dataType)}/${slug(period)}/${Date.now()}_${safeName}`;
         const { error: upErr } = await supabase.storage.from("uploads").upload(path, file, {
-          upsert: false, contentType: file.type || undefined,
+          upsert: false,
+          contentType: file.type || undefined,
         });
         if (upErr) throw upErr;
 
-        const { data: row, error: insErr } = await supabase.from("uploads").insert({
-          file_name: file.name, file_path: path, file_size: file.size,
-          mime_type: file.type || null, data_type: dataType, org_id: orgId, period, status: "uploaded",
-        }).select("id").single();
+        const { data: row, error: insErr } = await supabase
+          .from("uploads")
+          .insert({
+            file_name: file.name,
+            file_path: path,
+            file_size: file.size,
+            mime_type: file.type || null,
+            data_type: dataType,
+            org_id: orgId,
+            period,
+            status: "uploaded",
+          })
+          .select("id")
+          .single();
         if (insErr) throw insErr;
 
-        const ext = file.name.split(".").pop()?.toLowerCase() || "";
-        const isExcel = ext === "xlsx" || ext === "xls" || ext === "csv";
-
-        const isInstitutionalSpreadsheet =
-          /شبك(ات|ة)|البيانات\s*المؤسسية|مؤسسي|institutional|networks?/i.test(file.name) ||
-          /البيانات\s*المؤسسية|بيانات\s*الفجوات|بيانات\s*الحوكمة|التقرير\s*المالي/i.test(dataType);
-
-        if (isExcel && !isInstitutionalSpreadsheet) {
-          // Excel: show preview modal first, defer commit until user confirms
-          setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: true });
-          let handledAsNonKpi = false;
-          try {
-            const result = await previewFn({ data: { filePath: path, period, fileName: file.name, dataType, planYear: uploadYear } });
-            setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, result });
-          } catch (e) {
-            const errText = e instanceof Error ? e.message : u("فشلت المعاينة");
-            if (/ليس ملف مؤشرات|لم يتم العثور على قالب مؤشرات/.test(errText)) {
-              await runProcessing(row.id, path).catch(() => {});
-              setPreview(null);
-              handledAsNonKpi = true;
-            } else {
-              setPreview({ uploadId: row.id, filePath: path, fileName: file.name, loading: false, error: errText });
-            }
-          }
-          qc.invalidateQueries({ queryKey: ["uploads"] });
-          if (handledAsNonKpi) continue;
-          break; // Only preview one file at a time
-        } else {
-          // Non-KPI Excel and Word/PPT/PDF: process directly through the classifier
-          await runProcessing(row.id, path).catch(() => {});
-        }
+        await runProcessing(row.id, path);
       }
-      if (!preview) {
-        setMsg({ kind: "ok", text: tFormat("upload.uploaded", { count: files.length }) });
-      }
+      setMsg({ kind: "ok", text: tFormat("upload.uploaded", { count: files.length }) });
       qc.invalidateQueries({ queryKey: ["uploads"] });
       qc.invalidateQueries({ queryKey: ["document_extractions"] });
       qc.invalidateQueries({ queryKey: ["kpis"] });
@@ -242,47 +264,7 @@ export function UploadSection() {
     }
   }
 
-  async function confirmPreview() {
-    setForceImport(false);
-    if (!preview?.result) return;
-    setConfirming(true);
-    try {
-      await runProcessing(preview.uploadId, preview.filePath);
-      const s = preview.result.summary;
-      // ترقية السنة النشطة تلقائياً عند رفع خطة لسنة أحدث
-      const orgs = orgId !== "الكل" ? [orgId] : ORGS.map((o) => o.id as string);
-      await Promise.allSettled(
-        orgs.map(async (id) => {
-          const current = activeYears[id] ?? 2026;
-          if (uploadYear > current) await setActiveYearFn({ data: { orgId: id, year: uploadYear } });
-        }),
-      );
-      setMsg({ kind: "ok", text: tFormat("upload.imported", { year: uploadYear, inserted: s.inserted, updated: s.updated, unchanged: s.unchanged }) });
-      setPreview(null);
-      qc.invalidateQueries({ queryKey: ["uploads"] });
-      qc.invalidateQueries({ queryKey: ["kpis"] });
-      qc.invalidateQueries({ queryKey: ["kpis-active"] });
-      qc.invalidateQueries({ queryKey: ["active-years"] });
-    } catch (e) {
-      setMsg({ kind: "err", text: e instanceof Error ? e.message : u("فشل الاستيراد") });
-    } finally {
-      setConfirming(false);
-    }
-  }
-
-  async function cancelPreview() {
-    setForceImport(false);
-    if (!preview) return;
-    // Mark upload as cancelled by deleting the storage object & row
-    try {
-      await supabase.storage.from("uploads").remove([preview.filePath]);
-      await supabase.from("uploads").delete().eq("id", preview.uploadId);
-    } catch { /* ignore cleanup errors */ }
-    setPreview(null);
-    qc.invalidateQueries({ queryKey: ["uploads"] });
-  }
-
-  const orgOptions = ["الكل", ...ORGS.map(o => o.id)];
+  const orgOptions = ["الكل", ...ORGS.map((o) => o.id)];
 
   const fileIcon = (name: string) => {
     const ext = name.split(".").pop()?.toLowerCase();
@@ -300,23 +282,49 @@ export function UploadSection() {
 
   return (
     <div className="space-y-6" dir={dir}>
-      <SectionTitle title={u("رفع البيانات وتحديثها")} subtitle={u("ملفات Excel / Word / PowerPoint / PDF — يُستخرج النص والأرقام تلقائياً")} />
+      <SectionTitle
+        title={u("رفع البيانات وتحديثها")}
+        subtitle={u("ملفات Excel / Word / PowerPoint / PDF — يُستخرج النص والأرقام تلقائياً")}
+      />
 
       <Card>
         <CardHeader title={u("منطقة الرفع")} />
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-            <FilterSelect value={dataType} onChange={setDataType} options={DATA_TYPES.map(value => ({ value, label: u(value) }))} label={u("نوع البيانات")} />
-            <FilterSelect value={orgId} onChange={setOrgId} options={orgOptions.map(value => ({ value, label: orgLabel(value) }))} label={u("المؤسسة")} />
-            <FilterSelect value={period} onChange={setPeriod} options={PERIODS.map(value => ({ value, label: value.startsWith("Q") ? value : u(value) }))} label={u("الفترة")} />
-            {dataType !== "قالب متابعة الأداء" && <label className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground whitespace-nowrap">{u("سنة الخطة")}</span>
-              <input
-                type="number" min={2026} max={2030} value={uploadYear}
-                onChange={(e) => setUploadYear(Number(e.target.value) || 2026)}
-                className="px-2 py-1.5 rounded-md bg-muted border border-border text-sm w-28 focus:outline-none"
-              />
-            </label>}
+            <FilterSelect
+              value={dataType}
+              onChange={setDataType}
+              options={DATA_TYPES.map((value) => ({ value, label: u(value) }))}
+              label={u("نوع البيانات")}
+            />
+            <FilterSelect
+              value={orgId}
+              onChange={setOrgId}
+              options={orgOptions.map((value) => ({ value, label: orgLabel(value) }))}
+              label={u("المؤسسة")}
+            />
+            <FilterSelect
+              value={period}
+              onChange={setPeriod}
+              options={PERIODS.map((value) => ({
+                value,
+                label: value.startsWith("Q") ? value : u(value),
+              }))}
+              label={u("الفترة")}
+            />
+            {dataType !== "قالب متابعة الأداء" && (
+              <label className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground whitespace-nowrap">{u("سنة الخطة")}</span>
+                <input
+                  type="number"
+                  min={2026}
+                  max={2030}
+                  value={uploadYear}
+                  onChange={(e) => setUploadYear(Number(e.target.value) || 2026)}
+                  className="px-2 py-1.5 rounded-md bg-muted border border-border text-sm w-28 focus:outline-none"
+                />
+              </label>
+            )}
           </div>
 
           {(() => {
@@ -329,38 +337,62 @@ export function UploadSection() {
               <div className="text-xs p-2 rounded-md mb-4 bg-muted border border-border">
                 📅 {u("هذا الربع يغطي فترة:")}
                 <span className="font-semibold ms-1">{u(info.months)}</span>
-                {fiscalType === "academic" && <span className="text-blue-600 ms-1">{u("(سنة دراسية)")}</span>}
+                {fiscalType === "academic" && (
+                  <span className="text-blue-600 ms-1">{u("(سنة دراسية)")}</span>
+                )}
               </div>
             );
           })()}
 
-          {dataType === "قالب متابعة الأداء" ? <PerformanceImportPanel key={orgId} initialYear={activeYears[orgId] ?? uploadYear} /> : <>
-          <input
-            ref={inputRef} type="file" multiple
-            accept=".xlsx,.xls,.csv,.pdf,.docx,.pptx,.doc,.ppt"
-            className="hidden"
-            onChange={(e) => handleFiles(e.target.files)}
-          />
+          {dataType === "قالب متابعة الأداء" ? (
+            <PerformanceImportPanel key={orgId} initialYear={activeYears[orgId] ?? uploadYear} />
+          ) : (
+            <>
+              <input
+                ref={inputRef}
+                type="file"
+                multiple
+                accept=".xlsx,.xls,.csv,.pdf,.docx,.pptx,.doc,.ppt"
+                className="hidden"
+                onChange={(e) => handleFiles(e.target.files)}
+              />
 
-          <div
-            onDragOver={(e)=>{e.preventDefault();setDragging(true);}}
-            onDragLeave={()=>setDragging(false)}
-            onDrop={(e)=>{e.preventDefault();setDragging(false);handleFiles(e.dataTransfer.files);}}
-            onClick={() => !busy && inputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition ${dragging?"border-primary bg-primary/5":"border-border bg-muted/20 hover:bg-muted/40"} ${busy?"opacity-60 pointer-events-none":""}`}
-          >
-            <Upload className="mx-auto mb-3 text-primary" size={32} />
-            <div className="font-bold mb-1">{busy ? u("جاري الرفع والمعالجة...") : u("اسحب وأفلت الملفات هنا")}</div>
-            <div className="text-xs text-muted-foreground mb-4">{u("أو اضغط للاختيار — Excel / Word / PowerPoint / PDF")}</div>
-            <Button type="button" className="text-sm px-4 py-2 rounded-md bg-primary text-primary-foreground" disabled={busy}>
-              {busy ? "..." : u("اختيار ملفات")}
-            </Button>
-          </div>
-
-          </>}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragging(false);
+                  handleFiles(e.dataTransfer.files);
+                }}
+                onClick={() => !busy && inputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition ${dragging ? "border-primary bg-primary/5" : "border-border bg-muted/20 hover:bg-muted/40"} ${busy ? "opacity-60 pointer-events-none" : ""}`}
+              >
+                <Upload className="mx-auto mb-3 text-primary" size={32} />
+                <div className="font-bold mb-1">
+                  {busy ? u("جاري الرفع والمعالجة...") : u("اسحب وأفلت الملفات هنا")}
+                </div>
+                <div className="text-xs text-muted-foreground mb-4">
+                  {u("أو اضغط للاختيار — Excel / Word / PowerPoint / PDF")}
+                </div>
+                <Button
+                  type="button"
+                  className="text-sm px-4 py-2 rounded-md bg-primary text-primary-foreground"
+                  disabled={busy}
+                >
+                  {busy ? "..." : u("اختيار ملفات")}
+                </Button>
+              </div>
+            </>
+          )}
 
           {msg && (
-            <div className={`mt-4 text-sm p-3 rounded-md ${msg.kind==="ok"?"bg-emerald-500/10 text-emerald-700":"bg-rose-500/10 text-rose-700"}`}>
+            <div
+              className={`mt-4 text-sm p-3 rounded-md ${msg.kind === "ok" ? "bg-emerald-500/10 text-emerald-700" : "bg-rose-500/10 text-rose-700"}`}
+            >
               <UploadText text={msg.text} />
             </div>
           )}
@@ -392,27 +424,42 @@ export function UploadSection() {
                   <div key={r.id} className="border border-border rounded-lg overflow-hidden">
                     <Button
                       onClick={() => setViewExtract(isOpen ? null : r.id)}
-                      variant="ghost" className="w-full h-auto justify-start whitespace-normal flex items-center gap-3 p-3 text-start hover:bg-muted/30 transition"
+                      variant="ghost"
+                      className="w-full h-auto justify-start whitespace-normal flex items-center gap-3 p-3 text-start hover:bg-muted/30 transition"
                     >
                       <span className="text-xl">{fileIcon(r.file_name)}</span>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium whitespace-normal break-words">{r.file_name}</div>
+                        <div className="text-sm font-medium whitespace-normal break-words">
+                          {r.file_name}
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           {isProcessed
                             ? summary?.orgs_found?.length > 0
-                              ? tFormat("upload.orgNumbers", { orgs: summary.orgs_found.length, numbers: summary.numbers_count ?? 0 })
+                              ? tFormat("upload.orgNumbers", {
+                                  orgs: summary.orgs_found.length,
+                                  numbers: summary.numbers_count ?? 0,
+                                })
                               : u("مُعالج")
-                            : r.status === "error" ? u("خطأ في المعالجة") : u("قيد المعالجة...")}
+                            : r.status === "error"
+                              ? u("خطأ في المعالجة")
+                              : u("قيد المعالجة...")}
                         </div>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded ${
-                        isProcessed ? "bg-emerald-500/10 text-emerald-700" :
-                        r.status === "error" ? "bg-rose-500/10 text-rose-700" :
-                        "bg-amber-500/10 text-amber-700"
-                      }`}>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded ${
+                          isProcessed
+                            ? "bg-emerald-500/10 text-emerald-700"
+                            : r.status === "error"
+                              ? "bg-rose-500/10 text-rose-700"
+                              : "bg-amber-500/10 text-amber-700"
+                        }`}
+                      >
                         {isProcessed ? u("مُعالج") : r.status === "error" ? u("خطأ") : u("جاري...")}
                       </span>
-                      <ChevronRight size={16} className={`text-muted-foreground transition ${isOpen ? "rotate-90" : ""}`} />
+                      <ChevronRight
+                        size={16}
+                        className={`text-muted-foreground transition ${isOpen ? "rotate-90" : ""}`}
+                      />
                     </Button>
 
                     {isOpen && extract && (
@@ -420,47 +467,68 @@ export function UploadSection() {
                         {/* Summary */}
                         {(extract as any).summary && (
                           <div className="mt-3 p-2 rounded bg-blue-50 text-blue-800 text-xs border border-blue-100">
-                            <strong>{u("ملخص:")}</strong> <UploadText text={(extract as any).summary} />
+                            <strong>{u("ملخص:")}</strong>{" "}
+                            <UploadText text={(extract as any).summary} />
                           </div>
                         )}
 
                         {/* Orgs found */}
-                        {(extract as any).org_mentions && (extract as any).org_mentions.length > 0 && (
-                          <div className="mt-3">
-                            <div className="text-xs font-medium text-muted-foreground mb-1">{u("المؤسسات المذكورة:")}</div>
-                            <div className="flex flex-wrap gap-1">
-                              {(extract as any).org_mentions.map((o: any, i: number) => (
-                                <span key={i} className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                                  <UploadText text={o.name} />
-                                </span>
-                              ))}
+                        {(extract as any).org_mentions &&
+                          (extract as any).org_mentions.length > 0 && (
+                            <div className="mt-3">
+                              <div className="text-xs font-medium text-muted-foreground mb-1">
+                                {u("المؤسسات المذكورة:")}
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {(extract as any).org_mentions.map((o: any, i: number) => (
+                                  <span
+                                    key={i}
+                                    className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-medium"
+                                  >
+                                    <UploadText text={o.name} />
+                                  </span>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
                         {/* Numbers */}
-                        {(extract as any).numbers_found && (extract as any).numbers_found.length > 0 && (
-                          <div className="mt-3">
-                            <div className="text-xs font-medium text-muted-foreground mb-1">{u("الأرقام المستخرجة:")}</div>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                              {(extract as any).numbers_found.slice(0, 12).map((n: any, i: number) => (
-                                <div key={i} className="text-xs p-2 rounded border border-border bg-card">
-                                  <div className="font-bold tabular-nums" dir="ltr">
-                                    {n.value.toLocaleString()} {n.unit && <UploadText text={n.unit} />}
-                                  </div>
-                                  <div className="text-muted-foreground whitespace-normal break-words mt-0.5" title={n.context}>
-                                    <UploadText text={n.context} />
-                                  </div>
-                                </div>
-                              ))}
+                        {(extract as any).numbers_found &&
+                          (extract as any).numbers_found.length > 0 && (
+                            <div className="mt-3">
+                              <div className="text-xs font-medium text-muted-foreground mb-1">
+                                {u("الأرقام المستخرجة:")}
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                {(extract as any).numbers_found
+                                  .slice(0, 12)
+                                  .map((n: any, i: number) => (
+                                    <div
+                                      key={i}
+                                      className="text-xs p-2 rounded border border-border bg-card"
+                                    >
+                                      <div className="font-bold tabular-nums" dir="ltr">
+                                        {n.value.toLocaleString()}{" "}
+                                        {n.unit && <UploadText text={n.unit} />}
+                                      </div>
+                                      <div
+                                        className="text-muted-foreground whitespace-normal break-words mt-0.5"
+                                        title={n.context}
+                                      >
+                                        <UploadText text={n.context} />
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
                         {/* Text preview */}
                         {(extract as any).text_preview && (
                           <details className="mt-3">
-                            <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">{u("عرض النص المستخرج")}</summary>
+                            <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">
+                              {u("عرض النص المستخرج")}
+                            </summary>
                             <pre className="mt-2 text-xs text-muted-foreground whitespace-pre-wrap bg-muted/30 p-3 rounded max-h-[300px] overflow-y-auto">
                               <UploadText text={(extract as any).text_preview} />
                             </pre>
@@ -487,13 +555,17 @@ export function UploadSection() {
                 disabled={deleting}
                 className="text-xs px-3 py-1.5 rounded-md bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
               >
-                {deleting ? u("جارٍ الحذف...") : tFormat("upload.deleteSelected", { count: selected.size })}
+                {deleting
+                  ? u("جارٍ الحذف...")
+                  : tFormat("upload.deleteSelected", { count: selected.size })}
               </Button>
             ) : null
           }
         />
         <div className="p-5">
-          {rows.length === 0 ? <EmptyData msg={u("لا توجد ملفات مرفوعة بعد")} /> : (
+          {rows.length === 0 ? (
+            <EmptyData msg={u("لا توجد ملفات مرفوعة بعد")} />
+          ) : (
             <ScrollableTable>
               <table className="oid-table">
                 <thead>
@@ -506,91 +578,121 @@ export function UploadSection() {
                         onChange={() => toggleAll(rows.map((r: any) => r.id))}
                       />
                     </th>
-                    <th className="p-2">{u("الملف")}</th><th className="p-2">{u("النوع")}</th>
-                    <th className="p-2">{u("المؤسسة")}</th><th className="p-2">{u("الفترة")}</th>
-                    <th className="p-2">{u("الحالة")}</th><th className="p-2">{u("صفوف")}</th>
-                    <th className="p-2">{u("التاريخ")}</th><th className="p-2"></th>
+                    <th className="p-2">{u("الملف")}</th>
+                    <th className="p-2">{u("النوع")}</th>
+                    <th className="p-2">{u("المؤسسة")}</th>
+                    <th className="p-2">{u("الفترة")}</th>
+                    <th className="p-2">{u("الحالة")}</th>
+                    <th className="p-2">{u("صفوف")}</th>
+                    <th className="p-2">{u("التاريخ")}</th>
+                    <th className="p-2"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r: any) => {
-                    const prog = r.progress as null | { phase: string; label: string; percent: number; message?: string | null; elapsed_ms: number; eta_ms: number | null };
+                    const prog = r.progress as null | {
+                      phase: string;
+                      label: string;
+                      percent: number;
+                      message?: string | null;
+                      elapsed_ms: number;
+                      eta_ms: number | null;
+                    };
                     const isActive = r.status === "processing" || r.status === "uploaded";
-                    const showProgress = isActive || (prog && prog.percent < 100 && r.status !== "error");
+                    const showProgress =
+                      isActive || (prog && prog.percent < 100 && r.status !== "error");
                     const fmtMs = (ms: number | null | undefined) => {
                       if (ms == null || !Number.isFinite(ms)) return "—";
                       const s = Math.round(ms / 1000);
                       if (s < 60) return tFormat("upload.seconds", { count: s });
-                      const m = Math.floor(s / 60), rem = s % 60;
+                      const m = Math.floor(s / 60),
+                        rem = s % 60;
                       return tFormat("upload.minutesSeconds", { minutes: m, seconds: rem });
                     };
                     return (
                       <Fragment key={r.id}>
-                    <tr className={`border-b hover:bg-muted/30 ${selected.has(r.id) ? "bg-primary/5" : ""}`}>
-                      <td className="p-2">
-                        <input
-                          type="checkbox"
-                          aria-label={tFormat("upload.selectFile", { file: r.file_name })}
-                          checked={selected.has(r.id)}
-                          onChange={() => toggleOne(r.id)}
-                        />
-                      </td>
-                      <td className="p-2 font-medium whitespace-normal break-words max-w-[200px]">
-                        <span className="ms-1">{fileIcon(r.file_name)}</span>
-                        {r.file_name}
-                      </td>
-                      <td className="p-2"><UploadText text={r.data_type} /></td>
-                      <td className="p-2">{orgLabel(r.org_id)}</td>
-                      <td className="p-2"><UploadText text={r.period} /></td>
-                      <td className="p-2">
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          r.status==="processed"?"bg-emerald-500/10 text-emerald-700":
-                          r.status==="error"?"bg-rose-500/10 text-rose-700":
-                          "bg-amber-500/10 text-amber-700"
-                        }`}>
-                          {r.status === "processed" ? u("مُعالج") : r.status === "error" ? u("خطأ") : u("قيد المعالجة")}
-                        </span>
-                      </td>
-                      <td className="p-2">{r.rows_extracted ?? 0}</td>
-                      <td className="p-2 text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleString(lang === "ar" ? "ar" : "en-GB")}</td>
-                      <td className="p-2 whitespace-nowrap">
-                        <div className="flex items-center gap-1 justify-end">
-                          <Button
-                            type="button"
-                            onClick={() => handleReprocess(r.id, r.file_path)}
-                            disabled={reprocessing === r.id}
-                            className="text-xs px-2 py-1 rounded-md border border-border hover:bg-primary hover:text-primary-foreground transition disabled:opacity-50"
-                          >
-                            {reprocessing === r.id ? "..." : u("إعادة المعالجة")}
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={() => handleDelete([r.id])}
-                            disabled={deleting}
-                            aria-label={u("حذف الملف وبياناته")} title={u("حذف الملف وبياناته")}
-                            className="text-xs px-2 py-1 rounded-md border border-rose-200 text-rose-700 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition disabled:opacity-50"
-                          >
-                            🗑
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                    {showProgress && (
-                      <tr key={`${r.id}-progress`} className="border-b bg-amber-50/40">
-                        <td className="p-2" />
-                        <td colSpan={8} className="p-2">
-                          <UploadProgressBar
-                            phase={prog?.phase ?? "downloading"}
-                            label={prog?.label ?? u("بدء المعالجة...")}
-                            percent={prog?.percent ?? 0}
-                            message={prog?.message ?? null}
-                            elapsedMs={prog?.elapsed_ms ?? 0}
-                            etaMs={prog?.eta_ms ?? null}
-                            fmtMs={fmtMs}
-                          />
-                        </td>
-                      </tr>
-                    )}
+                        <tr
+                          className={`border-b hover:bg-muted/30 ${selected.has(r.id) ? "bg-primary/5" : ""}`}
+                        >
+                          <td className="p-2">
+                            <input
+                              type="checkbox"
+                              aria-label={tFormat("upload.selectFile", { file: r.file_name })}
+                              checked={selected.has(r.id)}
+                              onChange={() => toggleOne(r.id)}
+                            />
+                          </td>
+                          <td className="p-2 font-medium whitespace-normal break-words max-w-[200px]">
+                            <span className="ms-1">{fileIcon(r.file_name)}</span>
+                            {r.file_name}
+                          </td>
+                          <td className="p-2">
+                            <UploadText text={r.data_type} />
+                          </td>
+                          <td className="p-2">{orgLabel(r.org_id)}</td>
+                          <td className="p-2">
+                            <UploadText text={r.period} />
+                          </td>
+                          <td className="p-2">
+                            <span
+                              className={`text-xs px-2 py-1 rounded ${
+                                r.status === "processed"
+                                  ? "bg-emerald-500/10 text-emerald-700"
+                                  : r.status === "error"
+                                    ? "bg-rose-500/10 text-rose-700"
+                                    : "bg-amber-500/10 text-amber-700"
+                              }`}
+                            >
+                              {r.status === "processed"
+                                ? u("مُعالج")
+                                : r.status === "error"
+                                  ? u("خطأ")
+                                  : u("قيد المعالجة")}
+                            </span>
+                          </td>
+                          <td className="p-2">{r.rows_extracted ?? 0}</td>
+                          <td className="p-2 text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(r.created_at).toLocaleString(lang === "ar" ? "ar" : "en-GB")}
+                          </td>
+                          <td className="p-2 whitespace-nowrap">
+                            <div className="flex items-center gap-1 justify-end">
+                              <Button
+                                type="button"
+                                onClick={() => handleReprocess(r.id, r.file_path)}
+                                disabled={reprocessing === r.id}
+                                className="text-xs px-2 py-1 rounded-md border border-border hover:bg-primary hover:text-primary-foreground transition disabled:opacity-50"
+                              >
+                                {reprocessing === r.id ? "..." : u("إعادة المعالجة")}
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={() => handleDelete([r.id])}
+                                disabled={deleting}
+                                aria-label={u("حذف الملف وبياناته")}
+                                title={u("حذف الملف وبياناته")}
+                                className="text-xs px-2 py-1 rounded-md border border-rose-200 text-rose-700 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition disabled:opacity-50"
+                              >
+                                🗑
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                        {showProgress && (
+                          <tr key={`${r.id}-progress`} className="border-b bg-amber-50/40">
+                            <td className="p-2" />
+                            <td colSpan={8} className="p-2">
+                              <UploadProgressBar
+                                phase={prog?.phase ?? "downloading"}
+                                label={prog?.label ?? u("بدء المعالجة...")}
+                                percent={prog?.percent ?? 0}
+                                message={prog?.message ?? null}
+                                elapsedMs={prog?.elapsed_ms ?? 0}
+                                etaMs={prog?.eta_ms ?? null}
+                                fmtMs={fmtMs}
+                              />
+                            </td>
+                          </tr>
+                        )}
                       </Fragment>
                     );
                   })}
@@ -600,156 +702,6 @@ export function UploadSection() {
           )}
         </div>
       </Card>
-
-      {preview && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={cancelPreview}>
-          <div role="dialog" aria-modal="true" aria-label={u("معاينة الاستيراد قبل التأكيد")} className="bg-background rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e)=>e.stopPropagation()}>
-            <div className="p-5 border-b border-border flex items-center justify-between">
-              <div>
-                <div className="font-bold text-lg">{u("معاينة الاستيراد قبل التأكيد")}</div>
-                <div className="text-xs text-muted-foreground mt-1">{preview.fileName}</div>
-              </div>
-              <Button variant="ghost" size="icon" aria-label={t("actions.close")} onClick={cancelPreview} className="text-muted-foreground hover:text-foreground p-1">✕</Button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              {preview.loading && (
-                <div className="text-center py-12 text-muted-foreground">{u("جارٍ تحليل الملف ومطابقته بالبيانات الحالية...")}</div>
-              )}
-              {preview.error && (
-                <div className="p-3 rounded-md bg-rose-500/10 text-rose-700 text-sm">⚠️ <UploadText text={preview.error} /></div>
-              )}
-              {preview.result && (
-                <>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50">
-                      <div className="text-2xl font-bold text-emerald-700">{preview.result.summary.inserted}</div>
-                      <div className="text-xs text-emerald-700 mt-1">{u("مؤشرات جديدة")}</div>
-                    </div>
-                    <div className="p-3 rounded-lg border border-blue-200 bg-blue-50">
-                      <div className="text-2xl font-bold text-blue-700">{preview.result.summary.updated}</div>
-                      <div className="text-xs text-blue-700 mt-1">{u("سيتم تحديثها")}</div>
-                    </div>
-                    <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                      <div className="text-2xl font-bold text-slate-600">{preview.result.summary.unchanged}</div>
-                      <div className="text-xs text-slate-600 mt-1">{u("بلا تغيير")}</div>
-                    </div>
-                    {preview.result.summary.rejected > 0 ? (
-                      <div className="p-3 rounded-lg border border-rose-200 bg-rose-50">
-                        <div className="text-2xl font-bold text-rose-700">{preview.result.summary.rejected}</div>
-                        <div className="text-xs text-rose-700 mt-1">{u("صفوف مرفوضة")}</div>
-                      </div>
-                    ) : (
-                      <div className="p-3 rounded-lg border border-border bg-muted/30">
-                        <div className="text-2xl font-bold">{preview.result.summary.totalInFile}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{u("إجمالي الملف")}</div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-3 rounded-md bg-blue-50 text-blue-800 text-xs border border-blue-100">
-                    {u("upsertHint")}
-                  </div>
-
-                  {preview.result.updated.length > 0 && (
-                    <div>
-                      <div className="font-semibold text-sm mb-2">{tFormat("upload.updatedDetails", { count: preview.result.updated.length })}</div>
-                      <div className="border border-border rounded-lg">
-                        <ScrollableTable maxHeight={300}>
-                        <table className="oid-table min-w-[520px]">
-                          <thead>
-                            <tr className="text-start">
-                              <th className="p-2">{u("الكود")}</th><th className="p-2">{u("الحقل")}</th>
-                              <th className="p-2">{u("القديم")}</th><th className="p-2">{u("الجديد")}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {preview.result.updated.flatMap(u =>
-                              u.changes.map((c, i) => (
-                                <tr key={`${u.entity_code}-${u.kpi_code}-${c.field}-${i}`} className="border-t border-border">
-                                  <td className="p-2 font-mono text-[10px]">{u.entity_code}/{u.kpi_code}</td>
-                                  <td className="p-2"><UploadText text={c.label} /></td>
-                                  <td className="p-2 text-rose-700 line-through"><UploadText text={c.from == null ? null : String(c.from)} /></td>
-                                  <td className="p-2 text-emerald-700 font-semibold"><UploadText text={c.to == null ? null : String(c.to)} /></td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                        </ScrollableTable>
-                      </div>
-                    </div>
-                  )}
-
-                  {preview.result.summary.stale > 0 && (
-                    <div className="p-3 rounded-md bg-amber-50 text-amber-800 text-xs border border-amber-200">
-                      {tFormat("upload.stale", { count: preview.result.summary.stale })}
-                    </div>
-                  )}
-                  {preview.result.summary.duplicatesInFile > 0 && (
-                    <div className="p-3 rounded-md bg-amber-50 text-amber-800 text-xs border border-amber-200">
-                      {tFormat("upload.duplicates", { count: preview.result.summary.duplicatesInFile })}
-                    </div>
-                  )}
-
-                  {(preview.result.weightChecks ?? []).map((wc) => (
-                    <div
-                      key={wc.entity}
-                      className={`p-3 rounded-md text-xs border ${wc.valid ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-rose-50 text-rose-800 border-rose-200"}`}
-                    >
-                      <div className="font-semibold mb-1">
-                        {wc.valid ? "✅" : "⚠️"} {u("فحص الأوزان")} — {orgLabel(wc.entity)}
-                      </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 mb-1">
-                        {wc.perspectives.map((p) => (
-                          <span key={p.name} className="tabular-nums">
-                            <UploadText text={p.name} />: {p.sum.toFixed(2)}%
-                          </span>
-                        ))}
-                      </div>
-                      {wc.errors.map((e, i) => (
-                        <div key={i}>• <UploadText text={e} /></div>
-                      ))}
-                      {wc.warnings.map((w, i) => (
-                        <div key={`w${i}`} className="opacity-80">• <UploadText text={w} /></div>
-                      ))}
-                    </div>
-                  ))}
-
-                  {!preview.result.summary.weightsValid && (
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <input type="checkbox" checked={forceImport} onChange={(e) => setForceImport(e.target.checked)} />
-                      {u("أتجاوز فحص الأوزان وأؤكد الاستيراد رغم الأخطاء")}
-                    </label>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-border flex items-center justify-end gap-2">
-              <Button
-                onClick={cancelPreview}
-                disabled={confirming}
-                className="px-4 py-2 rounded-md border border-border hover:bg-muted/50 text-sm disabled:opacity-50"
-              >{u("إلغاء")}</Button>
-              <Button
-                onClick={confirmPreview}
-                disabled={
-                  !preview.result ||
-                  confirming ||
-                  !!preview.error ||
-                  (!preview.result.summary.weightsValid && !forceImport)
-                }
-                className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
-              >
-                {confirming ? u("جارٍ التأكيد...") :
-                  preview.result ? tFormat("upload.confirmImport", { count: preview.result.summary.inserted + preview.result.summary.updated }) : "..."}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
-
 }
