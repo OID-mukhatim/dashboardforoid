@@ -71,6 +71,13 @@
       "when": 1792483375763,
       "tag": "0009_performance_rpc_unambiguous_link_alias",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792483458109,
+      "tag": "0010_performance_bulk_delete_detaches_report_links",
+      "breakpoints": true
     }
   ]
 }
