@@ -15,6 +15,13 @@
       "when": 1792414276791,
       "tag": "0001_audit_log_and_organizations",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792477338330,
+      "tag": "0002_performance_phase_one",
+      "breakpoints": true
     }
   ]
 }

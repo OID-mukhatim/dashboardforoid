@@ -983,6 +983,279 @@ export type Database = {
         }
         Relationships: []
       }
+      perf_activities: {
+        Row: {
+          achieved: number | null
+          activity_type: string
+          beneficiaries: number | null
+          id: string
+          implementer: string | null
+          kpi_code: string | null
+          notes: string | null
+          plan_id: string
+          planned: number | null
+          quarter: string
+          target_group: string | null
+          title: string
+        }
+        Insert: {
+          achieved?: number | null
+          activity_type: string
+          beneficiaries?: number | null
+          id?: string
+          implementer?: string | null
+          kpi_code?: string | null
+          notes?: string | null
+          plan_id: string
+          planned?: number | null
+          quarter: string
+          target_group?: string | null
+          title: string
+        }
+        Update: {
+          achieved?: number | null
+          activity_type?: string
+          beneficiaries?: number | null
+          id?: string
+          implementer?: string | null
+          kpi_code?: string | null
+          notes?: string | null
+          plan_id?: string
+          planned?: number | null
+          quarter?: string
+          target_group?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perf_activities_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "perf_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perf_kpis: {
+        Row: {
+          annual_target: number | null
+          baseline: number | null
+          calc_method: string
+          calculation_formula: string | null
+          code: string
+          data_sources: string | null
+          department: string | null
+          description: string | null
+          enablers: string | null
+          id: string
+          measurement: string
+          name: string
+          notes: string | null
+          objective: string
+          perspective: string
+          plan_id: string
+          polarity: string
+          q1_actual: number | null
+          q1_plan: number | null
+          q2_actual: number | null
+          q2_plan: number | null
+          q3_actual: number | null
+          q3_plan: number | null
+          q4_actual: number | null
+          q4_plan: number | null
+          related_kpis: string | null
+          role: string
+          seq: number
+          unit: string
+          weight: number
+        }
+        Insert: {
+          annual_target?: number | null
+          baseline?: number | null
+          calc_method: string
+          calculation_formula?: string | null
+          code: string
+          data_sources?: string | null
+          department?: string | null
+          description?: string | null
+          enablers?: string | null
+          id?: string
+          measurement: string
+          name: string
+          notes?: string | null
+          objective?: string
+          perspective: string
+          plan_id: string
+          polarity: string
+          q1_actual?: number | null
+          q1_plan?: number | null
+          q2_actual?: number | null
+          q2_plan?: number | null
+          q3_actual?: number | null
+          q3_plan?: number | null
+          q4_actual?: number | null
+          q4_plan?: number | null
+          related_kpis?: string | null
+          role: string
+          seq: number
+          unit: string
+          weight: number
+        }
+        Update: {
+          annual_target?: number | null
+          baseline?: number | null
+          calc_method?: string
+          calculation_formula?: string | null
+          code?: string
+          data_sources?: string | null
+          department?: string | null
+          description?: string | null
+          enablers?: string | null
+          id?: string
+          measurement?: string
+          name?: string
+          notes?: string | null
+          objective?: string
+          perspective?: string
+          plan_id?: string
+          polarity?: string
+          q1_actual?: number | null
+          q1_plan?: number | null
+          q2_actual?: number | null
+          q2_plan?: number | null
+          q3_actual?: number | null
+          q3_plan?: number | null
+          q4_actual?: number | null
+          q4_plan?: number | null
+          related_kpis?: string | null
+          role?: string
+          seq?: number
+          unit?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perf_kpis_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "perf_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perf_plans: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          fiscal_type: string
+          id: string
+          matrix_approved_at: string | null
+          objectives_approved_at: string | null
+          org_id: string
+          plan_year: number
+          prepared_by: string | null
+          source_upload_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          fiscal_type: string
+          id?: string
+          matrix_approved_at?: string | null
+          objectives_approved_at?: string | null
+          org_id: string
+          plan_year: number
+          prepared_by?: string | null
+          source_upload_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          fiscal_type?: string
+          id?: string
+          matrix_approved_at?: string | null
+          objectives_approved_at?: string | null
+          org_id?: string
+          plan_year?: number
+          prepared_by?: string | null
+          source_upload_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perf_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perf_plans_source_upload_id_fkey"
+            columns: ["source_upload_id"]
+            isOneToOne: false
+            referencedRelation: "uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perf_reports: {
+        Row: {
+          achievements: Json
+          annual_stats: Json
+          challenges: Json
+          executive_summary: string | null
+          id: string
+          period: string
+          plan_id: string
+          planned_beneficiaries: number | null
+          proposals: Json
+          snapshot: Json | null
+          status: string
+          submitted_at: string | null
+        }
+        Insert: {
+          achievements?: Json
+          annual_stats?: Json
+          challenges?: Json
+          executive_summary?: string | null
+          id?: string
+          period: string
+          plan_id: string
+          planned_beneficiaries?: number | null
+          proposals?: Json
+          snapshot?: Json | null
+          status?: string
+          submitted_at?: string | null
+        }
+        Update: {
+          achievements?: Json
+          annual_stats?: Json
+          challenges?: Json
+          executive_summary?: string | null
+          id?: string
+          period?: string
+          plan_id?: string
+          planned_beneficiaries?: number | null
+          proposals?: Json
+          snapshot?: Json | null
+          status?: string
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perf_reports_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "perf_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_activities: {
         Row: {
           assigned_to: string | null
@@ -1449,7 +1722,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      commit_perf_import: {
+        Args: {
+          p_allow_definitions: boolean
+          p_org: string
+          p_payload: Json
+          p_revision: string
+          p_upload: string
+          p_year: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "developer" | "viewer"
