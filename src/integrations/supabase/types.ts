@@ -991,6 +991,7 @@ export type Database = {
           id: string
           implementer: string | null
           kpi_code: string | null
+          kpi_id: string | null
           notes: string | null
           plan_id: string
           planned: number | null
@@ -1005,6 +1006,7 @@ export type Database = {
           id?: string
           implementer?: string | null
           kpi_code?: string | null
+          kpi_id?: string | null
           notes?: string | null
           plan_id: string
           planned?: number | null
@@ -1019,6 +1021,7 @@ export type Database = {
           id?: string
           implementer?: string | null
           kpi_code?: string | null
+          kpi_id?: string | null
           notes?: string | null
           plan_id?: string
           planned?: number | null
@@ -1027,6 +1030,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "perf_activities_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "perf_kpis"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "perf_activities_plan_id_fkey"
             columns: ["plan_id"]
@@ -1785,6 +1795,10 @@ export type Database = {
           p_year: number
         }
         Returns: string
+      }
+      mutate_perf_kpis: {
+        Args: { p_plan: string; p_revision: string; p_rows: Json }
+        Returns: Json
       }
       reorder_perf_kpis: {
         Args: { p_ids: string[]; p_plan: string }
