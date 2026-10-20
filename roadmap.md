@@ -7,10 +7,10 @@
 - [x] Translate upload controls, history, feedback, and import preview.
 - [x] Translate extracted content and processing progress without changing stored data.
 - [x] Verify Arabic and English upload screens, calendar labels, history headings, and all preview dictionary strings.
-- [ ] Phase 1 performance rebuild: isolated perf tables, engine and workbook fixture tests.
-- [ ] Performance template preview/approval import and read-only /kpis view.
-- [ ] Import ZF fixture through upload UI into year 2099, verify and screenshot, then remove test plan.
-- [ ] Remove legacy KPI rows only after new flow verification; preserve quarterly reports and excluded composite KPI component.
+- [x] Phase 1 performance rebuild: isolated perf tables, engine and workbook fixture tests.
+- [x] Performance template preview/approval import and read-only /kpis view.
+- [x] Import ZF fixture through upload UI into year 2099, verify and screenshot, then remove test plan.
+- [x] Remove legacy KPI rows only after new flow verification; preserve quarterly reports and excluded composite KPI component.
 - [x] Audit log (table, trigger on 23 tables, admin change-log screen).
 - [x] Organizations table as single source; admin manage screen with archive/restore.
 - [x] One link per section under the shared frame; "/" → /dashboard; admin pages guarded.
