@@ -309,14 +309,14 @@ export function UploadSection() {
             <FilterSelect value={dataType} onChange={setDataType} options={DATA_TYPES.map(value => ({ value, label: u(value) }))} label={u("نوع البيانات")} />
             <FilterSelect value={orgId} onChange={setOrgId} options={orgOptions.map(value => ({ value, label: orgLabel(value) }))} label={u("المؤسسة")} />
             <FilterSelect value={period} onChange={setPeriod} options={PERIODS.map(value => ({ value, label: value.startsWith("Q") ? value : u(value) }))} label={u("الفترة")} />
-            <label className="flex items-center gap-2 text-xs">
+            {dataType !== "قالب متابعة الأداء" && <label className="flex items-center gap-2 text-xs">
               <span className="text-muted-foreground whitespace-nowrap">{u("سنة الخطة")}</span>
               <input
                 type="number" min={2026} max={2030} value={uploadYear}
                 onChange={(e) => setUploadYear(Number(e.target.value) || 2026)}
                 className="px-2 py-1.5 rounded-md bg-muted border border-border text-sm w-28 focus:outline-none"
               />
-            </label>
+            </label>}
           </div>
 
           {(() => {
