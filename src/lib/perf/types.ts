@@ -40,6 +40,9 @@ export type KPI = {
   related_kpis?: string | null;
   enablers?: string | null;
   notes?: string | null;
+  calc_formula_status?: "none" | "suggested" | "approved";
+  calc_formula_approved_by?: string | null;
+  calc_formula_approved_at?: string | null;
 };
 export type Activity = {
   id?: string;
@@ -79,6 +82,10 @@ export type Plan = {
   source_upload_id: string | null;
   prepared_by: string | null;
   approved_by: string | null;
+  objectives_approved_at?: string | null;
+  matrix_approved_at?: string | null;
+  objectives_approved_by?: string | null;
+  matrix_approved_by?: string | null;
 };
 export type Issue = { code: string; row?: number; kpi?: string; detail?: string };
 export type ParsedTemplate = {
