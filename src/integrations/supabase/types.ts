@@ -302,6 +302,7 @@ export type Database = {
           id: string
           notes: string | null
           objective: string | null
+          org_ids: string[]
           orgs: string[]
           priority: string
           source: string
@@ -320,6 +321,7 @@ export type Database = {
           id?: string
           notes?: string | null
           objective?: string | null
+          org_ids?: string[]
           orgs?: string[]
           priority?: string
           source?: string
@@ -338,6 +340,7 @@ export type Database = {
           id?: string
           notes?: string | null
           objective?: string | null
+          org_ids?: string[]
           orgs?: string[]
           priority?: string
           source?: string
@@ -1046,6 +1049,56 @@ export type Database = {
           },
         ]
       }
+      perf_corrections: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          field: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          period: string
+          plan_id: string
+          reason: string
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          field: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          period: string
+          plan_id: string
+          reason: string
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          field?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          period?: string
+          plan_id?: string
+          reason?: string
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perf_corrections_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "perf_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perf_kpis: {
         Row: {
           annual_target: number | null
@@ -1266,10 +1319,53 @@ export type Database = {
           },
         ]
       }
+      perf_report_events: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_status: string
+          id: string
+          previous_snapshot: Json | null
+          reason: string | null
+          report_id: string
+          to_status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status: string
+          id?: string
+          previous_snapshot?: Json | null
+          reason?: string | null
+          report_id: string
+          to_status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: string
+          id?: string
+          previous_snapshot?: Json | null
+          reason?: string | null
+          report_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perf_report_events_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "perf_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perf_reports: {
         Row: {
           achievements: Json
           annual_stats: Json
+          approved_at: string | null
+          approved_by: string | null
           challenges: Json
           executive_summary: string | null
           id: string
@@ -1284,6 +1380,8 @@ export type Database = {
         Insert: {
           achievements?: Json
           annual_stats?: Json
+          approved_at?: string | null
+          approved_by?: string | null
           challenges?: Json
           executive_summary?: string | null
           id?: string
@@ -1298,6 +1396,8 @@ export type Database = {
         Update: {
           achievements?: Json
           annual_stats?: Json
+          approved_at?: string | null
+          approved_by?: string | null
           challenges?: Json
           executive_summary?: string | null
           id?: string
@@ -1785,6 +1885,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_perf_report: {
+        Args: { p_period: string; p_plan: string; p_snapshot: Json }
+        Returns: string
+      }
       commit_perf_import: {
         Args: {
           p_allow_definitions: boolean
@@ -1799,6 +1903,26 @@ export type Database = {
       mutate_perf_kpis: {
         Args: { p_plan: string; p_revision: string; p_rows: Json }
         Returns: Json
+      }
+      perf_correct: {
+        Args: {
+          p_field: string
+          p_period: string
+          p_plan: string
+          p_reason: string
+          p_record: string
+          p_table: string
+          p_value: Json
+        }
+        Returns: string
+      }
+      perf_quarter_locked: {
+        Args: { p_plan: string; p_quarter: string }
+        Returns: boolean
+      }
+      reopen_perf_report: {
+        Args: { p_reason: string; p_report: string }
+        Returns: undefined
       }
       reorder_perf_kpis: {
         Args: { p_ids: string[]; p_plan: string }
