@@ -1040,6 +1040,9 @@ export type Database = {
         Row: {
           annual_target: number | null
           baseline: number | null
+          calc_formula_approved_at: string | null
+          calc_formula_approved_by: string | null
+          calc_formula_status: string
           calc_method: string
           calculation_formula: string | null
           code: string
@@ -1072,6 +1075,9 @@ export type Database = {
         Insert: {
           annual_target?: number | null
           baseline?: number | null
+          calc_formula_approved_at?: string | null
+          calc_formula_approved_by?: string | null
+          calc_formula_status?: string
           calc_method: string
           calculation_formula?: string | null
           code: string
@@ -1104,6 +1110,9 @@ export type Database = {
         Update: {
           annual_target?: number | null
           baseline?: number | null
+          calc_formula_approved_at?: string | null
+          calc_formula_approved_by?: string | null
+          calc_formula_status?: string
           calc_method?: string
           calculation_formula?: string | null
           code?: string
@@ -1143,6 +1152,44 @@ export type Database = {
           },
         ]
       }
+      perf_plan_events: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_status: string
+          id: string
+          plan_id: string
+          reason: string | null
+          to_status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status: string
+          id?: string
+          plan_id: string
+          reason?: string | null
+          to_status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: string
+          id?: string
+          plan_id?: string
+          reason?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perf_plan_events_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "perf_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perf_plans: {
         Row: {
           approved_by: string | null
@@ -1150,7 +1197,9 @@ export type Database = {
           fiscal_type: string
           id: string
           matrix_approved_at: string | null
+          matrix_approved_by: string | null
           objectives_approved_at: string | null
+          objectives_approved_by: string | null
           org_id: string
           plan_year: number
           prepared_by: string | null
@@ -1164,7 +1213,9 @@ export type Database = {
           fiscal_type: string
           id?: string
           matrix_approved_at?: string | null
+          matrix_approved_by?: string | null
           objectives_approved_at?: string | null
+          objectives_approved_by?: string | null
           org_id: string
           plan_year: number
           prepared_by?: string | null
@@ -1178,7 +1229,9 @@ export type Database = {
           fiscal_type?: string
           id?: string
           matrix_approved_at?: string | null
+          matrix_approved_by?: string | null
           objectives_approved_at?: string | null
+          objectives_approved_by?: string | null
           org_id?: string
           plan_year?: number
           prepared_by?: string | null
@@ -1732,6 +1785,14 @@ export type Database = {
           p_year: number
         }
         Returns: string
+      }
+      save_perf_actuals: {
+        Args: { p_plan: string; p_quarter: number; p_rows: Json }
+        Returns: undefined
+      }
+      transition_perf_plan: {
+        Args: { p_plan: string; p_reason?: string; p_status: string }
+        Returns: undefined
       }
     }
     Enums: {
