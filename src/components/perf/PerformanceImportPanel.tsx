@@ -241,10 +241,6 @@ export function PerformanceImportPanel({ initialYear }: { initialYear: number })
                   </tbody>
                 </table>
               </div>
-              <label className="flex items-start gap-2 text-sm">
-                <Checkbox checked={allow} onCheckedChange={(v) => setAllow(v === true)} />
-                <span>{t("allow")}</span>
-              </label>
             </div>
           )}
           <Button disabled={busy || preview.errors.length > 0} onClick={approve}>

@@ -38,20 +38,22 @@ export const loadPerfData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sb = context.supabase;
-    const [plans, kpis, activities, reports, active] = await Promise.all([
+    const [plans, kpis, activities, reports, active, events] = await Promise.all([
       sb.from("perf_plans").select("*").order("plan_year", { ascending: false }),
       sb.from("perf_kpis").select("*").order("seq"),
       sb.from("perf_activities").select("*"),
       sb.from("perf_reports").select("*"),
       sb.from("org_active_years").select("org_id,active_year"),
+      sb.from("perf_plan_events").select("*").order("changed_at", { ascending: false }),
     ]);
-    for (const r of [plans, kpis, activities, reports, active])
+    for (const r of [plans, kpis, activities, reports, active, events])
       if (r.error) throw new Error(r.error.message);
     return {
       plans: (plans.data ?? []) as Plan[],
       kpis: (kpis.data ?? []) as KPI[],
       activities: (activities.data ?? []) as Activity[],
       reports: (reports.data ?? []) as Report[],
+      events: events.data ?? [],
       activeYears: Object.fromEntries(
         (active.data ?? []).map((r) => [r.org_id, r.active_year]),
       ) as Record<string, number>,
