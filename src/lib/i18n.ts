@@ -6,7 +6,8 @@ export const UI_STRINGS = {
     nav: {
       dashboard: "لوحة القيادة",
       kpis: "مؤشرات الأداء",
-      quarterly: "التقارير الربعية",
+      activities: "سجل البرامج والأنشطة",
+      reports: "التقارير الربعية والسنوية",
       gaps: "تحليل الفجوات",
       governance: "الحوكمة والامتثال",
       financial: "الأداء المالي",
@@ -707,7 +708,8 @@ export const UI_STRINGS = {
     nav: {
       dashboard: "Dashboard",
       kpis: "KPIs",
-      quarterly: "Quarterly Reports",
+      activities: "Programs & Activities Log",
+      reports: "Quarterly & Annual Reports",
       gaps: "Gap Analysis",
       governance: "Governance & Compliance",
       financial: "Financial Performance",

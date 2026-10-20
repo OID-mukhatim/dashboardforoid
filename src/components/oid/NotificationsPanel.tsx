@@ -7,7 +7,7 @@ import { useLang } from "@/lib/lang-context";
 import { Button } from "@/components/ui/button";
 
 export type SectionId =
-  | "dashboard" | "kpis" | "quarterly" | "gaps" | "governance"
+  | "dashboard" | "kpis" | "reports" | "activities" | "gaps" | "governance"
   | "financial" | "partnerships" | "profiles" | "initiatives" | "upload";
 
 export type NotificationSource =
