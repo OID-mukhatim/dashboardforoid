@@ -1786,6 +1786,10 @@ export type Database = {
         }
         Returns: string
       }
+      reorder_perf_kpis: {
+        Args: { p_ids: string[]; p_plan: string }
+        Returns: undefined
+      }
       save_perf_actuals: {
         Args: { p_plan: string; p_quarter: number; p_rows: Json }
         Returns: undefined
