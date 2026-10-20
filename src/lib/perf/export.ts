@@ -171,8 +171,13 @@ export function exportTemplate(
     const rows = rep?.[section.key] ?? [];
     if (rows.length > section.count) throw new Error("summary_export_limit");
     for (let i = 0; i < section.count; i++)
-      for (const [field, col] of Object.entries(section.fields))
-        s[`${col}${section.start + i}`] = field === "kpi_code" && rows[i] ? linkedCode(rows[i], input.kpis) : rows[i]?.[field] ?? null;
+      for (const [field, col] of Object.entries(section.fields)) {
+        const value = field === "kpi_code" && rows[i] ? linkedCode(rows[i], input.kpis) : rows[i]?.[field] ?? null;
+        const isAmount =
+          (section.key === "annual_stats" && (field === "previous" || field === "current")) ||
+          (section.key === "proposals" && field === "cost");
+        s[`${col}${section.start + i}`] = isAmount ? numeric(value) : value;
+      }
   }
   const workbookDoc = readXml(strFromU8(zip["xl/workbook.xml"]));
   const relDoc = readXml(strFromU8(zip["xl/_rels/workbook.xml.rels"]));
