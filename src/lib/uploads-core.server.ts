@@ -1,6 +1,5 @@
 /** Server-only spreadsheet parsing shared by parseUpload and processUpload. */
 import { z } from "zod";
-import { parseQuarterlySheet } from "./quarterly-parse";
 import {
   toNum,
   toStr,
@@ -110,7 +109,6 @@ export async function runParseUpload(data: {
     }> = [];
     const matrixRows: Array<Record<string, unknown>> = [];
     const spreadsheetExtracts: Array<Record<string, unknown>> = [];
-    const quarterlyRows: Array<Record<string, unknown>> = [];
 
     // Per-org accumulator for Gaps/Governance template files.
     // Merged into matrixRows after the per-sheet loop.
@@ -518,53 +516,6 @@ export async function runParseUpload(data: {
         continue;
       }
 
-      // ── قالب التقرير الربعي ──────────────────────────────────────────────
-      {
-        const qr = parseQuarterlySheet(aoa);
-        if (qr) {
-          const orgHit = detectKnownOrg(qr.orgName ?? "") ?? detectKnownOrg(originalFileName);
-          const yearMatch = (originalFileName + " " + data.filePath).match(/20\d{2}/);
-          const quarterMatch =
-            qr.quarter ??
-            (originalFileName + " " + data.filePath).match(/Q[1-4]/i)?.[0]?.toUpperCase() ??
-            null;
-          quarterlyRows.push({
-            upload_id: data.uploadId,
-            kind: "quarterly_report",
-            entity_code: orgHit?.code ?? null,
-            file_path: data.filePath,
-            file_name: originalFileName,
-            text_preview: spreadsheetTextPreview(aoa),
-            payload: {
-              ...qr,
-              quarter: quarterMatch,
-              year: yearMatch ? Number(yearMatch[0]) : null,
-              org_code: orgHit?.code ?? null,
-              sheet_name: sheetName,
-            } as unknown as never,
-            summary: `تقرير ربعي — ${orgHit?.name ?? qr.orgName ?? originalFileName} (${quarterMatch ?? "?"})`,
-            org_mentions: (orgHit ? [orgHit.code] : []) as unknown as never,
-            entities: (orgHit
-              ? [{ code: orgHit.code, name: orgHit.name }]
-              : []) as unknown as never,
-            numbers_found: [] as unknown as never,
-          });
-          sheetsSummary.push({
-            name: sheetName,
-            rows: aoa.length,
-            kpis: 0,
-            reason: `تقرير ربعي: ${qr.achievements.length} إنجاز، ${qr.events.length} فعالية، ${qr.challenges.length} تحدٍ، ${qr.recommendations.length} توصية`,
-          });
-          const sheetPct = 20 + Math.round(((si + 1) / totalSheets) * 30);
-          await setProgress(
-            "reading_sheets",
-            sheetPct,
-            `ورقة ${si + 1}/${totalSheets}: ${sheetName} (تقرير ربعي)`,
-          );
-          continue;
-        }
-      }
-
       {
         const preview = spreadsheetTextPreview(aoa);
         if (preview) {
@@ -642,40 +593,6 @@ export async function runParseUpload(data: {
       if (mErr) throw mErr;
     }
 
-    if (quarterlyRows.length) {
-      const { error: qErr } = await supabaseAdmin
-        .from("document_extractions")
-        .insert(quarterlyRows as never);
-      if (qErr) throw qErr;
-
-      // مزامنة تلقائية مع جدول quarterly_reports (fire-and-forget)
-      void Promise.allSettled(
-        quarterlyRows.map((row) => {
-          const payload = (row.payload ?? {}) as Record<string, unknown>;
-          const orgCode =
-            (row.entity_code as string | null) ?? (payload.org_code as string | null) ?? null;
-          if (!orgCode) return Promise.resolve();
-          const year = typeof payload.year === "number" ? payload.year : 2026;
-          const quarter = String(payload.quarter ?? "Q1");
-          const title = `تقرير ${quarter} ${year} — ${String(payload.orgName ?? row.file_name ?? "نشاط")}`;
-          return supabaseAdmin.from("quarterly_reports").upsert(
-            {
-              org_id: orgCode,
-              year,
-              quarter,
-              title,
-              raw: payload as never,
-              upload_id: (row.upload_id as string | null) ?? null,
-            },
-            { onConflict: "org_id,year,quarter,title" },
-          );
-        }),
-      ).then((results) => {
-        for (const r of results)
-          if (r.status === "rejected") console.warn("[quarterly sync]", r.reason);
-      });
-    }
-
     if (spreadsheetExtracts.length) {
       const { error: sErr } = await supabaseAdmin
         .from("document_extractions")
@@ -691,13 +608,10 @@ export async function runParseUpload(data: {
       .update({
         status: "processed",
         rows_extracted:
-          upserted || matrixRows.length || quarterlyRows.length || spreadsheetExtracts.length,
+          upserted || matrixRows.length || spreadsheetExtracts.length,
         extracted_summary: {
           sheets: sheetsSummary,
-          quarterly_reports: quarterlyRows.length,
-          classification: quarterlyRows.length
-            ? "quarterly_report"
-            : matrixRows.length
+          classification: matrixRows.length
               ? "institutional_matrix"
               : fileIsInstitutional
                 ? "institutional_spreadsheet"
