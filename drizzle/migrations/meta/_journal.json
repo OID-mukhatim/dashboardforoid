@@ -29,6 +29,13 @@
       "when": 1792477724455,
       "tag": "0003_performance_import_revision_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792478233292,
+      "tag": "0004_performance_child_revision_and_plan_guard",
+      "breakpoints": true
     }
   ]
 }
