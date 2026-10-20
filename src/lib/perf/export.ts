@@ -80,6 +80,10 @@ export function exportTemplate(
         r = blocks[i] + j;
       for (const [field, col] of Object.entries(cols)) {
         let value = row?.[field as keyof KPI] ?? null;
+        // Guideline 6: the objective is written on the first row of its group only;
+        // following rows of the same objective stay blank (the parser inherits it).
+        if (row && field === "objective" && j > 0 && rows[j - 1]?.objective === row.objective)
+          value = null;
         if (row && ["measurement", "role", "unit", "polarity", "calc_method"].includes(field))
           value = literal(
             field as keyof typeof OPTIONS,
