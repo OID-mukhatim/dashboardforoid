@@ -10,35 +10,8 @@ import {
 } from "./types";
 import { OPTIONS, optionCode, normalize } from "./dictionary";
 import { exportCapacity } from "./edit-rules";
-const escape = (v: unknown) =>
-  String(v ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-function fill(xml: string, values: Record<string, unknown>) {
-  const pending = { ...values };
-  xml = xml.replace(
-    /<c\b([^>]*\br="([A-Z]+\d+)"[^>]*)(?:\s*\/>|>([\s\S]*?)<\/c>)/g,
-    (whole, attrs: string, ref: string, body: string = "") => {
-      if (/<f(?:\s|>)/.test(body)) return whole.replace(/<v(?:\s[^>]*)?>[\s\S]*?<\/v>/g, "");
-      if (!(ref in pending)) return whole;
-      const value = pending[ref];
-      delete pending[ref];
-      const clean = attrs.replace(/\s+t="[^"]*"/g, "");
-      return `<c${clean}${typeof value === "number" ? "" : ' t="inlineStr"'}>${value === null || value === undefined || value === "" ? "" : typeof value === "number" ? `<v>${value}</v>` : `<is><t xml:space="preserve">${escape(value)}</t></is>`}</c>`;
-    },
-  );
-  for (const [ref, value] of Object.entries(pending)) {
-    if (value === null || value === undefined || value === "") continue;
-    const row = ref.match(/\d+$/)?.[0];
-    const cell = `<c r="${ref}"${typeof value === "number" ? "" : ' t="inlineStr"'}>${typeof value === "number" ? `<v>${value}</v>` : `<is><t xml:space="preserve">${escape(value)}</t></is>`}</c>`;
-    const re = new RegExp(`(<row\\b[^>]* r="${row}"[^>]*>)([\\s\\S]*?)(</row>)`);
-    if (!re.test(xml)) throw new Error(`template_cell_missing:${ref}`);
-    xml = xml.replace(re, (_, start, body, end) => start + body + cell + end);
-  }
-  return xml;
-}
+import { fillSheet, readXml, writeXml } from "./xml";
+import { linkedCode } from "./references";
 export function exportTemplate(
   buffer: Uint8Array,
   input: {
@@ -135,7 +108,7 @@ export function exportTemplate(
       a[`${col}${i + 7}`] = row
         ? field === "activity_type"
           ? literal("activity_type", row.activity_type, 32)
-          : row[field as keyof Activity]
+          : field === "kpi_code" ? linkedCode(row, input.kpis) : row[field as keyof Activity]
         : null;
     }
   const rep = input.report;
@@ -192,35 +165,32 @@ export function exportTemplate(
     if (rows.length > section.count) throw new Error("summary_export_limit");
     for (let i = 0; i < section.count; i++)
       for (const [field, col] of Object.entries(section.fields))
-        s[`${col}${section.start + i}`] = rows[i]?.[field] ?? null;
+        s[`${col}${section.start + i}`] = field === "kpi_code" && rows[i] ? linkedCode(rows[i], input.kpis) : rows[i]?.[field] ?? null;
   }
-  // Resolve sheet targets from workbook relationships instead of depending on ZIP order.
-  const workbookXml = strFromU8(zip["xl/workbook.xml"]);
-  const rels = strFromU8(zip["xl/_rels/workbook.xml.rels"]);
+  const workbookDoc = readXml(strFromU8(zip["xl/workbook.xml"]));
+  const relDoc = readXml(strFromU8(zip["xl/_rels/workbook.xml.rels"]));
   const map = new Map<string, string>();
-  for (const m of rels.matchAll(/<Relationship\b([^>]+)\/?\s*>/g)) {
-    const attrs = m[1];
-    const rid = attrs.match(/\bId="([^"]+)"/)?.[1],
-      target = attrs.match(/\bTarget="([^"]+)"/)?.[1];
-    if (rid && target) map.set(rid, target.startsWith("/") ? target.slice(1) : `xl/${target}`);
+  for (const rel of Array.from(relDoc.getElementsByTagName("Relationship"))) {
+    const target = rel.getAttribute("Target");
+    if (target) map.set(rel.getAttribute("Id") ?? "", target.startsWith("/") ? target.slice(1) : `xl/${target}`);
   }
-  const edits: Record<string, Record<string, unknown>> = {
-    "KPI Tracking": k,
-    الأنشطة: a,
-    الملخص: s,
-  };
-  for (const m of workbookXml.matchAll(/<sheet\b([^>]+)\/?\s*>/g)) {
-    const name = m[1].match(/\bname="([^"]+)"/)?.[1],
-      rid = m[1].match(/\br:id="([^"]+)"/)?.[1];
-    if (!name || !rid) continue;
-    const path = map.get(rid);
-    if (path && zip[path]) zip[path] = strToU8(fill(strFromU8(zip[path]), edits[name] ?? {}));
+  const edits: Record<string, Record<string, unknown>> = { "KPI Tracking": k, "الأنشطة": a, "الملخص": s };
+  const found = new Set<string>();
+  for (const sheet of Array.from(workbookDoc.getElementsByTagName("sheet"))) {
+    const name = sheet.getAttribute("name") ?? "";
+    if (!(name in edits)) continue;
+    const path = map.get(sheet.getAttribute("r:id") ?? "");
+    if (!path || !zip[path]) throw new Error("missing_sheets");
+    zip[path] = strToU8(fillSheet(strFromU8(zip[path]), edits[name]));
+    found.add(name);
   }
-  zip["xl/workbook.xml"] = strToU8(
-    workbookXml.replace(
-      /<calcPr\b[^>]*\/?\s*>/g,
-      '<calcPr fullCalcOnLoad="1" forceFullCalc="1" calcMode="auto"/>',
-    ),
-  );
+  if (found.size !== 3) throw new Error("missing_sheets");
+  let calc = workbookDoc.getElementsByTagName("calcPr")[0];
+  if (!calc) {
+    calc = workbookDoc.createElementNS(workbookDoc.documentElement?.namespaceURI ?? null, "calcPr");
+    workbookDoc.documentElement?.appendChild(calc);
+  }
+  calc.setAttribute("fullCalcOnLoad", "1"); calc.setAttribute("forceFullCalc", "1"); calc.setAttribute("calcMode", "auto");
+  zip["xl/workbook.xml"] = strToU8(writeXml(workbookDoc));
   return zipSync(zip);
 }

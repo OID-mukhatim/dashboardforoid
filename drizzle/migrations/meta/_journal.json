@@ -57,6 +57,27 @@
       "when": 1792481143221,
       "tag": "0007_performance_edit_integrity",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792483188242,
+      "tag": "0008_performance_stable_links_and_structural_rpc",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792483375763,
+      "tag": "0009_performance_rpc_unambiguous_link_alias",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792483458109,
+      "tag": "0010_performance_bulk_delete_detaches_report_links",
+      "breakpoints": true
     }
   ]
 }

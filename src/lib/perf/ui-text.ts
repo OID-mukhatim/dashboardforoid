@@ -28,6 +28,9 @@ export const TEXT = {
   suggestFormula: ["اقترح صيغة", "Suggest formula"],
   approveFormula: ["اعتماد الصيغة", "Approve formula"],
   export: ["تصدير إلى القالب", "Export to template"],
+  invalid_export_xml: ["تعذّر التصدير: ملف القالب الناتج غير صالح؛ لم يتم تنزيله", "Export stopped: the generated workbook is invalid; nothing was downloaded"],
+  summary_export_limit: ["تجاوزت عناصر الملخص سعة القالب", "Summary entries exceed template capacity"],
+  "غير مصرح لك بتعديل أو اعتماد المؤشرات": ["غير مصرح لك بتعديل أو اعتماد المؤشرات", "You are not authorized to edit or approve indicators"],
   export_limit: [
     "الحد 30 مؤشراً لكل منظور و80 نشاطاً",
     "Maximum 30 indicators per perspective and 80 activities",

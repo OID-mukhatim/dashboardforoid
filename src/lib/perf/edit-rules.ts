@@ -24,7 +24,6 @@ export const NUMERIC_FIELDS = [
 ] as const;
 export const EDIT_FIELDS = [
   "perspective",
-  "seq",
   "objective",
   "name",
   "measurement",

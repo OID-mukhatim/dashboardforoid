@@ -10,4 +10,5 @@
 - Data changes are captured by one SECURITY DEFINER audit trigger into the append-only audit_log (admin read only, no client writes); update rows that change only updated_at are skipped.
 - Each section is its own route under the _authenticated/_shell pathless layout (header + sidebar + Outlet); "/" redirects to /dashboard and admin-only pages wrap their component in AdminOnly.
 - Performance logic lives in small src/lib/perf modules; database triggers enforce approval locks and record transitions, and imports reparse stored workbooks before a user-scoped transactional RPC to protect approved definitions.
+- Performance references use KPI IDs; a single database structural RPC owns draft numbering, while compatibility codes are synchronized by triggers. XML export uses DOM editing and independent XML validation to preserve template formulas and styles.
 - Translation and individual formula suggestions share AI_TEXT_MODEL in src/lib/ai-model.ts so model changes have one source.

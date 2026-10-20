@@ -28,6 +28,9 @@ export const approvePerfFormula = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => input.parse(d))
   .handler(async ({ data, context }) => {
+    const roles = await context.supabase.from("user_roles").select("role").eq("user_id", context.userId);
+    if (roles.error || !roles.data?.some(r => r.role === "admin" || r.role === "developer"))
+      throw new Error("غير مصرح لك بتعديل أو اعتماد المؤشرات");
     const result = await context.supabase
       .from("perf_kpis")
       .update({ calc_formula_status: "approved" })

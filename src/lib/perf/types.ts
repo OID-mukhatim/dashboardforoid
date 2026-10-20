@@ -55,6 +55,7 @@ export type Activity = {
   beneficiaries: number | null;
   planned: number | null;
   achieved: number | null;
+  kpi_id?: string | null;
   kpi_code: string | null;
   notes: string | null;
 };

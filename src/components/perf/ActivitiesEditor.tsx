@@ -40,6 +40,7 @@ const empty = (period: Quarter): Activity => ({
   beneficiaries: null,
   planned: null,
   achieved: null,
+  kpi_id: null,
   kpi_code: null,
   notes: null,
 });
@@ -183,15 +184,15 @@ export function ActivitiesEditor({
                         ) : f === "kpi_code" ? (
                           chooser(
                             fieldLabel(f, lang),
-                            row.kpi_code ?? "",
+                            row.kpi_id ?? "",
                             [
                               { value: "", label: "—" },
-                              ...kpis.map((k) => ({
-                                value: k.code,
+                              ...kpis.filter(k => k.id).map((k) => ({
+                                value: k.id ?? "",
                                 label: `${k.code} · ${k.name}`,
                               })),
                             ],
-                            (v) => update(a, f, v || null),
+                            (v) => update(a, "kpi_id", v || null),
                             busy,
                           )
                         ) : (

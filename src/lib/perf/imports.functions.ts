@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Plan, KPI, Activity, Report } from "./types";
+import { linkedCode } from "./references";
 const importInput = z.object({
   uploadId: z.string().uuid(),
   year: z.number().int().min(1900).max(2200),
@@ -51,8 +52,8 @@ export const loadPerfData = createServerFn({ method: "GET" })
     return {
       plans: (plans.data ?? []) as Plan[],
       kpis: (kpis.data ?? []) as KPI[],
-      activities: (activities.data ?? []) as Activity[],
-      reports: (reports.data ?? []) as Report[],
+      activities: ((activities.data ?? []) as Activity[]).map(a => ({ ...a, kpi_code: linkedCode(a, (kpis.data ?? []) as KPI[]) })),
+      reports: ((reports.data ?? []) as Report[]).map(r => ({ ...r, achievements: r.achievements.map(a => ({ ...a, kpi_code: linkedCode(a, (kpis.data ?? []) as KPI[]) })) })),
       events: events.data ?? [],
       activeYears: Object.fromEntries(
         (active.data ?? []).map((r) => [r.org_id, r.active_year]),
