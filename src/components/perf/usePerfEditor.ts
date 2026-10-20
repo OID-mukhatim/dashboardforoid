@@ -8,7 +8,8 @@ export function usePerfEditor() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   async function run(work: () => Promise<unknown>) {
-    setBusy(true); setMessage("");
+    setBusy(true);
+    setMessage("");
     try {
       await work();
       await qc.invalidateQueries({ queryKey: ["perf-data"] });
@@ -18,7 +19,9 @@ export function usePerfEditor() {
       const raw = e instanceof Error ? e.message : "error";
       setMessage(raw.includes("الخطة معتمدة") ? perfText("locked", lang) : perfText(raw, lang));
       return false;
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
   return { busy, message, run };
 }

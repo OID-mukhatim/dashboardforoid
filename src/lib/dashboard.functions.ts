@@ -8,7 +8,10 @@ import { activeOrgIds, isAcademicOrg } from "./org-registry";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type OrgCode = string;
-const VALID_ORGS = { includes: (id: string) => activeOrgIds().includes(id), [Symbol.iterator]: () => activeOrgIds()[Symbol.iterator]() };
+const VALID_ORGS = {
+  includes: (id: string) => activeOrgIds().includes(id),
+  [Symbol.iterator]: () => activeOrgIds()[Symbol.iterator](),
+};
 
 export type SourceRef = { label: string; updatedAt: string | null };
 
@@ -72,7 +75,10 @@ export const loadInstitutionalProfiles = createServerFn({ method: "GET" })
     for (const r of data ?? []) {
       const code = String(r.entity_code ?? "");
       if (!code || !VALID_ORGS.includes(code as OrgCode)) continue;
-      const payload = (r.payload ?? {}) as { fields?: Record<string, string>; source_sheet?: string };
+      const payload = (r.payload ?? {}) as {
+        fields?: Record<string, string>;
+        source_sheet?: string;
+      };
       const fields = payload.fields ?? {};
       const existing = out[code];
       if (!existing) {
@@ -93,7 +99,6 @@ export const loadInstitutionalProfiles = createServerFn({ method: "GET" })
     }
     return out;
   });
-
 
 export type QuarterlyReportRecord = {
   id: string;
@@ -121,32 +126,38 @@ export const loadQuarterlyReports = createServerFn({ method: "GET" })
     const seen = new Set<string>();
     for (const r of data ?? []) {
       const p = (r.payload ?? {}) as Record<string, unknown>;
-      const orgCode = (r.entity_code as string | null) ?? ((p.org_code as string | null) ?? null);
+      const orgCode = (r.entity_code as string | null) ?? (p.org_code as string | null) ?? null;
       const quarter = (p.quarter as string | null) ?? null;
       const year = typeof p.year === "number" ? p.year : null;
       const key = `${orgCode ?? "?"}|${quarter ?? "?"}|${year ?? "?"}`;
       if (seen.has(key)) continue; // الأحدث يفوز
       seen.add(key);
-      out.push({ id: r.id, orgCode, fileName: r.file_name, quarter, year, payload: p, createdAt: r.created_at });
+      out.push({
+        id: r.id,
+        orgCode,
+        fileName: r.file_name,
+        quarter,
+        year,
+        payload: p,
+        createdAt: r.created_at,
+      });
     }
 
     // مزامنة تلقائية مع جدول quarterly_reports (fire-and-forget)
     void Promise.allSettled(
       out.map((r) => {
         if (!r.orgCode || !r.quarter) return Promise.resolve();
-        return context.supabase
-          .from("quarterly_reports")
-          .upsert(
-            {
-              org_id: r.orgCode,
-              year: r.year ?? 2026,
-              quarter: r.quarter,
-              title: String((r.payload as any)?.title ?? r.fileName ?? ""),
-              raw: r.payload,
-              upload_id: null,
-            },
-            { onConflict: "org_id,year,quarter,title" },
-          );
+        return context.supabase.from("quarterly_reports").upsert(
+          {
+            org_id: r.orgCode,
+            year: r.year ?? 2026,
+            quarter: r.quarter,
+            title: String((r.payload as any)?.title ?? r.fileName ?? ""),
+            raw: r.payload,
+            upload_id: null,
+          },
+          { onConflict: "org_id,year,quarter,title" },
+        );
       }),
     );
 
@@ -181,9 +192,9 @@ export const loadQuarterlyActivities = createServerFn({ method: "GET" })
         const p = (r.raw ?? {}) as Record<string, unknown>;
         rows.push({
           id: r.id,
-          orgCode: (r.org_id as string | null) ?? ((p.org_code as string | null) ?? null),
+          orgCode: (r.org_id as string | null) ?? (p.org_code as string | null) ?? null,
           fileName: r.title,
-          quarter: r.quarter ?? ((p.quarter as string | null) ?? null),
+          quarter: r.quarter ?? (p.quarter as string | null) ?? null,
           year: r.year ?? (typeof p.year === "number" ? p.year : null),
           payload: p,
           createdAt: r.created_at,
@@ -204,59 +215,23 @@ export const loadQuarterlyActivities = createServerFn({ method: "GET" })
     const seen = new Set<string>();
     for (const r of de ?? []) {
       const p = (r.payload ?? {}) as Record<string, unknown>;
-      const orgCode = (r.entity_code as string | null) ?? ((p.org_code as string | null) ?? null);
+      const orgCode = (r.entity_code as string | null) ?? (p.org_code as string | null) ?? null;
       const quarter = (p.quarter as string | null) ?? null;
       const year = typeof p.year === "number" ? p.year : null;
       const key = `${orgCode ?? "?"}|${quarter ?? "?"}|${year ?? "?"}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      rows.push({ id: r.id, orgCode, fileName: r.file_name, quarter, year, payload: p, createdAt: r.created_at });
+      rows.push({
+        id: r.id,
+        orgCode,
+        fileName: r.file_name,
+        quarter,
+        year,
+        payload: p,
+        createdAt: r.created_at,
+      });
     }
     return { source: "docs", rows };
-  });
-
-export type KpiAggregate = { weightedPct: number | null; count: number };
-
-/** متوسط إنجاز مؤشرات الأداء الموزون لكل مؤسسة (0..100). */
-export const loadKpiAggregates = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
-    const out: Record<string, KpiAggregate> = {};
-    for (const code of VALID_ORGS) out[code] = { weightedPct: null, count: 0 };
-
-    const [{ data, error }, { data: activeYearRows }] = await Promise.all([
-      context.supabase.from("kpis").select("entity_code, achievement_pct, overall_pct, weight, plan_year"),
-      context.supabase.from("org_active_years").select("org_id, active_year"),
-    ]);
-    if (error || !data) return out;
-    const activeYearOf = new Map<string, number>();
-    for (const r of activeYearRows ?? []) activeYearOf.set(String(r.org_id), Number(r.active_year));
-
-    const acc = new Map<string, { wSum: number; wxSum: number; count: number }>();
-    for (const r of data) {
-      const code = String(r.entity_code ?? "");
-      if (!VALID_ORGS.includes(code as OrgCode)) continue;
-      const activeYear = activeYearOf.get(code);
-      if (activeYear === undefined || Number(r.plan_year) !== activeYear) continue;
-      const raw = r.achievement_pct ?? r.overall_pct;
-      if (raw == null) continue;
-      const pct = Number(raw); // النسب تُخزَّن 0–100 كما هي — لا تحويل تلقائي
-      if (!Number.isFinite(pct)) continue;
-      const w = Number(r.weight ?? 1) || 1;
-      const cur = acc.get(code) ?? { wSum: 0, wxSum: 0, count: 0 };
-      cur.wSum += w;
-      cur.wxSum += pct * w;
-      cur.count += 1;
-      acc.set(code, cur);
-    }
-    for (const [code, v] of acc) {
-      out[code] = {
-        weightedPct: v.wSum > 0 ? Math.round((v.wxSum / v.wSum) * 10) / 10 : null,
-        count: v.count,
-      };
-    }
-    return out;
   });
 
 /* ------------------------------------------------------------------ */
@@ -265,32 +240,32 @@ export const loadKpiAggregates = createServerFn({ method: "GET" })
 /* ------------------------------------------------------------------ */
 export const saveTimelineEntry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: {
-    orgId: string;
-    domain: "composite" | "gap" | "governance" | "kpi" | "financial";
-    period: string;
-    periodOrder: number;
-    value: number;
-    note?: string | null;
-  }) => data)
+  .inputValidator(
+    (data: {
+      orgId: string;
+      domain: "composite" | "gap" | "governance" | "kpi" | "financial";
+      period: string;
+      periodOrder: number;
+      value: number;
+      note?: string | null;
+    }) => data,
+  )
   .handler(async ({ data, context }) => {
     await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
     if (!VALID_ORGS.includes(data.orgId as OrgCode)) {
       return { ok: false as const, error: "invalid org" };
     }
-    const { error } = await context.supabase
-      .from("timeline_entries")
-      .upsert(
-        {
-          org_id: data.orgId,
-          domain: data.domain,
-          period: data.period,
-          period_order: data.periodOrder,
-          value: data.value,
-          note: data.note ?? null,
-        },
-        { onConflict: "org_id,domain,period" },
-      );
+    const { error } = await context.supabase.from("timeline_entries").upsert(
+      {
+        org_id: data.orgId,
+        domain: data.domain,
+        period: data.period,
+        period_order: data.periodOrder,
+        value: data.value,
+        note: data.note ?? null,
+      },
+      { onConflict: "org_id,domain,period" },
+    );
     if (error) return { ok: false as const, error: error.message };
     return { ok: true as const };
   });
@@ -340,7 +315,14 @@ export const loadGapScores = createServerFn({ method: "GET" })
 export const updateGapScore = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (d: { orgId: string; domainIndex: number; domainName: string; score: number; period: string; note?: string }) => d,
+    (d: {
+      orgId: string;
+      domainIndex: number;
+      domainName: string;
+      score: number;
+      period: string;
+      note?: string;
+    }) => d,
   )
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("gap_scores").upsert(
@@ -372,52 +354,6 @@ export const loadActiveYears = createServerFn({ method: "GET" })
     return map;
   });
 
-/** مؤشرات السنة النشطة فقط لكل مؤسسة. */
-export const loadActiveKPIs = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const sb = context.supabase;
-    const { data: activeYears } = await sb.from("org_active_years").select("org_id, active_year");
-    if (!activeYears || activeYears.length === 0) {
-      const { data } = await sb.from("kpis").select("*");
-      return data ?? [];
-    }
-    const results = await Promise.all(
-      activeYears.map(({ org_id, active_year }) =>
-        sb.from("kpis").select("*").eq("entity_code", org_id).eq("plan_year", active_year),
-      ),
-    );
-    return results.flatMap((r) => r.data ?? []);
-  });
-
-/** كل السنوات المتاحة لمؤسسة (تنازلياً). */
-export const loadAvailableYears = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { orgId: string }) => d)
-  .handler(async ({ data, context }) => {
-    const { data: years } = await context.supabase
-      .from("kpis")
-      .select("plan_year")
-      .eq("entity_code", data.orgId)
-      .not("plan_year", "is", null);
-    const unique = Array.from(new Set((years ?? []).map((r) => r.plan_year).filter((y): y is number => typeof y === "number")));
-    return unique.sort((a, b) => b - a);
-  });
-
-/** مؤشرات مؤسسة بسنة محددة (مقارنة يدوية). */
-export const loadKPIsByYear = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { orgId: string; year: number }) => d)
-  .handler(async ({ data, context }) => {
-    const { data: kpis } = await context.supabase
-      .from("kpis")
-      .select("*")
-      .eq("entity_code", data.orgId)
-      .eq("plan_year", data.year)
-      .order("kpi_code");
-    return kpis ?? [];
-  });
-
 /** تعيين السنة النشطة لمؤسسة. */
 export const setActiveYear = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -441,13 +377,21 @@ export const setActiveYear = createServerFn({ method: "POST" })
 export const saveSectionOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { sections: string[] }) => {
-    if (!Array.isArray(d?.sections) || d.sections.some((s) => typeof s !== "string") || d.sections.length > 50) throw new Error("invalid");
+    if (
+      !Array.isArray(d?.sections) ||
+      d.sections.some((s) => typeof s !== "string") ||
+      d.sections.length > 50
+    )
+      throw new Error("invalid");
     return { sections: d.sections };
   })
   .handler(async ({ data, context }) => {
     const { error } = await (context.supabase as any)
       .from("section_order")
-      .upsert({ user_id: context.userId, sections: data.sections, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+      .upsert(
+        { user_id: context.userId, sections: data.sections, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -456,6 +400,9 @@ export const loadSectionOrder = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data } = await (context.supabase as any)
-      .from("section_order").select("sections").eq("user_id", context.userId).maybeSingle();
+      .from("section_order")
+      .select("sections")
+      .eq("user_id", context.userId)
+      .maybeSingle();
     return (data?.sections as string[] | undefined) ?? null;
   });
