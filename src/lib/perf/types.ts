@@ -63,15 +63,18 @@ export type ReportValue = string | number | boolean | null;
 export type Report = {
   id?: string;
   plan_id?: string;
-  period: Quarter;
+  period: Quarter | "annual";
   executive_summary: string | null;
   planned_beneficiaries: number | null;
   annual_stats: Record<string, ReportValue>[];
   achievements: Record<string, ReportValue>[];
   challenges: Record<string, ReportValue>[];
   proposals: Record<string, ReportValue>[];
-  status?: "draft" | "submitted";
+  status?: "draft" | "approved";
   submitted_at?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  snapshot?: unknown;
 };
 export type Plan = {
   id: string;
