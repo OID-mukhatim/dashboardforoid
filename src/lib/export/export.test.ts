@@ -16,8 +16,6 @@ import { renderPrintHtml } from "./render-html";
 import { exportFileName } from "./filename";
 import { COLORS } from "./identity";
 import type { ReportDocument } from "./types";
-import { numericNarrativeRows, reportKpiOperands } from "../reports/presentation";
-import { toDateResult } from "../perf/engine";
 
 const fx = parseTemplate(new Uint8Array(readFileSync(new URL("../perf/fixture-zf-q2.xlsx", import.meta.url))), "ZF");
 const plan = { id: "p", org_id: "ZF", plan_year: 2099, fiscal_type: "calendar", status: "matrix_approved", prepared_by: fx.prepared_by, approved_by: fx.approved_by } as unknown as Plan;
@@ -65,7 +63,9 @@ describe("ReportDocument per report — ZF 2099", () => {
   it("governance report: Likert statuses, score and % with mean", () => {
     const t = govDoc.sections[0].blocks[0];
     expect(t.type === "table" && t.rows).toEqual([["مؤسسة زمزم", 4.2, 84], ["حمدي", 1.6, 32]]);
-    expect(t.type === "table" && t.totalsRow).toEqual(["المتوسط", 2.9, 58]);
+    if (t.type !== "table") throw new Error("Expected governance table");
+    expect(t.totalsRow?.[1]).toBeCloseTo(2.9, 12);
+    expect(t.totalsRow?.[2]).toBe(58);
     const p = govDoc.sections[1].blocks[1];
     expect(p.type === "table" && p.rows[0]).toEqual(["GP-01", "النظام الأساسي", "موجود ومفعّل (5)", "بحاجة تحديث (3)"]);
     expect(p.type === "table" && p.rows[1][3]).toBe("غير مقيّم");

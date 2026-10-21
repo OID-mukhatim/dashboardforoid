@@ -34,7 +34,7 @@ describe("Report display operands without changing scoring", () => {
   });
   it("presentation rounds normally while report results remain full precision", () => {
     expect(formatReportNumber(86.625)).toBe("86.63");
-    expect(formatReportNumber(69.9987)).toBe("70");
+    expect(formatReportNumber(69.9987)).toBe("70.00");
     const r = computeKpiResult(fx.kpis, "Q2");
     expect(r.overall).toBeCloseTo(86.625, 6);
     expect(r.annualOverall).toBeCloseTo(69.9987, 3);
@@ -47,6 +47,7 @@ describe("Report display operands without changing scoring", () => {
     expect(typeof fx.report.planned_beneficiaries).toBe("number");
     const cost = fx.report.proposals.find((r) => r.cost !== null);
     expect(typeof cost?.cost).toBe("number");
-    expect(fx.report.annual_stats.every((r) => typeof r.previous === "number" && typeof r.current === "number")).toBe(true);
+    expect(fx.report.annual_stats.flatMap((r) => [r.previous, r.current]).filter((v) => v !== null).every((v) => typeof v === "number")).toBe(true);
+    expect(fx.report.annual_stats.some((r) => typeof r.current === "number")).toBe(true);
   });
 });

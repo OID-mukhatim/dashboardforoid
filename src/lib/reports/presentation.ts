@@ -4,7 +4,7 @@ import type { ReportPeriod } from "./build";
 
 export const formatReportNumber = (v: unknown): string =>
   typeof v === "number" && Number.isFinite(v)
-    ? v.toLocaleString("en-US", { maximumFractionDigits: 2 })
+    ? v.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: Number.isInteger(v) ? 0 : 2 })
     : v === null || v === undefined || v === "" ? "—" : String(v);
 
 /** Display operands only; scoring always remains in the unchanged engine. Q4 uses its annual basis. */
