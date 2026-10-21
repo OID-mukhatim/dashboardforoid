@@ -74,7 +74,8 @@ export type Report = {
   submitted_at?: string | null;
   approved_by?: string | null;
   approved_at?: string | null;
-  snapshot?: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  snapshot?: any;
 };
 export type Plan = {
   id: string;

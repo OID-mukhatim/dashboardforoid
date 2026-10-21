@@ -6,8 +6,8 @@ import { useLang } from "@/lib/lang-context";
 
 /** Asks for a written reason (≥10 chars) before a post-approval correction. */
 export function CorrectionDialog({
-  open, onCancel, onConfirm, title,
-}: { open: boolean; onCancel: () => void; onConfirm: (reason: string) => void; title?: string }) {
+  open, onCancel, onConfirm, title, description,
+}: { open: boolean; onCancel: () => void; onConfirm: (reason: string) => void; title?: string; description?: string }) {
   const { lang, dir } = useLang();
   const [reason, setReason] = useState("");
   const ok = reason.trim().length >= 10;
@@ -18,9 +18,9 @@ export function CorrectionDialog({
           <DialogTitle>{title ?? (lang === "ar" ? "تصحيح بعد الاعتماد" : "Post-approval correction")}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          {lang === "ar"
+          {description ?? (lang === "ar"
             ? "هذه الفترة معتمدة. اكتب سبب التصحيح (10 أحرف على الأقل). يُسجَّل التصحيح ولا يغيّر نسخة التقرير المعتمد."
-            : "This period is approved. Write the reason (at least 10 characters). The correction is logged and does not change the approved report copy."}
+            : "This period is approved. Write the reason (at least 10 characters). The correction is logged and does not change the approved report copy.")}
         </p>
         <Textarea aria-label={lang === "ar" ? "السبب" : "Reason"} value={reason} onChange={(e) => setReason(e.target.value)} />
         <DialogFooter>

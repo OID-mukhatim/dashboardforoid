@@ -18,7 +18,8 @@ export const IMPACT = ["مرتفع", "متوسط", "منخفض"].map((v) => ({ v
 export const COLUMNS: Record<"annual_stats" | "achievements" | "challenges" | "proposals", Column[]> = {
   annual_stats: [
     { key: "category", ar: "البند", en: "Item" }, { key: "previous", ar: "السنة السابقة", en: "Previous year", type: "number" },
-    { key: "current", ar: "السنة الحالية", en: "Current year", type: "number" }, { key: "note", ar: "الملاحظة", en: "Note" },
+    { key: "current", ar: "السنة الحالية", en: "Current year", type: "number" },
+    { key: "change", ar: "نسبة التغير", en: "Change %", compute: (r) => typeof r.previous === "number" && typeof r.current === "number" && r.previous !== 0 ? `${formatNumber(((r.current - r.previous) / r.previous) * 100)}%` : "—" }, { key: "note", ar: "الملاحظة", en: "Note" },
   ],
   achievements: [
     { key: "achievement", ar: "الإنجاز", en: "Achievement" }, { key: "area", ar: "المجال", en: "Area" },

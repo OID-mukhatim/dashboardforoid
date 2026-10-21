@@ -326,9 +326,6 @@ function DrawerContent({ orgId, allProfiles }: { orgId: OrgId; allProfiles: Reco
                        {t("profileDetail.completeness")} <span className="font-bold" dir="ltr">{formatPct(profile.dataCompleteness * 100)}</span>
                     </div>
                     <div className="mt-1"><TrendBadge trend={trend} label={t("profileDetail.noHistory")} /></div>
-                    <p className="mt-2 text-[11px] text-muted-foreground text-center">
-                      {t("dashboard.kpiExcludedNote")}
-                    </p>
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     {profile.components.map((c) => {

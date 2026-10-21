@@ -12,6 +12,7 @@ export type Initiative = {
   objective: string | null;
   gap: string | null;
   orgs: string[];
+  org_ids: string[];
   timeline: string | null;
   cost: string | null;
   source: string;
@@ -40,7 +41,7 @@ const initiativeInputSchema = z.object({
   title: z.string().trim().min(2).max(200),
   objective: z.string().trim().max(500).nullable().optional(),
   gap: z.string().trim().max(300).nullable().optional(),
-  orgs: z.array(z.string().trim().max(100)).max(20).default([]),
+  org_ids: z.array(z.string().trim().max(40)).max(50).default([]),
   timeline: z.string().trim().max(80).nullable().optional(),
   cost: z.string().trim().max(80).nullable().optional(),
   notes: z.string().trim().max(2000).nullable().optional(),
@@ -50,7 +51,10 @@ export const upsertInitiative = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => initiativeInputSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const payload: any = { ...data };
+    const { activeOrgIds } = await import("./org-registry");
+    await (await import("./org-registry.server")).loadOrgRegistry(context.supabase);
+    const valid = new Set(activeOrgIds());
+    const payload: any = { ...data, org_ids: [...new Set(data.org_ids)].filter((id) => valid.has(id)) };
     if (!payload.id) payload.created_by = context.userId;
     if (!payload.source) payload.source = "manual";
     const { data: row, error } = await (context.supabase as any)
@@ -113,7 +117,7 @@ export const autoGenerateInitiatives = createServerFn({ method: "POST" })
     const { newGapInitiatives } = await import("./live-gap-rules");
     const { activeOrgIds } = await import("./org-registry");
     const active = new Set(activeOrgIds());
-    const rows = newGapInitiatives((gaps ?? []).filter((g) => active.has(g.org_id)), existing ?? []).map((r) => ({ ...r, created_by: context.userId }));
+    const rows = newGapInitiatives((gaps ?? []).filter((g) => active.has(g.org_id)), existing ?? []).map((r) => ({ ...r, org_ids: r.orgs, created_by: context.userId }));
     if (!rows.length) return { inserted: 0 };
     const { data, error } = await context.supabase.from("initiatives")
       .upsert(rows, { onConflict: "code", ignoreDuplicates: true }).select("id");
