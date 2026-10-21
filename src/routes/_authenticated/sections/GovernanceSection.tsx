@@ -9,6 +9,8 @@ import { loadGovernancePolicies, updatePolicyStatus } from "@/lib/dashboard.func
 import { useLang } from "@/lib/lang-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, useDashboardSnapshotQuery, SectionTitle } from "./_shared";
+import { ExportMenu } from "@/components/export/ExportMenu";
+import { buildGovernanceDoc } from "@/lib/export/reports/oversight";
 
 const STATUS_OPTIONS: PolicyStatus[] = ["active", "inactive", "review", "inDev", "missing", "pending"];
 
@@ -95,7 +97,20 @@ export function GovernanceSection() {
 
   return (
     <div className="space-y-6">
-      <SectionTitle title={t("governance.title")} subtitle={t("governance.subtitle")} />
+      <SectionTitle title={t("governance.title")} subtitle={t("governance.subtitle")} action={
+        <ExportMenu org={{ value: "ALL", allowAll: true }} build={({ org }) => {
+          const orgs = ORGS.filter((o) => org === "ALL" || o.id === org);
+          return buildGovernanceDoc({
+            orgs, orgCode: org, status: (pid, oid) => effectivePolicyStatus(pid, oid as OrgId),
+            scores: Object.fromEntries(governanceScores.map((g) => [g.id, g.govScore])),
+            categories: [
+              { ar: "السياسات العامة", en: "General policies", policies: generalPolicies },
+              { ar: "السياسات الجامعية", en: "University policies", policies: universityPolicies },
+              { ar: "السياسات الإنسانية", en: "Humanitarian policies", policies: humanitarianPolicies },
+              { ar: "السياسات التعليمية", en: "Education policies", policies: educationPolicies },
+            ],
+          });
+        }} />} />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {governanceScores.map(o => (
