@@ -16,6 +16,8 @@ import { renderPrintHtml } from "./render-html";
 import { exportFileName } from "./filename";
 import { COLORS } from "./identity";
 import type { ReportDocument } from "./types";
+import { numericNarrativeRows, reportKpiOperands } from "../reports/presentation";
+import { toDateResult } from "../perf/engine";
 
 const fx = parseTemplate(new Uint8Array(readFileSync(new URL("../perf/fixture-zf-q2.xlsx", import.meta.url))), "ZF");
 const plan = { id: "p", org_id: "ZF", plan_year: 2099, fiscal_type: "calendar", status: "matrix_approved", prepared_by: fx.prepared_by, approved_by: fx.approved_by } as unknown as Plan;
@@ -40,8 +42,8 @@ describe("ReportDocument per report — ZF 2099", () => {
     expect(comprehensive.meta).toMatchObject({ status: "approved", approvedBy: "admin@oid.org", orgCode: "ZF", period: "Q2" });
     expect(comprehensive.sections.map((s) => s.titleAr)).toEqual(["الملخص التنفيذي", "نتيجة مؤشرات الأداء", "ملخص الخطة التشغيلية", "المبادرات التطويرية", "أبرز الإنجازات", "التحديات", "المقترحات لمجلس الأمناء"]);
     expect(JSON.stringify(comprehensive.sections[0])).not.toContain("changed after approval");
-    expect(kv(comprehensive, 1).items[0].value).toBeCloseTo(86.63, 2);
-    expect(kv(comprehensive, 1).items[2].value).toBeCloseTo(70, 2);
+    expect(kv(comprehensive, 1).items[0].value).toBeCloseTo(86.625, 6);
+    expect(kv(comprehensive, 1).items[2].value).toBeCloseTo(69.9987, 3);
     expect(comprehensive.sections[3].blocks).toEqual([]);
   });
   it("draft comprehensive report is marked draft", () => {
@@ -52,8 +54,8 @@ describe("ReportDocument per report — ZF 2099", () => {
     const tables = kpiDoc.sections.slice(0, 4);
     expect(tables.every((s) => s.orientation === "landscape")).toBe(true);
     expect(tables.reduce((n, s) => n + (s.blocks[0]?.type === "table" ? s.blocks[0].rows.length : 0), 0)).toBe(11);
-    expect(kv(kpiDoc, 4).items[1].value).toBeCloseTo(70, 2);
-    expect(kv(kpiDoc, 4).items[0].value).toBeCloseTo(86.63, 2);
+    expect(kv(kpiDoc, 4).items[1].value).toBeCloseTo(69.9987, 3);
+    expect(kv(kpiDoc, 4).items[0].value).toBeCloseTo(86.625, 6);
   });
   it("activities report lists the Q2 log and totals", () => {
     const log = actDoc.sections[0].blocks[0];
@@ -66,7 +68,7 @@ describe("ReportDocument per report — ZF 2099", () => {
     expect(t.type === "table" && t.totalsRow).toEqual(["المتوسط", 2.9, 58]);
     const p = govDoc.sections[1].blocks[1];
     expect(p.type === "table" && p.rows[0]).toEqual(["GP-01", "النظام الأساسي", "موجود ومفعّل (5)", "بحاجة تحديث (3)"]);
-    expect(p.type === "table" && p.rows[1][3]).toBe("بيانات ناقصة");
+    expect(p.type === "table" && p.rows[1][3]).toBe("غير مقيّم");
   });
   it("file name follows OID-<ORG>-<year>-<period>-<name>", () => {
     expect(exportFileName(comprehensive, "pdf")).toBe("OID-ZF-2099-Q2-Comprehensive-Report.pdf");
