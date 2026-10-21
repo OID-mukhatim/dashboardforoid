@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Plan, KPI, Activity, Report } from "./types";
 import { linkedCode } from "./references";
+export const YEAR_CLOSED_MESSAGE = "السنة مغلقة باعتماد التقرير السنوي — استخدم التصحيح بسبب، أو أعد فتح التقرير السنوي";
 const importInput = z.object({
   uploadId: z.string().uuid(),
   year: z.number().int().min(1900).max(2200),
