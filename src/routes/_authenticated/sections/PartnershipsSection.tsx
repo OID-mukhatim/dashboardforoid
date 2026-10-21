@@ -230,8 +230,8 @@ export function PartnershipsSection() {
          <div className="flex gap-2">
          <ExportMenu org={{ value: filters.org === "all" ? "ALL" : filters.org, allowAll: true }} build={({ org }) => buildPartnershipsDoc({
            orgCode: org, orgName: ORGS.find((o) => o.id === org)?.nameAr ?? "كل المؤسسات",
-           rows: filtered.filter((p) => org === "ALL" || (p.linkedOrgs ?? []).includes(org)).map((p) => ({ name: p.name, name_en: p.name_en, type: p.type, status: p.status, geography: p.geography,
-             description: p.description, contact: p.contact, orgs: (p.linkedOrgs ?? []).map((id) => ORGS.find((o) => o.id === id)?.nameAr ?? id).join("، ") })),
+           rows: filtered.filter((p) => org === "ALL" || (p.linkedOrgs ?? []).includes(org)).map((p) => ({ name: p.name, name_en: p.name_en ?? null, type: p.type, status: p.status, geography: p.geography,
+             description: p.description ?? null, contact: p.contact ?? null, orgs: (p.linkedOrgs ?? []).map((id) => ORGS.find((o) => o.id === id)?.nameAr ?? id).join("، ") })),
          })} />
          <Button onClick={() => setShowModal(true)} className="gap-1.5"><Plus size={16} /> {t("partnerships.add")}</Button>
          </div>
