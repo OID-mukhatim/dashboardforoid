@@ -73,10 +73,6 @@ export function CompositeScoreCard({
         </div>
       </div>
 
-      <p className="text-[11px] text-muted-foreground whitespace-normal break-words">
-        {t("dashboard.kpiExcludedNote")}
-      </p>
-
       <div className="space-y-1.5">
         {p.components.map((c) => {
           const filled = c.score !== null ? (c.score / 5) * 100 : 0;
