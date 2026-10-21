@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ExportMenu } from "@/components/export/ExportMenu";
 import { buildOfficeDoc } from "@/lib/export/reports/office";
+import { supabase } from "@/integrations/supabase/client";
 import { ORGS, type OrgId } from "@/lib/oid-data";
 import { TranslatableText } from "@/components/oid/TranslatableText";
 import { OrgLogo } from "@/components/oid/OrgLogo";

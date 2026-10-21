@@ -1,8 +1,7 @@
 import type { ReportSnapshot, ReportPeriod } from "@/lib/reports/build";
 import type { Plan, Report, ReportValue } from "@/lib/perf/types";
-import { optionLabel } from "@/lib/perf/dictionary";
 import type { Block, Cell } from "../types";
-import { col, makeDoc, periodLabel, persEn, persp, r2, rate, section, table } from "./common";
+import { col, makeDoc, periodLabel, persp, r2, rate, section, table } from "./common";
 
 const FLAG: Record<string, string> = { notDue: "غير مستحق", missing: "بيانات ناقصة", noPlan: "لا يوجد مخطط" };
 const v = (x: ReportValue | undefined): Cell => (typeof x === "boolean" ? (x ? "نعم" : "لا") : x ?? null);
@@ -55,7 +54,6 @@ export function buildComprehensiveDoc(input: {
   sections.push(section("أبرز الإنجازات", "Key achievements", narrative(s.achievements, [["achievement", "الإنجاز", "Achievement"], ["area", "المجال", "Area"], ["impact", "الأثر", "Impact"], ["kpi_id", "المؤشر الداعم", "Supporting KPI"], ["note", "الملاحظة", "Note"]]), "landscape"));
   sections.push(section("التحديات", "Challenges", narrative(s.challenges, [["challenge", "التحدي", "Challenge"], ["category", "التصنيف", "Category"], ["impact", "مدى التأثير", "Impact level"], ["reasons", "الأسباب", "Causes"], ["action", "الإجراء", "Action"], ["status", "الحالة", "Status"], ["notes", "الملاحظات", "Notes"]]), "landscape"));
   sections.push(section("المقترحات لمجلس الأمناء", "Proposals to the Board", narrative(s.proposals, [["proposal", "المقترح", "Proposal"], ["justification", "المبرر", "Justification"], ["impact", "الأثر المتوقع", "Expected impact"], ["priority", "الأولوية", "Priority"], ["cost", "التكلفة التقديرية", "Estimated cost"], ["timeline", "الجدول الزمني", "Timeline"], ["notes", "الملاحظات", "Notes"]]), "landscape"));
-  void persEn; void optionLabel;
   return makeDoc({
     titleAr: period === "annual" ? "التقرير السنوي الشامل" : "التقرير الربعي الشامل",
     titleEn: period === "annual" ? "Comprehensive Annual Report" : "Comprehensive Quarterly Report",
