@@ -1,5 +1,5 @@
 import { scorePlan, operationalSummary, annualResult, toDateResult, rating } from "../perf/engine";
-import type { Activity, KPI, Plan, Quarter, Report, ReportValue } from "../perf/types";
+import { PERSPECTIVES, type Activity, type KPI, type Plan, type Quarter, type Report, type ReportValue } from "../perf/types";
 
 export type ReportPeriod = Quarter | "annual";
 export const REPORT_PERIODS: ReportPeriod[] = ["Q1", "Q2", "Q3", "Q4", "annual"];
@@ -20,6 +20,9 @@ export const DEFAULT_ANNUAL_STATS = [
 export function computeKpiResult(kpis: KPI[], period: ReportPeriod) {
   const annual = period === "annual";
   const s = scorePlan(kpis, annual ? "Q4" : period);
+  const ordered = [...kpis].sort(
+    (a, b) => PERSPECTIVES.indexOf(a.perspective) - PERSPECTIVES.indexOf(b.perspective) || a.seq - b.seq,
+  );
   return {
     basis: annual ? ("annual" as const) : ("toDate" as const),
     overall: annual ? s.annual : s.toDate,
@@ -35,7 +38,7 @@ export function computeKpiResult(kpis: KPI[], period: ReportPeriod) {
       annualPct: p.annualPct,
       annualWeighted: p.annual,
     })),
-    kpis: kpis.map((k) => {
+    kpis: ordered.map((k) => {
       const td = toDateResult(k, annual ? "Q4" : period);
       const an = annualResult(k);
       const achieved = annual

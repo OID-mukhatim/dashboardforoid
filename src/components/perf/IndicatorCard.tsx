@@ -18,11 +18,13 @@ export function IndicatorCard({
   plan,
   editor,
   close,
+  users = {},
 }: {
   kpi: KPI;
   plan: Plan;
   editor: boolean;
   close: () => void;
+  users?: Record<string, string>;
 }) {
   const { lang, dir } = useLang();
   const t = (k: string) => perfText(k, lang);
@@ -62,7 +64,7 @@ export function IndicatorCard({
             </span>
             {kpi.calc_formula_approved_at && (
               <span className="text-xs">
-                {kpi.calc_formula_approved_by} · {kpi.calc_formula_approved_at}
+                {kpi.calc_formula_approved_by ? (users[kpi.calc_formula_approved_by] ?? kpi.calc_formula_approved_by) : ""} · {kpi.calc_formula_approved_at}
               </span>
             )}
           </div>

@@ -16,7 +16,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Plus, Save, Trash2 } from "lucide-react";
-import { ActivityTables, Value } from "./PerformanceTables";
+import { Value } from "./PerformanceTables";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { usePerfEditor } from "./usePerfEditor";
 import { correctPerf } from "@/lib/reports/reports.functions";
@@ -95,22 +95,25 @@ export function ActivitiesEditor({
     disabled = false,
   ) {
     return (
-      <Select
-        value={value || "__none"}
-        onValueChange={(v) => change(v === "__none" ? "" : v)}
-        disabled={disabled}
-      >
-        <SelectTrigger aria-label={label} className="min-w-40">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((o) => (
-            <SelectItem key={o.value} value={o.value || "__none"}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <label className="text-xs space-y-1">
+        <span className="block">{label}</span>
+        <Select
+          value={value || "__none"}
+          onValueChange={(v) => change(v === "__none" ? "" : v)}
+          disabled={disabled}
+        >
+          <SelectTrigger aria-label={label} className="min-w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((o) => (
+              <SelectItem key={o.value} value={o.value || "__none"}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </label>
     );
   }
   return (
@@ -311,7 +314,6 @@ export function ActivitiesEditor({
           if (p && (await run(() => p.work(reason)))) p.after?.();
         }}
       />
-      <ActivityTables activities={activities} report={report} period={period} />
     </section>
   );
 }

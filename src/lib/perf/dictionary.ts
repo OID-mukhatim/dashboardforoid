@@ -2,7 +2,7 @@ export const OPTIONS = {
   perspective: {
     S: ["أصحاب المصلحة", "Stakeholder"],
     P: ["العمليات الداخلية", "Internal Process"],
-    L: ["التعلّم والنّمو", "Learning & Growth"],
+    L: ["التعلّم والنمو", "Learning & Growth"],
     F: ["المالي", "Financial"],
   },
   measurement: {

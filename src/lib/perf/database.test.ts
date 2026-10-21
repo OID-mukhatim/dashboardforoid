@@ -36,7 +36,7 @@ describe.skipIf(!enabled)("Database performance locks and stable identities", ()
     const activities = ok(await client().from("perf_activities").select("*").eq("plan_id", planId)) ?? [];
     expect(activities).toHaveLength(5);
     expect(activities.filter(a => a.kpi_code).every(a => a.kpi_id)).toBe(true);
-    const report = ok(await client().from("perf_reports").select("achievements").eq("plan_id", planId).single());
+    const report = ok(await client().from("perf_reports").select("achievements").eq("plan_id", planId).eq("period", "Q2").single());
     expect((report?.achievements as { kpi_id: string }[])[0]?.kpi_id).toBe(secondId);
   });
   it("swaps S1 and S2 without moving links or changing free text", async () => {
@@ -49,7 +49,7 @@ describe.skipIf(!enabled)("Database performance locks and stable identities", ()
     const fresh = await rows(); expect(fresh.find(k => k.id === firstId)?.code).toBe("ZF-S2"); expect(fresh.find(k => k.id === secondId)?.code).toBe("ZF-S1");
     const linked = ok(await client().from("perf_activities").select("kpi_id,kpi_code").eq("id", activity?.id ?? "").single());
     expect(linked).toEqual({ kpi_id: secondId, kpi_code: "ZF-S1" });
-    const report = ok(await client().from("perf_reports").select("achievements").eq("plan_id", planId).single());
+    const report = ok(await client().from("perf_reports").select("achievements").eq("plan_id", planId).eq("period", "Q2").single());
     expect((report?.achievements as { kpi_id: string; kpi_code: string }[])[0]).toMatchObject({ kpi_id: secondId, kpi_code: "ZF-S1" });
     expect(fresh.find(k => k.id === firstId)?.related_kpis).toBe("ZF-S1 نص حر");
     ok(await structure(original.map(k => ({ id: k.id }))));

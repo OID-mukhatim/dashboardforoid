@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { previewPerfImport, approvePerfImport } from "@/lib/perf/imports.functions";
 import { useLang } from "@/lib/lang-context";
-import { perfText, issueText, fieldLabel } from "@/lib/perf/ui-text";
+import { perfText, issueText, fieldLabel, formatNumber } from "@/lib/perf/ui-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -212,6 +212,37 @@ export function PerformanceImportPanel({ initialYear }: { initialYear: number })
               ),
           )}
           {preview.approved && <p className="text-sm">{t("actualsOnly")}</p>}
+          {preview.annualStatsDiff && (
+            <div className="space-y-2" data-testid="annual-stats-diff">
+              <h4 className="font-semibold">{t("annual_stats")}</h4>
+              <p className="text-sm text-muted-foreground">{t("annualStatsLocked")}</p>
+              <table className="oid-table w-full">
+                <thead>
+                  <tr>
+                    <th>{fieldLabel("category", lang)}</th>
+                    <th>{t("before")}</th>
+                    <th>{t("after")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(preview.annualStatsDiff.after as Record<string, unknown>[]).map((row, i) => {
+                    const before = (preview.annualStatsDiff!.before as Record<string, unknown>[])[i];
+                    return (
+                      <tr key={i}>
+                        <td>{String(row.category ?? "")}</td>
+                        <td className="tabular-nums">
+                          {before ? `${formatNumber(before.previous)} → ${formatNumber(before.current)}` : "—"}
+                        </td>
+                        <td className="tabular-nums">
+                          {`${formatNumber(row.previous)} → ${formatNumber(row.current)}`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
           {preview.diffs.length > 0 && (
             <div className="space-y-3">
               <h4 className="font-semibold">{t("differences")}</h4>
