@@ -12,6 +12,8 @@ import {
   type FinancialReport, type RevenueRow, type ExpenseRow,
 } from "@/lib/financial.functions";
 import { Card, CardHeader, Progress, SectionTitle } from "./_shared";
+import { ExportMenu } from "@/components/export/ExportMenu";
+import { buildFinancialDoc } from "@/lib/export/reports/financial";
 
 const money = (n: number | null | undefined) => (n ? formatBudget(n) : "$0");
 const orgName = (id: string) => ORGS.find((o) => o.id === id)?.nameAr ?? id;
@@ -21,7 +23,18 @@ export function FinancialSection() {
   const [tab, setTab] = useState<"advisor" | "reports">("advisor");
   return (
     <div className="space-y-6">
-      <SectionTitle title="الأداء المالي" subtitle="متابعة أعمال المستشار المالي والتقارير الدورية" />
+      <SectionTitle title="الأداء المالي" subtitle="متابعة أعمال المستشار المالي والتقارير الدورية" action={
+        <ExportMenu org={{ value: "ALL", allowAll: true }} build={async ({ org }) => {
+          const year = new Date().getFullYear();
+          const { data: snaps, error } = await supabase.from("advisor_snapshots").select("period, period_order, timeline_title, done, assessment, program")
+            .order("period_order", { ascending: true }).order("created_at", { ascending: true });
+          if (error) throw error;
+          const cur = [...(snaps ?? [])].reverse().find((s) => s.assessment);
+          const reports = await loadFinancialReports({ data: { orgId: org === "ALL" ? undefined : org, year } });
+          return buildFinancialDoc({ orgs: ORGS.filter((o) => org === "ALL" || o.id === org), orgCode: org, year,
+            advisorPeriod: cur?.period ?? null, assessment: (cur?.assessment ?? {}) as never, program: (cur?.program ?? {}) as never,
+            timeline: (snaps ?? []).map((s) => ({ period: s.period, title: s.timeline_title, done: s.done })), reports });
+        }} />} />
 
       <div className="flex gap-2 border-b border-border">
         {[["advisor", "💼 أعمال المستشار المالي"], ["reports", "📊 التقارير المالية"]].map(([k, l]) => (

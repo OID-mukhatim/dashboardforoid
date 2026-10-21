@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ExportMenu } from "@/components/export/ExportMenu";
+import { buildOfficeDoc } from "@/lib/export/reports/office";
+import { supabase } from "@/integrations/supabase/client";
 import { ORGS, type OrgId } from "@/lib/oid-data";
 import { TranslatableText } from "@/components/oid/TranslatableText";
 import { OrgLogo } from "@/components/oid/OrgLogo";
@@ -73,6 +76,11 @@ export function OfficeSection() {
           <h2 className="text-lg font-bold leading-tight">{t("office.أعمال المكتب")}</h2>
           <p className="text-[11px] text-muted-foreground">{t("office.مكتب الإشراف والتطوير المؤسسي — OID")}</p>
         </div>
+        <div className="ms-auto"><ExportMenu dateRange build={async ({ from, to }) => {
+          const rows = tab === "meetings" ? await loadMeetings() : tab === "visits" ? await loadVisits() : tab === "plans" ? await loadPlans()
+            : ((await supabase.from("office_tasks").select("*").order("due_date")).data ?? []);
+          return buildOfficeDoc({ tab, rows: rows as Record<string, unknown>[], from, to, orgName: (id) => ORGS.find((o) => o.id === id)?.nameAr ?? null });
+        }} /></div>
       </div>
 
       <div className="flex flex-wrap gap-1 border-b border-border">

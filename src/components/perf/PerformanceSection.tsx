@@ -21,6 +21,8 @@ import { ActualsEntry } from "./ActualsEntry";
 import { IndicatorCard } from "./IndicatorCard";
 import { ExportTemplateButton } from "./ExportTemplateButton";
 import { usePerfEditor } from "./usePerfEditor";
+import { ExportMenu } from "@/components/export/ExportMenu";
+import { buildKpiDoc } from "@/lib/export/reports/kpis";
 export const perfQueryOptions = queryOptions({
   queryKey: ["perf-data"],
   queryFn: () => loadPerfData(),
@@ -49,7 +51,13 @@ export function PerformanceSection() {
   const labelYear = plan?.fiscal_type === "academic" ? `${year}/${Number(year) + 1}` : year;
   return (
     <div dir={dir} className="space-y-6">
-      <SectionTitle title={t("title")} />
+      <SectionTitle title={t("title")} action={plan ? (
+        <ExportMenu
+          periods={{ value: period, options: ["Q1", "Q2", "Q3", "Q4"].map((q) => ({ value: q, label: q })) }}
+          build={({ period: q }) => buildKpiDoc({ plan, kpis, period: q as Quarter, yearLabel: labelYear,
+            org: { id: orgId, nameAr: ORGS.find((o) => o.id === orgId)?.nameAr ?? orgId },
+            approvedBy: plan.matrix_approved_by ? (data.users[plan.matrix_approved_by] ?? null) : null })}
+        />) : undefined} />
       <div className="flex flex-wrap gap-3">
         <FilterSelect
           label={t("org")}

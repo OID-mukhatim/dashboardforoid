@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Card, SectionTitle } from "./_shared";
+import { ExportMenu } from "@/components/export/ExportMenu";
+import { buildInitiativesDoc } from "@/lib/export/reports/oversight";
 import { useLang } from "@/lib/lang-context";
 import { TranslatableText } from "@/components/oid/TranslatableText";
 import { ORGS } from "@/lib/oid-data";
@@ -112,7 +114,16 @@ export function InitiativesSection() {
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <SectionTitle title={t("initiatives.title")} subtitle={t("initiatives.subtitle")} />
+        <SectionTitle title={t("initiatives.title")} subtitle={t("initiatives.subtitle")} action={
+          <ExportMenu org={{ value: "ALL", allowAll: true }} build={({ org }) => {
+            const o = ORGS.find((x) => x.id === org);
+            const list = (rows as Initiative[]).filter((r) => org === "ALL" || (r.org_ids ?? []).includes(org));
+            return buildInitiativesDoc({ orgCode: org, orgName: o?.nameAr ?? "كل المؤسسات", rows: list.map((r) => ({
+              title: r.title, domain: r.domain, priority: r.priority, status: r.status, timeline: r.timeline,
+              cost: r.cost && Number.isFinite(Number(r.cost)) ? Number(r.cost) : r.cost,
+              orgs: (r.org_ids ?? []).map((id) => ORGS.find((x) => x.id === id)?.nameAr ?? id).join("، "),
+            })) });
+          }} />} />
         {isEditor && (
           <div className="flex gap-2">
             <Button onClick={openCreate} className="gap-1.5">

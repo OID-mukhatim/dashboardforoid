@@ -8,6 +8,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, SectionTitle, Row, useDashboardSnapshotQuery } from "./_shared";
+import { ExportMenu } from "@/components/export/ExportMenu";
+import { buildProfilesDoc } from "@/lib/export/reports/profiles";
 import { useLang } from "@/lib/lang-context";
 import { TranslatableText } from "@/components/oid/TranslatableText";
 import { Button } from "@/components/ui/button";
@@ -94,7 +96,10 @@ export function ProfilesSection() {
 
   return (
     <div className="space-y-6">
-      <SectionTitle title={t("profiles.title")} subtitle={t("profiles.subtitle")} />
+      <SectionTitle title={t("profiles.title")} subtitle={t("profiles.subtitle")} action={
+        <ExportMenu org={{ value: ORGS[0]?.id ?? "ALL", allowAll: true }} build={({ org }) => buildProfilesDoc({ orgCode: org,
+          orgs: merged.filter((o) => org === "ALL" || o.id === org).map((o) => ({ id: o.id, nameAr: o.nameAr, nameEn: o.nameEn,
+            db: (o.db ?? null) as Record<string, unknown> | null, fields: ((liveProfiles as Record<string, { fields?: Record<string, unknown> }>)[o.id]?.fields ?? {}) })) })} />} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {merged.map(o => {
           const db = o.db;

@@ -6,6 +6,8 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieC
 import { ORGS, type OrgId } from "@/lib/oid-data";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { Card, CardHeader, EmptyData, SectionTitle, OrgChip, FilterSelect } from "./_shared";
+import { ExportMenu } from "@/components/export/ExportMenu";
+import { buildPartnershipsDoc } from "@/lib/export/reports/partnerships";
 import { useLang } from "@/lib/lang-context";
 import { TranslatableText } from "@/components/oid/TranslatableText";
 import { Button } from "@/components/ui/button";
@@ -225,7 +227,14 @@ export function PartnershipsSection() {
              {isLoading ? t("partnerships.loading") : tFormat("partnerships.total", { count: total })}
           </p>
         </div>
+         <div className="flex gap-2">
+         <ExportMenu org={{ value: filters.org === "all" ? "ALL" : filters.org, allowAll: true }} build={({ org }) => buildPartnershipsDoc({
+           orgCode: org, orgName: ORGS.find((o) => o.id === org)?.nameAr ?? "كل المؤسسات",
+           rows: filtered.filter((p) => org === "ALL" || (p.linkedOrgs ?? []).includes(org)).map((p) => ({ name: p.name, name_en: p.name_en ?? null, type: p.type, status: p.status, geography: p.geography,
+             description: p.description ?? null, contact: p.contact ?? null, orgs: (p.linkedOrgs ?? []).map((id) => ORGS.find((o) => o.id === id)?.nameAr ?? id).join("، ") })),
+         })} />
          <Button onClick={() => setShowModal(true)} className="gap-1.5"><Plus size={16} /> {t("partnerships.add")}</Button>
+         </div>
       </div>
 
       {/* 5) شريط الفلاتر والترتيب والعرض */}

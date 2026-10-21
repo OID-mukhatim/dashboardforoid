@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedShellRouteImport } from './routes/_authenticated/_shell'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as PrintReportRouteImport } from './routes/print.report'
 import { Route as AuthenticatedShellActivitiesRouteImport } from './routes/_authenticated/_shell/activities'
 import { Route as AuthenticatedShellAuditRouteImport } from './routes/_authenticated/_shell/audit'
 import { Route as AuthenticatedShellDashboardRouteImport } from './routes/_authenticated/_shell/dashboard'
@@ -53,6 +54,11 @@ const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const PrintReportRoute = PrintReportRouteImport.update({
+  id: '/print/report',
+  path: '/print/report',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedShellActivitiesRoute =
   AuthenticatedShellActivitiesRouteImport.update({
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/print/report': typeof PrintReportRoute
   '/activities': typeof AuthenticatedShellActivitiesRoute
   '/audit': typeof AuthenticatedShellAuditRoute
   '/dashboard': typeof AuthenticatedShellDashboardRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/': typeof AuthenticatedIndexRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/print/report': typeof PrintReportRoute
   '/activities': typeof AuthenticatedShellActivitiesRoute
   '/audit': typeof AuthenticatedShellAuditRoute
   '/dashboard': typeof AuthenticatedShellDashboardRoute
@@ -196,6 +204,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/_shell': typeof AuthenticatedShellRouteWithChildren
   '/_authenticated/users': typeof AuthenticatedUsersRoute
+  '/print/report': typeof PrintReportRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/_shell/activities': typeof AuthenticatedShellActivitiesRoute
   '/_authenticated/_shell/audit': typeof AuthenticatedShellAuditRoute
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/users'
+    | '/print/report'
     | '/activities'
     | '/audit'
     | '/dashboard'
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/'
     | '/users'
+    | '/print/report'
     | '/activities'
     | '/audit'
     | '/dashboard'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/_shell'
     | '/_authenticated/users'
+    | '/print/report'
     | '/_authenticated/'
     | '/_authenticated/_shell/activities'
     | '/_authenticated/_shell/audit'
@@ -285,6 +297,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PrintReportRoute: typeof PrintReportRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -323,6 +336,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/users'
       preLoaderRoute: typeof AuthenticatedUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/print/report': {
+      id: '/print/report'
+      path: '/print/report'
+      fullPath: '/print/report'
+      preLoaderRoute: typeof PrintReportRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/_shell/activities': {
       id: '/_authenticated/_shell/activities'
@@ -498,6 +518,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  PrintReportRoute: PrintReportRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

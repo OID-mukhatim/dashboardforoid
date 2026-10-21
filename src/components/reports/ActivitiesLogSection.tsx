@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/use-auth";
 import type { Quarter } from "@/lib/perf/types";
 import { FilterSelect, SectionTitle } from "@/routes/_authenticated/sections/_shared";
 import { usePlanSelection } from "./usePlanSelection";
+import { ExportMenu } from "@/components/export/ExportMenu";
+import { buildActivitiesDoc } from "@/lib/export/reports/activities";
 
 export function ActivitiesLogSection() {
   const { data } = useSuspenseQuery(perfQueryOptions);
@@ -20,7 +22,14 @@ export function ActivitiesLogSection() {
     data.reports.some((r) => r.plan_id === plan?.id && r.status === "approved" && (r.period === q || r.period === "annual"));
   return (
     <div dir={dir} className="space-y-6">
-      <SectionTitle title={t("nav.activities")} />
+      <SectionTitle title={t("nav.activities")} action={plan ? (
+        <ExportMenu
+          periods={{ value: period, options: ["Q1", "Q2", "Q3", "Q4"].map((q) => ({ value: q, label: q })) }}
+          build={({ period: q }) => buildActivitiesDoc({ plan, period: q as Quarter, yearLabel: sel.yearLabel(plan.plan_year),
+            kpis: data.kpis.filter((k) => k.plan_id === plan.id), activities: data.activities.filter((a) => a.plan_id === plan.id),
+            report: data.reports.find((r) => r.plan_id === plan.id && r.period === q),
+            org: { id: sel.orgId, nameAr: ORGS.find((o) => o.id === sel.orgId)?.nameAr ?? sel.orgId } })}
+        />) : undefined} />
       <div className="flex flex-wrap gap-3">
         <FilterSelect label={lang === "ar" ? "المؤسسة" : "Institution"} value={sel.orgId} onChange={sel.setOrg}
           options={ORGS.map((o) => ({ value: o.id, label: lang === "ar" ? o.nameAr : o.nameEn }))} />

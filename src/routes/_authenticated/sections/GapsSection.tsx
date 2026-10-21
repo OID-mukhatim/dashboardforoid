@@ -7,6 +7,8 @@ import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { loadGapScores, updateGapScore } from "@/lib/dashboard.functions";
 import { useLang } from "@/lib/lang-context";
 import { Card, CardHeader, EmptyData, useDashboardSnapshotQuery, getLiveGapValue, SectionTitle } from "./_shared";
+import { ExportMenu } from "@/components/export/ExportMenu";
+import { buildGapsDoc } from "@/lib/export/reports/oversight";
 
 const PERIOD = "Q2-2026";
 const DOMAIN_NAMES = [
@@ -109,7 +111,11 @@ export function GapsSection() {
   });
   return (
     <div className="space-y-6">
-      <SectionTitle title={t("gaps.title")} subtitle={t("gaps.subtitle")} />
+      <SectionTitle title={t("gaps.title")} subtitle={t("gaps.subtitle")} action={
+        <ExportMenu org={{ value: "ALL", allowAll: true }} build={({ org }) => buildGapsDoc({
+          orgs: ORGS.filter((o) => org === "ALL" || o.id === org), orgCode: org,
+          axes: GAP_AXES.map((a, i) => ({ ar: a, en: ["Strategy", "Leadership", "Performance", "Operations", "Finance", "Infrastructure", "Governance"][i] ?? a })), value: (oid, i) => liveGapScores[oid]?.[i] ?? null,
+        })} />} />
 
       <Card>
         <CardHeader title={t("gaps.heatmapTitle")} subtitle={t("gaps.editHint")} />
