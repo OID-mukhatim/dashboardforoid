@@ -14,3 +14,4 @@
 - Translation and individual formula suggestions share AI_TEXT_MODEL in src/lib/ai-model.ts so model changes have one source.
 - Quarterly/annual reports are built from a section registry (src/components/reports/registry.tsx) over pure builders in src/lib/reports; approval stores a snapshot via approve_perf_report and approved periods change only through perf_correct, so frozen reports never recompute.
 - The composite KPI component reads only the latest approved report snapshot in the org's active year, keeping the score tied to approved data.
+- All report exports go through one engine: each section has a small builder in src/lib/export/reports returning a ReportDocument, rendered by render-xlsx / render-docx / render-html (print route /print/report); identity values live only in src/lib/export/identity.ts, so styling and section content change in one place.
