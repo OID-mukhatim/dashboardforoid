@@ -31,7 +31,7 @@ export function PerformanceImportPanel({ initialYear }: { initialYear: number })
   const previewFn = useServerFn(previewPerfImport);
   const approveFn = useServerFn(approvePerfImport);
   const fail = (e: unknown) =>
-    setMessage(
+    setMessage(e instanceof Error && e.message === YEAR_CLOSED_MESSAGE ? (lang === "ar" ? YEAR_CLOSED_MESSAGE : "The year is closed by the approved annual report — use a correction with a reason, or reopen the annual report") :
       t(
         e instanceof Error &&
           e.message in
@@ -47,7 +47,7 @@ export function PerformanceImportPanel({ initialYear }: { initialYear: number })
           ? e.message
           : "error",
       ),
-    );
+  );
   async function choose(file: File | undefined) {
     if (!file) return;
     setBusy(true);
