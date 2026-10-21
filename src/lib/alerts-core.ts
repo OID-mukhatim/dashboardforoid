@@ -1,7 +1,7 @@
 import { latestGapRows, type GapRow } from "./live-gap-rules";
 import type { Lang } from "./i18n";
 
-export type LiveAlert = { id: string; severity: "critical" | "warning"; org_id: string; title: string; message: string; section: "profiles" | "governance" | "gaps" };
+export type LiveAlert = { id: string; severity: "critical" | "warning"; org_id: string; title: string; message: string; section: "profiles" | "governance" | "gaps" | "reports" };
 type Institution = { id: string; name_ar: string; name_en: string | null; license_expiry: string | null };
 const AXES_EN = ["Strategy", "Leadership and competencies", "Performance and results", "Processes and systems", "Financial resources", "Infrastructure", "Governance and compliance"];
 
@@ -27,4 +27,21 @@ export function buildLiveAlerts(institutions: Institution[], gaps: GapRow[], mat
     alerts.push({ id: `gap-low-${r.org_id}-${r.domain_index}-${r.period}`, severity: "warning", org_id: r.org_id, section: "gaps", title: ar ? `فجوة ${axis} — ${names.get(r.org_id) ?? r.org_id}` : `${names.get(r.org_id) ?? r.org_id}: ${axis} gap`, message: ar ? `درجة المجال ${Number(r.score)}/5 في ${r.period}، وهي أقل من 2/5.` : `Dimension score is ${Number(r.score)}/5 in ${r.period}, below 2/5.` });
   }
   return alerts.sort((a, b) => Number(a.severity !== "critical") - Number(b.severity !== "critical") || a.id.localeCompare(b.id));
+}
+import type { ReportAlert } from "./reports/integration";
+/** Bilingual alert items for late reports and weak perspectives. */
+export function reportAlertItems(items: ReportAlert[], names: Map<string, string>, lang: Lang): LiveAlert[] {
+  const ar = lang === "ar";
+  const P: Record<string, [string, string]> = { S: ["المستفيدون", "Stakeholders"], P: ["العمليات", "Processes"], L: ["التعلم والنمو", "Learning & growth"], F: ["المالي", "Financial"] };
+  return items.map((a) => {
+    const n = names.get(a.orgId) ?? a.orgId;
+    if (a.kind === "lateReport")
+      return { id: `report-late-${a.orgId}-${a.year}-${a.quarter}`, severity: "warning" as const, org_id: a.orgId, section: "reports" as const,
+        title: ar ? `تقرير ${a.quarter} متأخر — ${n}` : `${n}: ${a.quarter} report overdue`,
+        message: ar ? `انتهى الربع منذ ${a.daysLate} يوماً ولم يُعتمد تقريره.` : `The quarter ended ${a.daysLate} days ago and its report is not approved.` };
+    const pn = P[a.perspective]?.[ar ? 0 : 1] ?? a.perspective;
+    return { id: `report-weak-${a.orgId}-${a.period}-${a.perspective}`, severity: "warning" as const, org_id: a.orgId, section: "reports" as const,
+      title: ar ? `منظور ${pn} ضعيف — ${n}` : `${n}: weak ${pn} perspective`,
+      message: ar ? `الدرجة المحققة ${Math.round(a.pct * 100) / 100}% في آخر تقرير معتمد (${a.period})، أقل من 60%.` : `Achieved ${Math.round(a.pct * 100) / 100}% in the latest approved report (${a.period}), below 60%.` };
+  });
 }
