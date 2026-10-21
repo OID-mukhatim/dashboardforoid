@@ -1,3 +1,4 @@
+import type React from "react";
 import { Settings, Clock } from "lucide-react";
 import { ORGS, ORG_FISCAL_YEAR, quarterMonths, type OrgId } from "@/lib/oid-data";
 import { OrgLogo } from "@/components/oid/OrgLogo";
@@ -149,7 +150,7 @@ export function getLiveGapValue(snap: any, orgId: OrgId, axis: string): number |
   return null;
 }
 
-export function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+export function SectionTitle({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {
   const { t } = useLang();
   return (
     <div className="flex items-center justify-between border-b border-border pb-4">
@@ -157,9 +158,12 @@ export function SectionTitle({ title, subtitle }: { title: string; subtitle?: st
         <h2 className="text-2xl font-bold text-foreground">{title}</h2>
         {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
       </div>
-      <button className="text-xs flex items-center gap-1 text-primary hover:underline">
-        <Settings size={14} /> {t("dashboard.edit")}
-      </button>
+      <div className="flex items-center gap-3">
+        {action}
+        <button className="text-xs flex items-center gap-1 text-primary hover:underline">
+          <Settings size={14} /> {t("dashboard.edit")}
+        </button>
+      </div>
     </div>
   );
 }
