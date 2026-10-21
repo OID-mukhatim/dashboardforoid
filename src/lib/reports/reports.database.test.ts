@@ -34,7 +34,7 @@ describe.skipIf(!enabled)("Report approval, freeze, corrections and reopen", () 
     ok(await c().rpc("transition_perf_plan", { p_plan: planId, p_status: "objectives_approved", p_reason: null as never }));
     ok(await c().rpc("transition_perf_plan", { p_plan: planId, p_status: "matrix_approved", p_reason: null as never }));
   });
-  afterAll(async () => { if (planId) ok(await c().from("perf_plans").delete().eq("id", planId)); });
+  afterAll(async () => { if (planId && !process.env.KEEP_PLAN) ok(await c().from("perf_plans").delete().eq("id", planId)); });
 
   it("approves Q2 with 86.625% to date and 69.9987% annual", async () => {
     ok(await c().from("perf_reports").update({ executive_summary: "ملخص تنفيذي للاختبار", achievements: [{ achievement: "إنجاز", kpi_id: s2 }] as never }).eq("plan_id", planId).eq("period", "Q2"));
