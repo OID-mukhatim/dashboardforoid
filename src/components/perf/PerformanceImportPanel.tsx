@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { previewPerfImport, approvePerfImport } from "@/lib/perf/imports.functions";
+import { previewPerfImport, approvePerfImport, YEAR_CLOSED_MESSAGE } from "@/lib/perf/imports.functions";
 import { useLang } from "@/lib/lang-context";
 import { perfText, issueText, fieldLabel, formatNumber } from "@/lib/perf/ui-text";
 import { Button } from "@/components/ui/button";
