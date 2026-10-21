@@ -1,5 +1,5 @@
-import type { ReportSnapshot, ReportPeriod } from "@/lib/reports/build";
-import type { Plan, Report, ReportValue } from "@/lib/perf/types";
+import type { ReportSnapshot, ReportPeriod } from "../../reports/build";
+import type { Plan, Report, ReportValue } from "../../perf/types";
 import type { Block, Cell } from "../types";
 import { col, makeDoc, periodLabel, persp, r2, rate, section, table } from "./common";
 

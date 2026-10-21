@@ -1,5 +1,5 @@
 import type { Block, Cell, Column, ReportDocument, ReportStatus, Section } from "../types";
-import { optionLabel } from "@/lib/perf/dictionary";
+import { optionLabel } from "../../perf/dictionary";
 
 export const r2 = (v: number | null | undefined): number | null => (typeof v === "number" && Number.isFinite(v) ? Math.round(v * 100) / 100 : null);
 export const col = (ar: string, en: string, computed = false): Column => ({ ar, en, computed });

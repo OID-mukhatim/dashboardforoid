@@ -1,7 +1,7 @@
-import { activityResult, activityTotals, operationalSummary } from "@/lib/perf/engine";
-import { optionLabel } from "@/lib/perf/dictionary";
-import { linkedCode } from "@/lib/perf/references";
-import type { Activity, KPI, Plan, Quarter, Report } from "@/lib/perf/types";
+import { activityResult, activityTotals, operationalSummary } from "../../perf/engine";
+import { optionLabel } from "../../perf/dictionary";
+import { linkedCode } from "../../perf/references";
+import type { Activity, KPI, Plan, Quarter, Report } from "../../perf/types";
 import { col, makeDoc, r2, rate, section, table } from "./common";
 
 /** Programs & activities log: the period log, period/year totals and the operational plan summary. */

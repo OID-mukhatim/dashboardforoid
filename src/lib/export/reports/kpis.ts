@@ -1,6 +1,6 @@
-import { scorePlan, annualResult, toDateResult } from "@/lib/perf/engine";
-import { optionLabel } from "@/lib/perf/dictionary";
-import { PERSPECTIVES, type KPI, type Plan, type Quarter } from "@/lib/perf/types";
+import { scorePlan, annualResult, toDateResult } from "../../perf/engine";
+import { optionLabel } from "../../perf/dictionary";
+import { PERSPECTIVES, type KPI, type Plan, type Quarter } from "../../perf/types";
 import { col, makeDoc, persEn, persp, r2, rate, section, table } from "./common";
 
 /** Full KPI matrix per perspective (landscape) with to-date and annual results, then totals. */

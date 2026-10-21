@@ -1,5 +1,5 @@
-import { govStatusScore } from "@/lib/gov-likert";
-import { POLICY_STATUS_META, type PolicyRow, type PolicyStatus } from "@/lib/oid-data";
+import { govStatusScore } from "../../gov-likert";
+import { POLICY_STATUS_META, type PolicyRow, type PolicyStatus } from "../../oid-data";
 import type { Cell } from "../types";
 import { col, makeDoc, r2, section, table } from "./common";
 
