@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedShellRouteImport } from './routes/_authenticated/_shell'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as AuthenticatedShellActivitiesRouteImport } from './routes/_authenticated/_shell/activities'
 import { Route as AuthenticatedShellAuditRouteImport } from './routes/_authenticated/_shell/audit'
 import { Route as AuthenticatedShellDashboardRouteImport } from './routes/_authenticated/_shell/dashboard'
 import { Route as AuthenticatedShellFinancialRouteImport } from './routes/_authenticated/_shell/financial'
@@ -26,6 +27,7 @@ import { Route as AuthenticatedShellOrganizationsRouteImport } from './routes/_a
 import { Route as AuthenticatedShellPartnershipsRouteImport } from './routes/_authenticated/_shell/partnerships'
 import { Route as AuthenticatedShellProfilesRouteImport } from './routes/_authenticated/_shell/profiles'
 import { Route as AuthenticatedShellQuarterlyRouteImport } from './routes/_authenticated/_shell/quarterly'
+import { Route as AuthenticatedShellReportsRouteImport } from './routes/_authenticated/_shell/reports'
 import { Route as AuthenticatedShellTerminologyRouteImport } from './routes/_authenticated/_shell/terminology'
 import { Route as AuthenticatedShellUploadRouteImport } from './routes/_authenticated/_shell/upload'
 
@@ -52,6 +54,12 @@ const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedShellActivitiesRoute =
+  AuthenticatedShellActivitiesRouteImport.update({
+    id: '/activities',
+    path: '/activities',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
 const AuthenticatedShellAuditRoute = AuthenticatedShellAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -121,6 +129,12 @@ const AuthenticatedShellQuarterlyRoute =
     path: '/quarterly',
     getParentRoute: () => AuthenticatedShellRoute,
   } as any)
+const AuthenticatedShellReportsRoute =
+  AuthenticatedShellReportsRouteImport.update({
+    id: '/reports',
+    path: '/reports',
+    getParentRoute: () => AuthenticatedShellRoute,
+  } as any)
 const AuthenticatedShellTerminologyRoute =
   AuthenticatedShellTerminologyRouteImport.update({
     id: '/terminology',
@@ -138,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/activities': typeof AuthenticatedShellActivitiesRoute
   '/audit': typeof AuthenticatedShellAuditRoute
   '/dashboard': typeof AuthenticatedShellDashboardRoute
   '/financial': typeof AuthenticatedShellFinancialRoute
@@ -150,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/partnerships': typeof AuthenticatedShellPartnershipsRoute
   '/profiles': typeof AuthenticatedShellProfilesRoute
   '/quarterly': typeof AuthenticatedShellQuarterlyRoute
+  '/reports': typeof AuthenticatedShellReportsRoute
   '/terminology': typeof AuthenticatedShellTerminologyRoute
   '/upload': typeof AuthenticatedShellUploadRoute
 }
@@ -157,6 +173,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/': typeof AuthenticatedIndexRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/activities': typeof AuthenticatedShellActivitiesRoute
   '/audit': typeof AuthenticatedShellAuditRoute
   '/dashboard': typeof AuthenticatedShellDashboardRoute
   '/financial': typeof AuthenticatedShellFinancialRoute
@@ -169,6 +186,7 @@ export interface FileRoutesByTo {
   '/partnerships': typeof AuthenticatedShellPartnershipsRoute
   '/profiles': typeof AuthenticatedShellProfilesRoute
   '/quarterly': typeof AuthenticatedShellQuarterlyRoute
+  '/reports': typeof AuthenticatedShellReportsRoute
   '/terminology': typeof AuthenticatedShellTerminologyRoute
   '/upload': typeof AuthenticatedShellUploadRoute
 }
@@ -179,6 +197,7 @@ export interface FileRoutesById {
   '/_authenticated/_shell': typeof AuthenticatedShellRouteWithChildren
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/_shell/activities': typeof AuthenticatedShellActivitiesRoute
   '/_authenticated/_shell/audit': typeof AuthenticatedShellAuditRoute
   '/_authenticated/_shell/dashboard': typeof AuthenticatedShellDashboardRoute
   '/_authenticated/_shell/financial': typeof AuthenticatedShellFinancialRoute
@@ -191,6 +210,7 @@ export interface FileRoutesById {
   '/_authenticated/_shell/partnerships': typeof AuthenticatedShellPartnershipsRoute
   '/_authenticated/_shell/profiles': typeof AuthenticatedShellProfilesRoute
   '/_authenticated/_shell/quarterly': typeof AuthenticatedShellQuarterlyRoute
+  '/_authenticated/_shell/reports': typeof AuthenticatedShellReportsRoute
   '/_authenticated/_shell/terminology': typeof AuthenticatedShellTerminologyRoute
   '/_authenticated/_shell/upload': typeof AuthenticatedShellUploadRoute
 }
@@ -200,6 +220,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/users'
+    | '/activities'
     | '/audit'
     | '/dashboard'
     | '/financial'
@@ -212,6 +233,7 @@ export interface FileRouteTypes {
     | '/partnerships'
     | '/profiles'
     | '/quarterly'
+    | '/reports'
     | '/terminology'
     | '/upload'
   fileRoutesByTo: FileRoutesByTo
@@ -219,6 +241,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/'
     | '/users'
+    | '/activities'
     | '/audit'
     | '/dashboard'
     | '/financial'
@@ -231,6 +254,7 @@ export interface FileRouteTypes {
     | '/partnerships'
     | '/profiles'
     | '/quarterly'
+    | '/reports'
     | '/terminology'
     | '/upload'
   id:
@@ -240,6 +264,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_shell'
     | '/_authenticated/users'
     | '/_authenticated/'
+    | '/_authenticated/_shell/activities'
     | '/_authenticated/_shell/audit'
     | '/_authenticated/_shell/dashboard'
     | '/_authenticated/_shell/financial'
@@ -252,6 +277,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_shell/partnerships'
     | '/_authenticated/_shell/profiles'
     | '/_authenticated/_shell/quarterly'
+    | '/_authenticated/_shell/reports'
     | '/_authenticated/_shell/terminology'
     | '/_authenticated/_shell/upload'
   fileRoutesById: FileRoutesById
@@ -297,6 +323,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/users'
       preLoaderRoute: typeof AuthenticatedUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/_shell/activities': {
+      id: '/_authenticated/_shell/activities'
+      path: '/activities'
+      fullPath: '/activities'
+      preLoaderRoute: typeof AuthenticatedShellActivitiesRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
     }
     '/_authenticated/_shell/audit': {
       id: '/_authenticated/_shell/audit'
@@ -382,6 +415,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedShellQuarterlyRouteImport
       parentRoute: typeof AuthenticatedShellRoute
     }
+    '/_authenticated/_shell/reports': {
+      id: '/_authenticated/_shell/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedShellReportsRouteImport
+      parentRoute: typeof AuthenticatedShellRoute
+    }
     '/_authenticated/_shell/terminology': {
       id: '/_authenticated/_shell/terminology'
       path: '/terminology'
@@ -400,6 +440,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedShellRouteChildren {
+  AuthenticatedShellActivitiesRoute: typeof AuthenticatedShellActivitiesRoute
   AuthenticatedShellAuditRoute: typeof AuthenticatedShellAuditRoute
   AuthenticatedShellDashboardRoute: typeof AuthenticatedShellDashboardRoute
   AuthenticatedShellFinancialRoute: typeof AuthenticatedShellFinancialRoute
@@ -412,11 +453,13 @@ interface AuthenticatedShellRouteChildren {
   AuthenticatedShellPartnershipsRoute: typeof AuthenticatedShellPartnershipsRoute
   AuthenticatedShellProfilesRoute: typeof AuthenticatedShellProfilesRoute
   AuthenticatedShellQuarterlyRoute: typeof AuthenticatedShellQuarterlyRoute
+  AuthenticatedShellReportsRoute: typeof AuthenticatedShellReportsRoute
   AuthenticatedShellTerminologyRoute: typeof AuthenticatedShellTerminologyRoute
   AuthenticatedShellUploadRoute: typeof AuthenticatedShellUploadRoute
 }
 
 const AuthenticatedShellRouteChildren: AuthenticatedShellRouteChildren = {
+  AuthenticatedShellActivitiesRoute: AuthenticatedShellActivitiesRoute,
   AuthenticatedShellAuditRoute: AuthenticatedShellAuditRoute,
   AuthenticatedShellDashboardRoute: AuthenticatedShellDashboardRoute,
   AuthenticatedShellFinancialRoute: AuthenticatedShellFinancialRoute,
@@ -429,6 +472,7 @@ const AuthenticatedShellRouteChildren: AuthenticatedShellRouteChildren = {
   AuthenticatedShellPartnershipsRoute: AuthenticatedShellPartnershipsRoute,
   AuthenticatedShellProfilesRoute: AuthenticatedShellProfilesRoute,
   AuthenticatedShellQuarterlyRoute: AuthenticatedShellQuarterlyRoute,
+  AuthenticatedShellReportsRoute: AuthenticatedShellReportsRoute,
   AuthenticatedShellTerminologyRoute: AuthenticatedShellTerminologyRoute,
   AuthenticatedShellUploadRoute: AuthenticatedShellUploadRoute,
 }
