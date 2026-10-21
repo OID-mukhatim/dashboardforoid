@@ -94,9 +94,10 @@ describe.skipIf(!enabled)("Report approval, freeze, corrections and reopen", () 
     const payload = { ...fixture, kpis, period: "Q3", report: { ...fixture.report, period: "Q3", annual_stats: changed } };
     const upload = ok(await c().from("uploads").select("id").eq("data_type", "قالب متابعة الأداء").order("created_at", { ascending: false }).limit(1).single());
     const plan = ok(await c().from("perf_plans").select("updated_at").eq("id", planId).single());
-    ok(await c().rpc("commit_perf_import", { p_org: "ZF", p_year: 2099, p_upload: upload!.id, p_payload: payload as never, p_allow_definitions: false, p_revision: plan!.updated_at as never }));
+    // اعتماد السنوي يقفل كل الأرباع، فيُرفض الاستيراد كله؛ وفي كل الأحوال لا تُطبَّق الإحصاءات
+    await c().rpc("commit_perf_import", { p_org: "ZF", p_year: 2099, p_upload: upload!.id, p_payload: payload as never, p_allow_definitions: false, p_revision: plan!.updated_at as never });
     expect((await report("annual")).annual_stats).toEqual(before);
-    const q3 = ok(await c().from("perf_reports").select("annual_stats").eq("plan_id", planId).eq("period", "Q3").single())!;
-    expect(q3.annual_stats).toEqual([]);
+    const q3 = ok(await c().from("perf_reports").select("annual_stats").eq("plan_id", planId).eq("period", "Q3").maybeSingle());
+    expect(q3?.annual_stats ?? null).toEqual(q3 ? [] : null);
   });
 });
