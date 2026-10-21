@@ -12,3 +12,5 @@
 - Performance logic lives in small src/lib/perf modules; database triggers enforce approval locks and record transitions, and imports reparse stored workbooks before a user-scoped transactional RPC to protect approved definitions.
 - Performance references use KPI IDs; a single database structural RPC owns draft numbering, while compatibility codes are synchronized by triggers. XML export uses DOM editing and independent XML validation to preserve template formulas and styles.
 - Translation and individual formula suggestions share AI_TEXT_MODEL in src/lib/ai-model.ts so model changes have one source.
+- Quarterly/annual reports are built from a section registry (src/components/reports/registry.tsx) over pure builders in src/lib/reports; approval stores a snapshot via approve_perf_report and approved periods change only through perf_correct, so frozen reports never recompute.
+- The composite KPI component reads only the latest approved report snapshot in the org's active year, keeping the score tied to approved data.
