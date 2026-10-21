@@ -10,22 +10,28 @@ import { Save } from "lucide-react";
 import { Value } from "./PerformanceTables";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { usePerfEditor } from "./usePerfEditor";
+import { correctPerf } from "@/lib/reports/reports.functions";
+import { CorrectionDialog } from "@/components/reports/CorrectionDialog";
 export function ActualsEntry({
   plan,
   kpis,
   period,
   editor,
+  locked = false,
 }: {
   plan: Plan;
   kpis: KPI[];
   period: Quarter;
   editor: boolean;
+  locked?: boolean;
 }) {
   const { lang, dir } = useLang();
   const t = (k: string) => perfText(k, lang);
   const [values, setValues] = useState<Record<string, number | null>>({});
   const fn = useServerFn(savePerfActuals);
   const { busy, run, message } = usePerfEditor();
+  const correct = useServerFn(correctPerf);
+  const [asking, setAsking] = useState(false);
   const actualField = `${period.toLowerCase()}_actual` as keyof KPI,
     planField = `${period.toLowerCase()}_plan` as keyof KPI;
   return (
@@ -80,6 +86,7 @@ export function ActualsEntry({
         <Button
           disabled={busy}
           onClick={async () => {
+            if (locked) return setAsking(true);
             if (
               await run(() =>
                 fn({
@@ -111,6 +118,19 @@ export function ActualsEntry({
         </Button>
       )}
       {message && <p role="status">{message}</p>}
+      <CorrectionDialog
+        open={asking}
+        onCancel={() => setAsking(false)}
+        onConfirm={async (reason) => {
+          setAsking(false);
+          const changed = kpis.filter((k) => k.id && k.id in values && values[k.id] !== k[actualField]);
+          const ok = await run(async () => {
+            for (const k of changed)
+              await correct({ data: { planId: plan.id, period, table: "perf_kpis", recordId: k.id as string, field: String(actualField), value: values[k.id as string] ?? null, reason } });
+          });
+          if (ok) setValues({});
+        }}
+      />
     </section>
   );
 }

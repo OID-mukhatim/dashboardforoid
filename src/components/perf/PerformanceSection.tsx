@@ -19,7 +19,6 @@ import { PlanApproval } from "./PlanApproval";
 import { EditableMatrix } from "./EditableMatrix";
 import { ActualsEntry } from "./ActualsEntry";
 import { IndicatorCard } from "./IndicatorCard";
-import { ActivitiesEditor } from "./ActivitiesEditor";
 import { ExportTemplateButton } from "./ExportTemplateButton";
 import { usePerfEditor } from "./usePerfEditor";
 export const perfQueryOptions = queryOptions({
@@ -131,7 +130,6 @@ export function PerformanceSection() {
             <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="matrix">{t("matrix")}</TabsTrigger>
               <TabsTrigger value="actuals">{t("actuals")}</TabsTrigger>
-              <TabsTrigger value="activities">{t("activities")}</TabsTrigger>
               <TabsTrigger value="report">{t("executive")}</TabsTrigger>
             </TabsList>
             <TabsContent value="matrix">
@@ -151,16 +149,7 @@ export function PerformanceSection() {
                 kpis={kpis}
                 period={period}
                 editor={isEditor}
-              />
-            </TabsContent>
-            <TabsContent value="activities">
-              <ActivitiesEditor
-                plan={plan}
-                kpis={kpis}
-                activities={activities}
-                period={period}
-                report={report}
-                editor={isEditor}
+                locked={data.reports.some((r) => r.plan_id === plan.id && r.status === "approved" && (r.period === period || r.period === "annual"))}
               />
             </TabsContent>
             <TabsContent value="report">
