@@ -17,7 +17,7 @@ const para = (text: string, o: RunOpts & { shade?: string; align?: (typeof Align
     spacing: { before: 60, after: 60 },
     children: lines(text, o),
   });
-const fmt = (v: Cell) => (v === null || v === "" ? "—" : typeof v === "number" ? v.toLocaleString("en-US", { maximumFractionDigits: 4 }) : v);
+const fmt = (v: Cell) => (v === null || v === "" ? "—" : typeof v === "number" ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : v);
 const cell = (v: Cell, o: { shade?: string; bold?: boolean; color?: string; size?: number } = {}) =>
   new TableCell({
     shading: o.shade ? { type: ShadingType.CLEAR, color: "auto", fill: o.shade } : undefined,

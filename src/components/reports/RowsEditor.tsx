@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Save } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
+import { formatReportNumber } from "@/lib/reports/presentation";
 
 export type Column = {
   key: string; ar: string; en: string;
@@ -36,7 +37,7 @@ export function RowsEditor({ columns, rows, onSave, busy, seed }: {
                 {columns.map((c) => (
                   <td key={c.key}>
                     {c.compute ? c.compute(r) : !onSave ? (
-                      c.options ? (c.options.find((o) => o.value === r[c.key])?.label ?? String(r[c.key] ?? "—")) : String(r[c.key] ?? "—")
+                      c.options ? (c.options.find((o) => o.value === r[c.key])?.label ?? String(r[c.key] ?? "—")) : formatReportNumber(r[c.key])
                     ) : c.options ? (
                       <select aria-label={c.ar} className="px-2 py-1.5 rounded-md bg-muted border border-border text-sm"
                         value={String(r[c.key] ?? "")} onChange={(e) => set(i, c.key, e.target.value || null)}>

@@ -1,5 +1,6 @@
 import { scorePlan, operationalSummary, annualResult, toDateResult, rating } from "../perf/engine";
 import { PERSPECTIVES, type Activity, type KPI, type Plan, type Quarter, type Report, type ReportValue } from "../perf/types";
+import { reportKpiOperands } from "./presentation";
 
 export type ReportPeriod = Quarter | "annual";
 export const REPORT_PERIODS: ReportPeriod[] = ["Q1", "Q2", "Q3", "Q4", "annual"];
@@ -45,7 +46,8 @@ export function computeKpiResult(kpis: KPI[], period: ReportPeriod) {
         ? an.annual_achieved
         : (k[`${period.toLowerCase()}_actual` as keyof KPI] as number | null);
       const flag: KpiFlag = td.no_plan ? "noPlan" : !td.due ? "notDue" : td.missing ? "missing" : null;
-      return { id: k.id ?? "", code: k.code, name: k.name, achieved, pct: td.pct, flag };
+      const operands: { planned?: number | null; displayAchieved?: number | null } = reportKpiOperands(k, period);
+      return { id: k.id ?? "", code: k.code, name: k.name, achieved, ...operands, pct: td.pct, flag };
     }),
   };
 }

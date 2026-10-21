@@ -273,7 +273,7 @@ export function parseTemplate(buffer: ArrayBuffer | Uint8Array, prefix: string):
     (fields[section] ?? []).forEach((f, i) => {
       if (f === "_change") return;
       record[f] =
-        section === "annual_stats" && ["previous", "current"].includes(f)
+        (section === "annual_stats" && ["previous", "current"].includes(f)) || (section === "proposals" && f === "cost")
           ? num(row[i + 1])
           : text(row[i + 1]) || null;
     });

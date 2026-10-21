@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { numericNarrativeRows } from "./presentation";
 
 const id = z.string().uuid();
 const period = z.enum(["Q1", "Q2", "Q3", "Q4", "annual"]);
@@ -36,7 +37,10 @@ export const saveReportContent = createServerFn({ method: "POST" })
         challenges: z.array(row).max(200).optional(),
         proposals: z.array(row).max(200).optional(),
       }),
-    }).parse(d),
+    }).transform((data) => ({ ...data, values: { ...data.values,
+      ...(data.values.annual_stats ? { annual_stats: numericNarrativeRows(data.values.annual_stats, ["previous", "current"]) } : {}),
+      ...(data.values.proposals ? { proposals: numericNarrativeRows(data.values.proposals, ["cost"]) } : {}),
+    } })).parse(d),
   )
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
