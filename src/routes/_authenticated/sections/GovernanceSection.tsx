@@ -101,7 +101,7 @@ export function GovernanceSection() {
         <ExportMenu org={{ value: "ALL", allowAll: true }} build={({ org }) => {
           const orgs = ORGS.filter((o) => org === "ALL" || o.id === org);
           return buildGovernanceDoc({
-            orgs, orgCode: org, status: (pid, oid) => effectivePolicyStatus(pid, oid as OrgId),
+            orgs, orgCode: org, status: (pid, oid) => livePoliciesMap.get(`${pid}__${oid}`),
             scores: Object.fromEntries(governanceScores.map((g) => [g.id, g.govScore])),
             categories: [
               { ar: "السياسات العامة", en: "General policies", policies: generalPolicies },

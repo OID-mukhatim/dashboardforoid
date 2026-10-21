@@ -2,7 +2,7 @@ import { COLORS, OFFICE_AR, OFFICE_EN, DRAFT_MARK, EMPTY_SECTION, metaLine } fro
 import type { Cell, ReportDocument } from "./types";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
-const fmt = (v: Cell) => (v === null || v === "" ? "—" : typeof v === "number" ? v.toLocaleString("en-US", { maximumFractionDigits: 4 }) : esc(v));
+const fmt = (v: Cell) => (v === null || v === "" ? "—" : typeof v === "number" ? v.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: Number.isInteger(v) ? 0 : 2 }) : esc(v));
 const bi = (ar: string, en: string) => `${esc(ar)}<br><span class="en">${esc(en)}</span>`;
 
 /** Self-contained print page (Tajawal, RTL, landscape pages, page numbers, draft watermark). */

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { ReportSnapshot } from "@/lib/reports/build";
 import { DataTable } from "@/components/perf/PerformanceTables";
-import { formatNumber } from "@/lib/perf/ui-text";
+import { formatReportNumber as formatNumber } from "@/lib/reports/presentation";
 import { optionLabel } from "@/lib/perf/dictionary";
 import type { Lang } from "@/lib/i18n";
 import type { Column } from "./RowsEditor";
@@ -65,10 +65,11 @@ export function KpiResultView({ data, lang }: { data: ReportSnapshot["kpi"]; lan
           </tr>))}</tbody>
       </table>
       <table className="oid-table">
-        <thead><tr><th>{ar ? "الكود" : "Code"}</th><th>{ar ? "المؤشر" : "KPI"}</th><th>{ar ? "المنجز" : "Achieved"}</th><th>{ar ? "النسبة" : "%"}</th><th>{ar ? "الوسم" : "Flag"}</th></tr></thead>
+        <thead><tr><th>{ar ? "الكود" : "Code"}</th><th>{ar ? "المؤشر" : "KPI"}</th><th>{toDate ? (ar ? "المخطط حتى تاريخه" : "Planned to date") : (ar ? "المستهدف السنوي" : "Annual target")}</th><th>{toDate ? (ar ? "المنجز حتى تاريخه" : "Achieved to date") : (ar ? "المنجز السنوي" : "Annual achieved")}</th><th>{ar ? "النسبة" : "%"}</th><th>{ar ? "الوسم" : "Flag"}</th></tr></thead>
         <tbody>{data.kpis.map((k) => (
           <tr key={k.id || k.code}><td dir="ltr">{k.code}</td><td>{k.name}</td>
-            <td className="tabular-nums">{typeof k.achieved === "number" ? formatNumber(k.achieved) : "—"}</td>
+            <td className="tabular-nums">{formatNumber(k.planned)}</td>
+            <td className="tabular-nums">{formatNumber(k.displayAchieved === undefined && !toDate ? k.achieved : k.displayAchieved)}</td>
             <td className="tabular-nums">{pct(k.pct)}</td><td>{flag(k.flag)}</td></tr>))}</tbody>
       </table>
     </div>

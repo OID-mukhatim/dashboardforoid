@@ -40,8 +40,8 @@ describe("ReportDocument per report — ZF 2099", () => {
     expect(comprehensive.meta).toMatchObject({ status: "approved", approvedBy: "admin@oid.org", orgCode: "ZF", period: "Q2" });
     expect(comprehensive.sections.map((s) => s.titleAr)).toEqual(["الملخص التنفيذي", "نتيجة مؤشرات الأداء", "ملخص الخطة التشغيلية", "المبادرات التطويرية", "أبرز الإنجازات", "التحديات", "المقترحات لمجلس الأمناء"]);
     expect(JSON.stringify(comprehensive.sections[0])).not.toContain("changed after approval");
-    expect(kv(comprehensive, 1).items[0].value).toBeCloseTo(86.63, 2);
-    expect(kv(comprehensive, 1).items[2].value).toBeCloseTo(70, 2);
+    expect(kv(comprehensive, 1).items[0].value).toBeCloseTo(86.625, 6);
+    expect(kv(comprehensive, 1).items[2].value).toBeCloseTo(69.9987, 3);
     expect(comprehensive.sections[3].blocks).toEqual([]);
   });
   it("draft comprehensive report is marked draft", () => {
@@ -52,8 +52,8 @@ describe("ReportDocument per report — ZF 2099", () => {
     const tables = kpiDoc.sections.slice(0, 4);
     expect(tables.every((s) => s.orientation === "landscape")).toBe(true);
     expect(tables.reduce((n, s) => n + (s.blocks[0]?.type === "table" ? s.blocks[0].rows.length : 0), 0)).toBe(11);
-    expect(kv(kpiDoc, 4).items[1].value).toBeCloseTo(70, 2);
-    expect(kv(kpiDoc, 4).items[0].value).toBeCloseTo(86.63, 2);
+    expect(kv(kpiDoc, 4).items[1].value).toBeCloseTo(69.9987, 3);
+    expect(kv(kpiDoc, 4).items[0].value).toBeCloseTo(86.625, 6);
   });
   it("activities report lists the Q2 log and totals", () => {
     const log = actDoc.sections[0].blocks[0];
@@ -63,10 +63,12 @@ describe("ReportDocument per report — ZF 2099", () => {
   it("governance report: Likert statuses, score and % with mean", () => {
     const t = govDoc.sections[0].blocks[0];
     expect(t.type === "table" && t.rows).toEqual([["مؤسسة زمزم", 4.2, 84], ["حمدي", 1.6, 32]]);
-    expect(t.type === "table" && t.totalsRow).toEqual(["المتوسط", 2.9, 58]);
+    if (t.type !== "table") throw new Error("Expected governance table");
+    expect(t.totalsRow?.[1]).toBeCloseTo(2.9, 12);
+    expect(t.totalsRow?.[2]).toBe(58);
     const p = govDoc.sections[1].blocks[1];
     expect(p.type === "table" && p.rows[0]).toEqual(["GP-01", "النظام الأساسي", "موجود ومفعّل (5)", "بحاجة تحديث (3)"]);
-    expect(p.type === "table" && p.rows[1][3]).toBe("بيانات ناقصة");
+    expect(p.type === "table" && p.rows[1][3]).toBe("غير مقيّم");
   });
   it("file name follows OID-<ORG>-<year>-<period>-<name>", () => {
     expect(exportFileName(comprehensive, "pdf")).toBe("OID-ZF-2099-Q2-Comprehensive-Report.pdf");

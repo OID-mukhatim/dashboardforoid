@@ -9,11 +9,11 @@ const avg = (xs: (number | null)[]) => { const v = xs.filter((x): x is number =>
 /** Governance & compliance: each policy's status per institution, then the Likert governance score and %. */
 export function buildGovernanceDoc(input: {
   orgs: Org[]; categories: { ar: string; en: string; policies: PolicyRow[] }[];
-  status: (policyId: string, orgId: string) => PolicyStatus; scores: Record<string, number | null>; orgCode: string; now?: string;
+   status: (policyId: string, orgId: string) => PolicyStatus | undefined; scores: Record<string, number | null>; orgCode: string; now?: string;
 }) {
   const { orgs } = input;
-  const label = (s: PolicyStatus) => { const n = govStatusScore(s); return n === null ? POLICY_STATUS_META[s].label : `${POLICY_STATUS_META[s].label} (${n})`; };
-  const policyBlocks = input.categories.flatMap((c) => [
+  const label = (s: PolicyStatus | undefined) => { if (!s || s === "pending") return "غير مقيّم"; const n = govStatusScore(s); return n === null ? "غير مقيّم" : `${POLICY_STATUS_META[s].label} (${n})`; };
+  const policyBlocks = input.categories.filter((c, i) => i === 0 || c.policies.some((p) => orgs.some((o) => input.status(p.id, o.id) !== undefined))).flatMap((c) => [
     { type: "subheading" as const, ar: c.ar, en: c.en },
     table([col("الرمز", "Code"), col("السياسة", "Policy"), ...orgs.map((o) => col(o.nameAr, o.abbr ?? o.id))],
       c.policies.map((p) => [p.id, p.name, ...orgs.map((o) => label(input.status(p.id, o.id)))])),

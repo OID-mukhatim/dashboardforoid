@@ -2,6 +2,7 @@ import type { ReportSnapshot, ReportPeriod } from "../../reports/build";
 import type { Plan, Report, ReportValue } from "../../perf/types";
 import type { Block, Cell } from "../types";
 import { col, makeDoc, periodLabel, persp, r2, rate, section, table } from "./common";
+import { reportNumericValue } from "../../reports/presentation";
 
 const FLAG: Record<string, string> = { notDue: "غير مستحق", missing: "بيانات ناقصة", noPlan: "لا يوجد مخطط" };
 const v = (x: ReportValue | undefined): Cell => (typeof x === "boolean" ? (x ? "نعم" : "لا") : x ?? null);
@@ -29,8 +30,8 @@ export function buildComprehensiveDoc(input: {
       k.perspectives.map((p) => [persp(p.id), r2(p.weight), r2(p.pct), r2(p.weighted), rate(p.rating)]),
       ["الإجمالي", r2(k.perspectives.reduce((a, p) => a + p.weight, 0)), null, r2(k.overall), rate(k.overallRating)]),
     { type: "subheading", ar: "نتائج المؤشرات", en: "KPI results" },
-    table([col("الكود", "Code"), col("المؤشر", "KPI"), col("المنجز", "Achieved"), col("النسبة %", "%", true), col("الوسم", "Flag")],
-      k.kpis.map((x) => [x.code, x.name, r2(x.achieved), r2(x.pct), x.flag ? FLAG[x.flag] : null])),
+    table([col("الكود", "Code"), col("المؤشر", "KPI"), k.basis === "toDate" ? col("المخطط حتى تاريخه", "Planned to date") : col("المستهدف السنوي", "Annual target"), k.basis === "toDate" ? col("المنجز حتى تاريخه", "Achieved to date") : col("المنجز السنوي", "Annual achieved"), col("النسبة %", "%", true), col("الوسم", "Flag")],
+      k.kpis.map((x) => [x.code, x.name, r2(x.planned), r2(x.displayAchieved === undefined && k.basis === "annual" ? x.achieved : x.displayAchieved), r2(x.pct), x.flag ? FLAG[x.flag] : null])),
   ] : [];
   sections.push(section("نتيجة مؤشرات الأداء", "KPI results", kpiBlocks, "landscape"));
   const o = s.operational;
@@ -45,12 +46,12 @@ export function buildComprehensiveDoc(input: {
     const rows = s.annual_stats ?? [];
     sections.push(section("الإحصاءات السنوية", "Annual statistics", rows.length ? [table(
       [col("البند", "Item"), col("السنة السابقة", "Previous year"), col("السنة الحالية", "Current year"), col("نسبة التغير %", "Change %", true), col("الملاحظة", "Note")],
-      rows.map((r) => [v(r.category), v(r.previous), v(r.current),
-        typeof r.previous === "number" && typeof r.current === "number" && r.previous !== 0 ? r2(((r.current - r.previous) / r.previous) * 100) : null, v(r.note)]))] : []));
+       rows.map((r) => { const previous = reportNumericValue(r.previous), current = reportNumericValue(r.current); return [v(r.category), previous, current,
+         previous !== null && current !== null && previous !== 0 ? r2(((current - previous) / previous) * 100) : null, v(r.note)]; }))] : []));
   }
   const narrative = (rows: Record<string, ReportValue>[], cols: [string, string, string][]) =>
     rows.length ? [table(cols.map(([, ar, en]) => col(ar, en)), rows.map((r) => cols.map(([key]) =>
-      key === "kpi_id" ? (input.kpiNames?.[String(r.kpi_id)] ?? v(r.kpi_code)) : v(r[key]))))] : [];
+       key === "kpi_id" ? (input.kpiNames?.[String(r.kpi_id)] ?? v(r.kpi_code)) : key === "cost" ? reportNumericValue(r[key]) : v(r[key]))))] : [];
   sections.push(section("أبرز الإنجازات", "Key achievements", narrative(s.achievements, [["achievement", "الإنجاز", "Achievement"], ["area", "المجال", "Area"], ["impact", "الأثر", "Impact"], ["kpi_id", "المؤشر الداعم", "Supporting KPI"], ["note", "الملاحظة", "Note"]]), "landscape"));
   sections.push(section("التحديات", "Challenges", narrative(s.challenges, [["challenge", "التحدي", "Challenge"], ["category", "التصنيف", "Category"], ["impact", "مدى التأثير", "Impact level"], ["reasons", "الأسباب", "Causes"], ["action", "الإجراء", "Action"], ["status", "الحالة", "Status"], ["notes", "الملاحظات", "Notes"]]), "landscape"));
   sections.push(section("المقترحات لمجلس الأمناء", "Proposals to the Board", narrative(s.proposals, [["proposal", "المقترح", "Proposal"], ["justification", "المبرر", "Justification"], ["impact", "الأثر المتوقع", "Expected impact"], ["priority", "الأولوية", "Priority"], ["cost", "التكلفة التقديرية", "Estimated cost"], ["timeline", "الجدول الزمني", "Timeline"], ["notes", "الملاحظات", "Notes"]]), "landscape"));

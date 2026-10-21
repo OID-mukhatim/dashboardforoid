@@ -1,7 +1,8 @@
 import type { Block, Cell, Column, ReportDocument, ReportStatus, Section } from "../types";
 import { optionLabel } from "../../perf/dictionary";
 
-export const r2 = (v: number | null | undefined): number | null => (typeof v === "number" && Number.isFinite(v) ? Math.round(v * 10000) / 10000 : null);
+// Keep document values precise; each renderer controls display precision only.
+export const r2 = (v: number | null | undefined): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 export const col = (ar: string, en: string, computed = false): Column => ({ ar, en, computed });
 export const rate = (k: string | null | undefined): string | null => (k ? optionLabel("rating", k, "ar") : null);
 export const persp = (k: string) => optionLabel("perspective", k, "ar");
