@@ -19,6 +19,8 @@ import { Plus, Save, Trash2 } from "lucide-react";
 import { ActivityTables, Value } from "./PerformanceTables";
 import { ScrollableTable } from "@/components/oid/ScrollableTable";
 import { usePerfEditor } from "./usePerfEditor";
+import { correctPerf } from "@/lib/reports/reports.functions";
+import { CorrectionDialog } from "@/components/reports/CorrectionDialog";
 const fields = [
   "quarter",
   "activity_type",
@@ -51,6 +53,7 @@ export function ActivitiesEditor({
   period,
   report,
   editor,
+  locked = () => false,
 }: {
   activities: Activity[];
   plan: Plan;
@@ -58,6 +61,7 @@ export function ActivitiesEditor({
   period: Quarter;
   report: Report | undefined;
   editor: boolean;
+  locked?: (quarter: string) => boolean;
 }) {
   const { lang, dir } = useLang();
   const t = (k: string) => perfText(k, lang);
@@ -68,6 +72,13 @@ export function ActivitiesEditor({
   const save = useServerFn(savePerfActivity),
     remove = useServerFn(deletePerfActivity);
   const { busy, run, message } = usePerfEditor();
+  const correct = useServerFn(correctPerf);
+  const [pending, setPending] = useState<null | { work: (reason: string) => Promise<unknown>; after?: () => void }>(null);
+  /** Direct write when the quarter is open; otherwise ask for a reason and correct. */
+  async function guarded(quarters: string[], direct: () => Promise<unknown>, viaCorrection: (reason: string) => Promise<unknown>, after?: () => void) {
+    if (quarters.some((q) => locked(q))) return setPending({ work: viaCorrection, after });
+    if (await run(direct)) after?.();
+  }
   const rows = [...activities, ...(adding ? [{ ...empty(period), id: "new" }] : [])].filter(
     (a) =>
       (quarter === "all" || a.quarter === quarter) && (type === "all" || a.activity_type === type),
@@ -236,26 +247,28 @@ export function ActivitiesEditor({
                           title={t("save")}
                           aria-label={`${t("save")} ${a.id}`}
                           disabled={busy || !row.title.trim()}
-                          onClick={async () => {
+                          onClick={() => {
                             const { id, plan_id, ...values } = row;
-                            if (
-                              await run(() =>
-                                save({
-                                  data: {
-                                    id: id === "new" ? undefined : id,
-                                    planId: plan.id,
-                                    values,
-                                  },
-                                }),
-                              )
-                            ) {
+                            const original = activities.find((x) => x.id === id);
+                            const after = () => {
                               setDrafts((old) => {
                                 const next = { ...old };
                                 delete next[a.id ?? "new"];
                                 return next;
                               });
                               if (id === "new") setAdding(false);
-                            }
+                            };
+                            const { kpi_code: _c, ...dbValues } = values;
+                            void guarded(
+                              [row.quarter, ...(original ? [original.quarter] : [])],
+                              () => save({ data: { id: id === "new" ? undefined : id, planId: plan.id, values } }),
+                              (reason) => correct({ data: {
+                                planId: plan.id, period: row.quarter, table: "perf_activities",
+                                recordId: id === "new" ? null : (id as string),
+                                field: id === "new" ? "insert" : "update", value: dbValues, reason,
+                              } }),
+                              after,
+                            );
                           }}
                         >
                           <Save size={14} />
@@ -270,7 +283,11 @@ export function ActivitiesEditor({
                             a.id === "new"
                               ? setAdding(false)
                               : a.id &&
-                                run(() => remove({ data: { id: a.id as string, planId: plan.id } }))
+                                void guarded(
+                                  [a.quarter],
+                                  () => remove({ data: { id: a.id as string, planId: plan.id } }),
+                                  (reason) => correct({ data: { planId: plan.id, period: a.quarter, table: "perf_activities", recordId: a.id as string, field: "delete", value: null, reason } }),
+                                )
                           }
                         >
                           <Trash2 size={14} />
@@ -285,6 +302,15 @@ export function ActivitiesEditor({
         </table>
       </ScrollableTable>
       {message && <p role="status">{message}</p>}
+      <CorrectionDialog
+        open={!!pending}
+        onCancel={() => setPending(null)}
+        onConfirm={async (reason) => {
+          const p = pending;
+          setPending(null);
+          if (p && (await run(() => p.work(reason)))) p.after?.();
+        }}
+      />
       <ActivityTables activities={activities} report={report} period={period} />
     </section>
   );
