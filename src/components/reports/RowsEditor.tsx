@@ -10,6 +10,7 @@ export type Column = {
   key: string; ar: string; en: string;
   type?: "text" | "number";
   options?: { value: string; label: string }[];
+  compute?: (r: Record<string, ReportValue>) => string;
 };
 type Row = Record<string, ReportValue>;
 
@@ -34,7 +35,7 @@ export function RowsEditor({ columns, rows, onSave, busy, seed }: {
               <tr key={i}>
                 {columns.map((c) => (
                   <td key={c.key}>
-                    {!onSave ? (
+                    {c.compute ? c.compute(r) : !onSave ? (
                       c.options ? (c.options.find((o) => o.value === r[c.key])?.label ?? String(r[c.key] ?? "—")) : String(r[c.key] ?? "—")
                     ) : c.options ? (
                       <select aria-label={c.ar} className="px-2 py-1.5 rounded-md bg-muted border border-border text-sm"

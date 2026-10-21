@@ -133,7 +133,7 @@ export function ReportsSection() {
           })}
         </>
       )}
-      <CorrectionDialog open={reopening} title={ar ? "إعادة فتح التقرير" : "Reopen report"} onCancel={() => setReopening(false)}
+      <CorrectionDialog open={reopening} title={ar ? "إعادة فتح التقرير" : "Reopen report"} description={ar ? "اكتب سبب إعادة الفتح (10 أحرف على الأقل). تُحفظ النسخة المعتمدة السابقة في السجل." : "Write the reason (at least 10 characters). The previous approved copy is kept in the log."} onCancel={() => setReopening(false)}
         onConfirm={(reason) => { setReopening(false); if (report?.id) act(() => reopen({ data: { reportId: report.id as string, reason } })); }} />
     </div>
   );
