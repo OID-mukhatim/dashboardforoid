@@ -113,6 +113,7 @@ export function PerformanceSection() {
             events={data.events.filter((e) => e.plan_id === plan.id)}
             editor={isEditor}
             admin={isAdmin}
+            users={data.users}
           />
           <ExportTemplateButton
             input={{
@@ -163,6 +164,7 @@ export function PerformanceSection() {
               plan={plan}
               editor={isEditor}
               close={() => setCard(null)}
+              users={data.users}
             />
           )}
         </>

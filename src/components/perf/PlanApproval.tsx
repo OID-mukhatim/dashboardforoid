@@ -23,13 +23,16 @@ export function PlanApproval({
   events,
   editor,
   admin,
+  users = {},
 }: {
   plan: Plan;
   kpis: KPI[];
   events: Event[];
   editor: boolean;
   admin: boolean;
+  users?: Record<string, string>;
 }) {
+  const who = (id: string | null) => (id ? (users[id] ?? id) : "—");
   const { lang } = useLang();
   const t = (k: string) => perfText(k, lang);
   const fn = useServerFn(transitionPerfPlan);
@@ -51,7 +54,7 @@ export function PlanApproval({
           {t("prepared")}: {plan.prepared_by || "—"}
         </span>
         <span className="text-xs text-muted-foreground">
-          {t("approvedBy")}: {plan.approved_by || "—"} ·{" "}
+          {t("approvedBy")}: {who(plan.approved_by)} ·{" "}
           {plan.matrix_approved_at || plan.objectives_approved_at || "—"}
         </span>
       </div>
@@ -121,7 +124,7 @@ export function PlanApproval({
           {events.map((e) => (
             <li key={e.id}>
               {t(e.from_status)} → {t(e.to_status)} · {new Date(e.changed_at).toLocaleString(lang)}{" "}
-              · {e.changed_by}
+              · {who(e.changed_by)}
               <p className="whitespace-pre-wrap">{e.reason}</p>
             </li>
           ))}

@@ -86,6 +86,10 @@ export const TEXT = {
     "Approved matrix — actuals only; definition changes require reopening",
   ],
   differences: ["فروق التعريفات", "Definition changes"],
+  annualStatsLocked: [
+    "التقرير السنوي معتمد — الإحصاءات السنوية في الملف تُعرض كفرق ولن تُطبَّق",
+    "Annual report is approved — file annual statistics are shown as a diff and will not be applied",
+  ],
   before: ["قبل", "Before"],
   after: ["بعد", "After"],
   errors: ["أخطاء تمنع الاعتماد", "Blocking errors"],

@@ -4,7 +4,7 @@ import { parseTemplate } from "./parser";
 import { normalize } from "./dictionary";
 import { definitionDiffs, validateMatrix, mergeActuals } from "./validation";
 import { scorePlan } from "./engine";
-import type { KPI } from "./types";
+import type { KPI, ReportValue } from "./types";
 export async function buildPreview(
   sb: SupabaseClient<Database>,
   userId: string,
@@ -59,10 +59,28 @@ export async function buildPreview(
     .maybeSingle();
   if (planError) throw new Error(planError.message);
   let existing: KPI[] = [];
+  let annualStatsDiff: { before: Record<string, ReportValue>[]; after: Record<string, ReportValue>[] } | null = null;
   if (plan) {
     const { data: rows, error: e } = await sb.from("perf_kpis").select("*").eq("plan_id", plan.id);
     if (e) throw new Error(e.message);
     existing = (rows ?? []) as KPI[];
+    // التقرير السنوي المعتمد يقفل الإحصاءات السنوية: تُعرض كفرق ولا تُطبَّق
+    const { data: annual, error: ae } = await sb
+      .from("perf_reports")
+      .select("status,annual_stats")
+      .eq("plan_id", plan.id)
+      .eq("period", "annual")
+      .maybeSingle();
+    if (ae) throw new Error(ae.message);
+    if (
+      annual?.status === "approved" &&
+      (parsed.period as string) !== "annual" &&
+      parsed.report.annual_stats.length > 0
+    )
+      annualStatsDiff = {
+        before: (annual.annual_stats ?? []) as Record<string, ReportValue>[],
+        after: parsed.report.annual_stats,
+      };
   }
   if (plan?.status === "matrix_approved") {
     const mappings = new Map<string, string>();
@@ -96,6 +114,7 @@ export async function buildPreview(
     warnings: parsed.warnings,
     diffs: plan?.status === "matrix_approved" ? definitionDiffs(existing, parsed.kpis) : [],
     approved: plan?.status === "matrix_approved",
+    annualStatsDiff,
     revision: plan?.updated_at ?? null,
     score: scorePlan(
       plan?.status === "matrix_approved" ? mergeActuals(existing, parsed.kpis) : parsed.kpis,

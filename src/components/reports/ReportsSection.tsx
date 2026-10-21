@@ -82,7 +82,7 @@ export function ReportsSection() {
             <div><span className="text-muted-foreground">{ar ? "الحالة: " : "Status: "}</span>
               <strong data-testid="report-status">{approved ? (ar ? "معتمد" : "Approved") : (ar ? "مسودة" : "Draft")}</strong></div>
             {approved && <div><span className="text-muted-foreground">{ar ? "اعتُمد: " : "Approved: "}</span>
-              {plan.approved_by ?? ""} {report?.approved_at ? new Date(report.approved_at).toLocaleString(ar ? "ar" : "en") : ""}</div>}
+              {report?.approved_by ? (data.users[report.approved_by] ?? report.approved_by) : ""} {report?.approved_at ? new Date(report.approved_at).toLocaleString(ar ? "ar" : "en") : ""}</div>}
           </header>
           {isAdmin && (
             <div className="flex flex-wrap items-center gap-3">

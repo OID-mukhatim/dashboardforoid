@@ -6,10 +6,6 @@ import { optionLabel } from "@/lib/perf/dictionary";
 import type { Lang } from "@/lib/i18n";
 import type { Column } from "./RowsEditor";
 
-const PERSPECTIVE: Record<string, [string, string]> = {
-  S: ["المستفيدون والمجتمع", "Stakeholders"], P: ["العمليات الداخلية", "Internal processes"],
-  L: ["التعلم والنمو", "Learning & growth"], F: ["المالي", "Financial"],
-};
 const pct = (v: number | null | undefined) => (typeof v === "number" ? `${formatNumber(v)}%` : "—");
 const none = (lang: Lang) => <p className="text-sm text-muted-foreground">{lang === "ar" ? "لا توجد بيانات للفترة" : "No data for this period"}</p>;
 
@@ -62,7 +58,7 @@ export function KpiResultView({ data, lang }: { data: ReportSnapshot["kpi"]; lan
         </tr></thead>
         <tbody>{data.perspectives.map((p) => (
           <tr key={p.id}>
-            <td>{PERSPECTIVE[p.id]?.[ar ? 0 : 1] ?? p.id}</td><td className="tabular-nums">{formatNumber(p.weight)}</td>
+            <td>{optionLabel("perspective", p.id, lang)}</td><td className="tabular-nums">{formatNumber(p.weight)}</td>
             <td className="tabular-nums">{pct(p.pct)}</td><td className="tabular-nums">{typeof p.weighted === "number" ? formatNumber(p.weighted) : "—"}</td>
             <td>{p.rating ? optionLabel("rating", p.rating, lang) : "—"}</td>
             {toDate && <td className="tabular-nums">{pct(p.annualPct)}</td>}

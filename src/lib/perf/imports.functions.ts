@@ -49,7 +49,13 @@ export const loadPerfData = createServerFn({ method: "GET" })
     ]);
     for (const r of [plans, kpis, activities, reports, active, events])
       if (r.error) throw new Error(r.error.message);
+    // بريد المستخدمين لعرض أسماء المعتمدين بدل أرقام الحسابات
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: users } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+    const emails: Record<string, string> = {};
+    for (const u of users?.users ?? []) emails[u.id] = u.email ?? u.id;
     return {
+      users: emails,
       plans: (plans.data ?? []) as Plan[],
       kpis: (kpis.data ?? []) as KPI[],
       activities: ((activities.data ?? []) as Activity[]).map(a => ({ ...a, kpi_code: linkedCode(a, (kpis.data ?? []) as KPI[]) })),

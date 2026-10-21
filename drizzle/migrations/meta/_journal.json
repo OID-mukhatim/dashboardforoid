@@ -92,6 +92,13 @@
       "when": 1792566247186,
       "tag": "0012_perf_locks_allow_plan_cascade",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792568354431,
+      "tag": "0013_perf_import_annual_stats_to_annual_report",
+      "breakpoints": true
     }
   ]
 }

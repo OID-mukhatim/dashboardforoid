@@ -16,7 +16,11 @@ export const loadReportExtras = createServerFn({ method: "GET" })
       sb.from("perf_corrections").select("*").order("changed_at", { ascending: false }),
     ]);
     for (const r of [ini, ev, cor]) if (r.error) throw new Error(r.error.message);
-    return { initiatives: ini.data ?? [], events: ev.data ?? [], corrections: cor.data ?? [] };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: users } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+    const emails: Record<string, string> = {};
+    for (const u of users?.users ?? []) emails[u.id] = u.email ?? u.id;
+    return { initiatives: ini.data ?? [], events: ev.data ?? [], corrections: cor.data ?? [], users: emails };
   });
 
 export const saveReportContent = createServerFn({ method: "POST" })
