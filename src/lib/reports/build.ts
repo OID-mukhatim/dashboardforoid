@@ -1,5 +1,5 @@
-import { scorePlan, operationalSummary, annualResult, toDateResult, rating } from "@/lib/perf/engine";
-import type { Activity, KPI, Plan, Quarter, Report, ReportValue } from "@/lib/perf/types";
+import { scorePlan, operationalSummary, annualResult, toDateResult, rating } from "../perf/engine";
+import type { Activity, KPI, Plan, Quarter, Report, ReportValue } from "../perf/types";
 
 export type ReportPeriod = Quarter | "annual";
 export const REPORT_PERIODS: ReportPeriod[] = ["Q1", "Q2", "Q3", "Q4", "annual"];

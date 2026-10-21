@@ -85,6 +85,13 @@
       "when": 1792498535866,
       "tag": "0011_phase3a_reports_corrections_initiative_orgs",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792566247186,
+      "tag": "0012_perf_locks_allow_plan_cascade",
+      "breakpoints": true
     }
   ]
 }

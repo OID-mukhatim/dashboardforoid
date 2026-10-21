@@ -1,4 +1,4 @@
-import type { Quarter } from "@/lib/perf/types";
+import type { Quarter } from "../perf/types";
 import type { ReportPeriod } from "./build";
 
 type PlanLite = { id: string; org_id: string; plan_year: number; fiscal_type: string };

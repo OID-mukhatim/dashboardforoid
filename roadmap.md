@@ -23,3 +23,4 @@
 - [x] Audit log (table, trigger on 23 tables, admin change-log screen).
 - [x] Organizations table as single source; admin manage screen with archive/restore.
 - [x] One link per section under the shared frame; "/" → /dashboard; admin pages guarded.
+- [x] Phase 3a: activities log at /activities (/quarterly redirects), old quarterly data/code removed, initiatives org_ids, report approval/freeze/corrections/reopen, /reports registry, composite KPI from approved reports, report alerts, tests and ZF 2099 journey.
