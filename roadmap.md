@@ -1,7 +1,8 @@
 # Tasks
+- [ ] Report presentation: period planned/achieved, recorded-only governance exports, two-decimal formatting, numeric narrative storage and verification.
 - [x] Use the requesting user's mukhatim2@gmail.com account for the remaining acceptance journey without changing its permissions.
 - [x] Approved repair scope: stable KPI identifiers, transactional contiguous numbering, formula approval metadata, strict XML export, database/round-trip acceptance tests and deliverables.
-- [ ] Read-only account refusal acceptance: requires user authorization to test a viewer account; requested mukhatim2@gmail.com is admin and its permissions must not be changed for testing.
+- [x] Read-only account refusal acceptance deferred by the user until accounts are created; not a completion blocker.
 - [x] Share a current fast, low-cost AI model between formula suggestions and content translation; verify live translation and cache through the authenticated app, and a live Arabic formula suggestion.
 - [x] Phase 2: approval events, database field locks and authenticated editor actions; preserve engine results.
 - [x] Phase 2: editable matrix, quarterly actuals, indicator drawer with individual formula proposal/approval, and activities.
