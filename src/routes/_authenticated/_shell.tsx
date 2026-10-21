@@ -3,7 +3,7 @@ import { OrgsGate } from "@/lib/use-organizations";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, TrendingUp, Building, Rocket, Upload, Download, FileBarChart, LogOut, Shield, Building2, Languages } from "lucide-react";
+import { Target, Handshake, Home, FileText, Radar as RadarIcon, Landmark, Wallet, TrendingUp, Building, Rocket, Upload, Download, FileBarChart, LogOut, Shield, Building2, Languages, ListChecks } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import type { Lang } from "@/lib/i18n";
 import { generateExecutiveReport } from "@/lib/oid-report-generator";
