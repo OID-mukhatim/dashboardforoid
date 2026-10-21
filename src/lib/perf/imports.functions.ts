@@ -32,7 +32,15 @@ export const approvePerfImport = createServerFn({ method: "POST" })
       p_allow_definitions: data.allowDefinitions,
       p_revision: data.revision as any,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      // A rejection after the annual report is approved means the whole year is closed.
+      const { data: plan } = await context.supabase.from("perf_plans").select("id").eq("org_id", result.org.id).eq("plan_year", data.year).maybeSingle();
+      if (plan) {
+        const { data: annual } = await context.supabase.from("perf_reports").select("id").eq("plan_id", plan.id).eq("period", "annual").eq("status", "approved").maybeSingle();
+        if (annual) throw new Error(YEAR_CLOSED_MESSAGE);
+      }
+      throw new Error(error.message);
+    }
     return { planId: id, orgId: result.org.id, year: data.year };
   });
 export const loadPerfData = createServerFn({ method: "GET" })
