@@ -6,11 +6,10 @@ import { COLORS, FONTS, SIZES, OFFICE_AR, OFFICE_EN, DRAFT_MARK, EMPTY_SECTION, 
 import type { Cell, ReportDocument } from "./types";
 
 const pt = (n: number) => n * 2; // docx sizes are half-points
-const run = (text: string, o: { size?: number; bold?: boolean; color?: string; heading?: boolean } = {}) =>
-  new TextRun({ text, rightToLeft: true, bold: o.bold, color: o.color, size: pt(o.size ?? SIZES.data), font: o.heading ? FONTS.heading : FONTS.body });
-const lines = (text: string, o: Parameters<typeof run>[1]) =>
-  text.split("\n").map((l, i) => new TextRun({ ...((run(l, o) as unknown as { options?: object }).options ?? {}), text: l, rightToLeft: true, bold: o?.bold, color: o?.color, size: pt(o?.size ?? SIZES.data), font: o?.heading ? FONTS.heading : FONTS.body, break: i ? 1 : undefined }));
-const para = (text: string, o: Parameters<typeof run>[1] & { shade?: string; align?: (typeof AlignmentType)[keyof typeof AlignmentType] } = {}) =>
+type RunOpts = { size?: number; bold?: boolean; color?: string; heading?: boolean };
+const lines = (text: string, o: RunOpts = {}) =>
+  text.split("\n").map((l, i) => new TextRun({ text: l, rightToLeft: true, bold: o.bold, color: o.color, size: pt(o.size ?? SIZES.data), font: o.heading ? FONTS.heading : FONTS.body, break: i ? 1 : undefined }));
+const para = (text: string, o: RunOpts & { shade?: string; align?: (typeof AlignmentType)[keyof typeof AlignmentType] } = {}) =>
   new Paragraph({
     bidirectional: true,
     alignment: o.align ?? AlignmentType.RIGHT,
