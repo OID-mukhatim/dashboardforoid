@@ -166,7 +166,7 @@ export function InitiativesSection() {
                       <div className="flex flex-wrap gap-1 text-[10px] mb-2">
                          {i.domain && <span className="px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={i.domain} /></span>}
                          {i.timeline && <span className="px-1.5 py-0.5 rounded bg-muted"><TranslatableText text={i.timeline} /></span>}
-                         {i.orgs?.slice(0,3).map((o, idx) => {
+                         {(i.org_ids ?? []).slice(0,3).map((o, idx) => {
                            const org = ORGS.find((item) => item.id === o);
                            return <span key={idx} className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">{org ? (lang === "ar" ? org.nameAr : org.nameEn) : <TranslatableText text={o} />}</span>;
                          })}
@@ -226,7 +226,7 @@ function InitiativeFormDialog({
   const [domain, setDomain] = useState("");
   const [objective, setObjective] = useState("");
   const [gap, setGap] = useState("");
-  const [orgsStr, setOrgsStr] = useState("");
+  const [orgIds, setOrgIds] = useState<string[]>([]);
   const [timeline, setTimeline] = useState("");
   const [cost, setCost] = useState("");
   const [notes, setNotes] = useState("");
@@ -242,7 +242,7 @@ function InitiativeFormDialog({
     setDomain(editing?.domain ?? "");
     setObjective(editing?.objective ?? "");
     setGap(editing?.gap ?? "");
-    setOrgsStr((editing?.orgs ?? []).join("، "));
+    setOrgIds(editing?.org_ids ?? []);
     setTimeline(editing?.timeline ?? "");
     setCost(editing?.cost ?? "");
     setNotes(editing?.notes ?? "");
@@ -251,7 +251,6 @@ function InitiativeFormDialog({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) { toast.error(t("initiatives.titleRequired")); return; }
-    const orgs = orgsStr.split(/[،,]/).map(s => s.trim()).filter(Boolean);
     onSave({
       ...(editing?.id ? { id: editing.id } : {}),
       title: title.trim(),
@@ -261,7 +260,7 @@ function InitiativeFormDialog({
       domain: domain.trim() || null,
       objective: objective.trim() || null,
       gap: gap.trim() || null,
-      orgs,
+      org_ids: orgIds,
       timeline: timeline.trim() || null,
       cost: cost.trim() || null,
       notes: notes.trim() || null,
@@ -313,7 +312,15 @@ function InitiativeFormDialog({
           </div>
           <div>
              <Label>{t("initiatives.targetOrgs")}</Label>
-             <Input value={orgsStr} onChange={(e) => setOrgsStr(e.target.value)} placeholder={t("initiatives.orgsPlaceholder")} />
+             <div className="grid grid-cols-2 gap-1 mt-1" role="group" aria-label={t("initiatives.targetOrgs")}>
+               {ORGS.map((o) => (
+                 <label key={o.id} className="flex items-center gap-2 text-sm">
+                   <input type="checkbox" checked={orgIds.includes(o.id)}
+                     onChange={(e) => setOrgIds((cur) => e.target.checked ? [...cur, o.id] : cur.filter((x) => x !== o.id))} />
+                   {lang === "ar" ? o.nameAr : o.nameEn}
+                 </label>
+               ))}
+             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
