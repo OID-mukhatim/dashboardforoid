@@ -1,6 +1,6 @@
 /**
  * المحور الأول: محرك الحساب المركّب (Composite Maturity Score)
- * يجمع مؤقتاً 3 مصادر بنسبة 35:25:15؛ المؤشرات محفوظة للعرض فقط بوزن صفر.
+ * يجمع 4 مصادر بنسبة 35:25:25:15؛ المؤشرات من آخر تقرير معتمد.
  *
  * قاعدة البيانات هي المصدر الوحيد للأرقام: كل المدخلات تأتي حية من
  * loadDashboardSnapshot (gap_scores / governance_policies / kpis /
@@ -33,7 +33,7 @@ export type InstitutionProfile = {
   maturityColor: string | null;
 };
 
-const WEIGHTS = { gap: 35 / 75, gov: 25 / 75, kpi: 0, fin: 15 / 75 };
+const WEIGHTS = { gap: 0.35, gov: 0.25, kpi: 0.25, fin: 0.15 };
 
 export type LiveInputs = {
   gapAvg?: number | null;
@@ -59,7 +59,6 @@ export function computeProfileFromLive(orgId: OrgId, live: LiveInputs): Institut
     { source: "financial", label: "الإدارة المالية", weight: WEIGHTS.fin, score: fin, state: inferState(fin) },
   ];
 
-  // المؤشرات مستبعدة مؤقتاً؛ الأوزان الباقية موزعة نسبياً مع الحفاظ على معالجة المصادر الغائبة.
   const core = components.filter((c) => c.weight > 0 && c.state === "achieved" && c.score !== null);
   const totalWeight = core.reduce((s, c) => s + c.weight, 0);
   const composite =

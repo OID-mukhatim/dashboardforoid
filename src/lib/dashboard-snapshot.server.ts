@@ -204,9 +204,27 @@ export async function readDashboardSnapshot(
     .order("created_at", { ascending: false })
     .limit(1);
 
+  // 4) KPI component: snapshot of the latest approved report in each org's active year
+  const { kpiComponent } = await import("./reports/integration");
+  const [plansRes, reportsRes, activeRes] = await Promise.all([
+    sb.from("perf_plans").select("id, org_id, plan_year, fiscal_type"),
+    sb.from("perf_reports").select("plan_id, period, status, approved_at, snapshot").eq("status", "approved"),
+    sb.from("org_active_years").select("org_id, active_year"),
+  ]);
+  const activeYear = Object.fromEntries((activeRes.data ?? []).map((r) => [r.org_id, r.active_year]));
+  const kpi: Record<string, LiveKpiEntry> = {};
+  for (const code of VALID_ORGS) {
+    const plan = (plansRes.data ?? []).find((p) => p.org_id === code && p.plan_year === activeYear[code]);
+    const c = kpiComponent((reportsRes.data ?? []) as never, plan);
+    if (!c) continue;
+    kpi[code] = { weightedAvgPct: c.score * 20, weightedAvgScore: c.score, count: 1 };
+    const label = c.period === "annual" ? "السنوي" : c.period;
+    matrix[code].sources.kpi = { label: `تقرير ${label} المعتمد — ${c.approvedAt?.slice(0, 10) ?? ""}`, updatedAt: c.approvedAt };
+  }
+
   const snap: DashboardSnapshot = {
     matrix,
-    kpi: null,
+    kpi,
     totals: {
       kpisCount: 0,
       orgsWithKpis: 0,
