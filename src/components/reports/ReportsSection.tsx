@@ -15,6 +15,8 @@ import { RowsEditor } from "./RowsEditor";
 import { COLUMNS } from "./sections";
 import { CorrectionDialog } from "./CorrectionDialog";
 import { usePlanSelection } from "./usePlanSelection";
+import { ExportMenu } from "@/components/export/ExportMenu";
+import { buildComprehensiveDoc } from "@/lib/export/reports/comprehensive";
 
 export function ReportsSection() {
   const { data } = useSuspenseQuery(perfQueryOptions);
@@ -62,7 +64,17 @@ export function ReportsSection() {
   const kpiOptions = kpis.filter((k) => k.id).map((k) => ({ value: k.id as string, label: `${k.code} · ${k.name}` }));
   return (
     <div dir={dir} className="space-y-6">
-      <SectionTitle title={t("nav.reports")} />
+      <SectionTitle title={t("nav.reports")} action={plan && org ? (
+        <ExportMenu
+          periods={{ value: period, options: REPORT_PERIODS.map((p) => ({ value: p, label: p === "annual" ? (ar ? "سنوي" : "Annual") : p })) }}
+          build={({ period: p }) => {
+            const per = p as ReportPeriod;
+            const rep = data.reports.find((r) => r.plan_id === plan.id && r.period === per);
+            const liveDoc = buildReportSections({ plan, kpis, report: rep, period: per, activities: data.activities.filter((a) => a.plan_id === plan.id), initiatives: (extras.data?.initiatives ?? []) as InitiativeLite[] });
+            return buildComprehensiveDoc({ plan, period: per, report: rep, live: liveDoc, org: { id: org.id, nameAr: org.nameAr }, yearLabel: sel.yearLabel(plan.plan_year), users: data.users,
+              kpiNames: Object.fromEntries(kpis.filter((k) => k.id).map((k) => [k.id as string, `${k.code} · ${k.name}`])) });
+          }}
+        />) : undefined} />
       <div className="flex flex-wrap gap-3">
         <FilterSelect label={ar ? "المؤسسة" : "Institution"} value={sel.orgId} onChange={sel.setOrg}
           options={ORGS.map((o) => ({ value: o.id, label: ar ? o.nameAr : o.nameEn }))} />
