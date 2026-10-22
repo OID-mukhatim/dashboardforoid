@@ -1,5 +1,5 @@
 # Tasks
-- [ ] Report presentation: period planned/achieved, recorded-only governance exports, two-decimal formatting, numeric narrative storage and verification.
+- [x] Report presentation: period planned/achieved, recorded-only governance exports, two-decimal formatting, numeric narrative storage; 92 focused tests + 6 authenticated database acceptance tests and live PDF/Word/Excel journey passed, temporary plan removed.
 - [x] Use the requesting user's mukhatim2@gmail.com account for the remaining acceptance journey without changing its permissions.
 - [x] Approved repair scope: stable KPI identifiers, transactional contiguous numbering, formula approval metadata, strict XML export, database/round-trip acceptance tests and deliverables.
 - [x] Read-only account refusal acceptance deferred by the user until accounts are created; not a completion blocker.
