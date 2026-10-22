@@ -98,10 +98,11 @@ export function GovernanceSection() {
   return (
     <div className="space-y-6">
       <SectionTitle title={t("governance.title")} subtitle={t("governance.subtitle")} action={
-        <ExportMenu org={{ value: "ALL", allowAll: true }} build={({ org }) => {
+        <ExportMenu org={{ value: "ALL", allowAll: true }} build={async ({ org }) => {
+          const recorded = new Map((await loadPolicies()).map((p) => [`${p.policy_id}__${p.org_id}`, p.status as PolicyStatus]));
           const orgs = ORGS.filter((o) => org === "ALL" || o.id === org);
           return buildGovernanceDoc({
-            orgs, orgCode: org, status: (pid, oid) => livePoliciesMap.get(`${pid}__${oid}`),
+            orgs, orgCode: org, status: (pid, oid) => recorded.get(`${pid}__${oid}`),
             scores: Object.fromEntries(governanceScores.map((g) => [g.id, g.govScore])),
             categories: [
               { ar: "السياسات العامة", en: "General policies", policies: generalPolicies },

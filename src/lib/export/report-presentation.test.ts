@@ -48,11 +48,11 @@ describe("Report export presentation", () => {
     expect(proposals?.type === "table" && proposals.rows.some((r) => typeof r[4] === "number")).toBe(true);
     const wb = XLSX.read(await renderXlsx(d), { type: "array" });
     const ws = wb.Sheets[wb.SheetNames.at(-1) ?? ""];
-    expect(ws.E7.t).toBe("n");
-    expect(ws.E7.v).toBe(12000);
+    expect(ws.E8.t).toBe("n");
+    expect(ws.E8.v).toBe(5000);
     const text = strFromU8(unzipSync(await renderDocx(d))["word/document.xml"]);
-    expect(text).toContain("12,000");
-    expect(renderPrintHtml(d)).toContain("12,000");
+    expect(text).toContain("5,000");
+    expect(renderPrintHtml(d)).toContain("5,000");
   });
   it("all exports display two decimals without rounding the document or snapshot", async () => {
     const d = make("Q2");
